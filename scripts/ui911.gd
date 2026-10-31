@@ -85,11 +85,11 @@ func _activate(action: String, target: String) -> void:
   "inventory":
    host.call("_toggle")
   "sort":
-   host.store.sort_items()
+   host.get("store").call("sort_items")
   "equip":
-   host.store.equip_selected()
+   host.get("store").call("equip_selected")
   "save":
-   host.store.save_data()
+   host.get("store").call("save_data")
   "page":
    if pages.has(target):
     var panel: Control = pages[target]
