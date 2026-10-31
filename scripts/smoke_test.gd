@@ -55,12 +55,29 @@ func _validate_game() -> void:
     if side_row == null or side_row.get_child_count() != 2:
         _fail("Fashion mask and cape must sit alongside fashion weapons")
         return
+    var stage: Control = inventory.get("stage")
+    if stage == null or stage.get_child_count() == 0:
+        _fail("Approved full-frame UI art layer missing")
+        return
+    var frame_art: TextureRect = stage.get_child(0) as TextureRect
+    if frame_art == null or frame_art.texture == null:
+        _fail("Approved inventory frame PNG not loaded as first layer")
+        return
+    if not str(frame_art.texture.resource_path).ends_with("ornate_blue_gold_inventory_ui_frame.png"):
+        _fail("Must use the exact approved full-frame PNG")
+        return
+    if frame_art.size != Vector2(1448,1086):
+        _fail("Approved 1448x1086 PNG must not be cropped or distorted")
+        return
+    if bag_grid.position.distance_to(Vector2(678,268)) > 1.0 or bag_grid.columns != 10:
+        _fail("Bag grid does not align to pre-drawn PNG slots")
+        return
     for slot_control in bag_grid.get_children():
         if not (slot_control is TextureButton):
-            _fail("Bag must have PNG TextureButton slots without text labels")
+            _fail("Bag must have clickable image-only TextureButton slots")
             return
-        if slot_control.texture_normal == null:
-            _fail("Bag PNG texture not loaded")
+        if not slot_control.disabled and slot_control.texture_normal == null and slot_control.texture_hover == null:
+            _fail("Clickable slots must have an approved PNG hover texture")
             return
     for slot_control in clothing_row.get_children():
         if not (slot_control is TextureButton):
@@ -117,5 +134,5 @@ func _validate_game() -> void:
     if bag_grid.get_child_count() != 50:
         _fail("Fourth bag page should show 50 slots")
         return
-    print("LEOONLINE SMOKE TEST PASSED: layered image-only PNG slots, 5 fashion clothing, mask/cape, hover details, Thai localization, save/equip, 200-slot bag")
+    print("LEOONLINE SMOKE TEST PASSED: approved full-frame PNG aligned, no overlapping panels, 50 clickable slots, 5 fashion clothing, mask/cape, hover details, Thai localization, equip, 200-slot bag")
     quit(0)
