@@ -1,0 +1,41 @@
+name: Generate independent inventory PNG assets
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/**'
+      - 'scripts/*.zlib.b64'
+      - '.github/workflows/generate-inventory-assets.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: write
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Install image renderer
+        run: python3 -m pip install --user Pillow
+      - name: Paint individual PNGs and restore Godot script
+        run: python3 tools/prepare_inventory_assets.py
+      - name: Commit generated PNG assets and readable source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/generate_inventory_assets.py scripts/inventory_ui.gd assets/ui/inventory/
+          if ! git diff --cached --quiet; then
+            git commit -m "ui: add independently generated fantasy inventory PNGs"
+            git fetch origin main
+            git rebase origin/main
+            git push origin HEAD:main
+          fi
+      - name: Request updated web preview
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run publish-pages.yml --ref main
