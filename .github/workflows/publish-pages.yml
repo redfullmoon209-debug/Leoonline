@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - '.github/workflows/publish-pages.yml'
+      - '911/**'
 permissions:
   contents: read
   pages: write
@@ -35,6 +36,9 @@ jobs:
           mkdir -p build/web
           ./Godot_v4.4.1-stable_linux.x86_64 --headless --path . --export-release Web build/web/index.html
           test -s build/web/index.html
+          mkdir -p build/web/911
+          cp 911/index.html 911/manifest.webmanifest 911/icon.svg 911/sw.js build/web/911/
+          test -s build/web/911/manifest.webmanifest
       - name: Upload static site
         uses: actions/upload-pages-artifact@v3
         with:
