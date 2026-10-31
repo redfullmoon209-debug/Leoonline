@@ -205,6 +205,15 @@ def icon(name,what,color=GOLD, glow_color=None):
         polygon(d,[(15,24),(24,15),(76,74),(70,81)],fill,edge,2)
         polygon(d,[(80,24),(71,15),(20,74),(26,81)],fill,edge,2)
         line(d,[(16,61),(36,78)],edge,3);line(d,[(78,61),(58,78)],edge,3)
+    elif what=='mask':
+        polygon(d,[(18,35),(26,28),(44,31),(49,36),(55,31),(72,28),(79,35),(74,64),(60,72),(49,66),(38,72),(23,64)],fill,edge,3)
+        polygon(d,[(27,43),(41,42),(45,49),(35,52)],(7,22,47,255),rgba(CYAN_LIGHT),1)
+        polygon(d,[(54,49),(59,42),(72,43),(64,52)],(7,22,47,255),rgba(CYAN_LIGHT),1)
+        diamond(d,49,38,6,rgba(CYAN_LIGHT),edge,1)
+    elif what=='cape':
+        polygon(d,[(34,18),(62,18),(76,77),(56,69),(48,83),(39,69),(19,77)],fill,edge,3)
+        polygon(d,[(41,30),(55,30),(63,63),(49,57),(36,64)],rgba((28,92,164),235),rgba(CYAN_LIGHT,190),1)
+        diamond(d,48,21,8,rgba(CYAN_LIGHT),edge,2)
     elif what=='pet':
         ell(d,(28,47,68,77),fill=fill,outline=edge,width=2)
         for x,y in [(20,39),(38,27),(58,27),(76,39)]:ell(d,(x-8,y-10,x+8,y+6),fill=fill,outline=edge,width=2)
@@ -306,7 +315,7 @@ def generate():
       'weapon_right':'sword','weapon_left':'double_sword',
       'fashion_weapon_right':'fashion_sword','fashion_weapon_left':'double_sword',
       'pet':'pet','mount':'mount','bracelet':'bracelet','ring':'ring','necklace':'necklace',
-      'fashion':'sparkle','lock':'lock','gold':'gold','blue':'blue','purple':'purple','green':'green',
+      'fashion':'sparkle','fashion_mask':'mask','fashion_cape':'cape','mask':'mask','cape':'cape','lock':'lock','gold':'gold','blue':'blue','purple':'purple','green':'green',
       'sword':'sword','boots':'shoes','potion':'potion','scroll':'scroll','wood':'wood',
       'fashion_blade':'fashion_sword','fashion_dagger':'double_sword',
     }
