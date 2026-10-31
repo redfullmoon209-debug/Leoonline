@@ -158,53 +158,75 @@ func _text(label: String,parent: Node,sz: int=16) -> Label:
 func _make_ui() -> void:
  hud = CanvasLayer.new()
  add_child(hud)
- var controls := _text("LEOONLINE | WASD move  Shift run  Space jump  E loot  B bag",hud,21)
- controls.position = Vector2(22,20)
+ var controls := _text("LEOONLINE  |  WASD Move   SHIFT Run   SPACE Jump   E Loot   B Inventory",hud,16)
+ controls.position = Vector2(18,12)
  inventory = PanelContainer.new()
  inventory.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
- inventory.add_theme_stylebox_override("panel",_style("#071b39","#63c8f5"))
+ inventory.add_theme_stylebox_override("panel",_style("#06172f","#e1b65b"))
  hud.add_child(inventory)
  var outer := VBoxContainer.new()
+ outer.add_theme_constant_override("separation",12)
  inventory.add_child(outer)
- _text("✦  LEOONLINE  /  INVENTORY",outer,28)
+ var heading := _text("✦  LEOONLINE   /   INVENTORY",outer,27)
+ heading.add_theme_color_override("font_color",Color("#f7d48c"))
+ var separator := HSeparator.new()
+ outer.add_child(separator)
  var horizontal := HBoxContainer.new()
+ horizontal.add_theme_constant_override("separation",18)
  horizontal.size_flags_vertical = Control.SIZE_EXPAND_FILL
  outer.add_child(horizontal)
  var left := VBoxContainer.new()
+ left.custom_minimum_size.x = 350
  left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ left.add_theme_constant_override("separation",9)
  horizontal.add_child(left)
- _text("EQUIPMENT",left,22)
+ var equip_title := _text("✦  EQUIPMENT",left,22)
+ equip_title.add_theme_color_override("font_color",Color("#f7d48c"))
  equip_grid = GridContainer.new()
  equip_grid.columns = 2
+ equip_grid.add_theme_constant_override("h_separation",8)
+ equip_grid.add_theme_constant_override("v_separation",8)
  left.add_child(equip_grid)
- _text("Inventory: weapons > armor > other items",left,15)
+ var tip := _text("WEAPONS  ›  ARMOR  ›  OTHER ITEMS",left,13)
+ tip.add_theme_color_override("font_color",Color("#89c9e8"))
  var right := VBoxContainer.new()
  right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ right.add_theme_constant_override("separation",9)
  horizontal.add_child(right)
  capacity_label = _text("BAG 40 / 200",right,22)
+ capacity_label.add_theme_color_override("font_color",Color("#f7d48c"))
  grid = GridContainer.new()
  grid.columns = 10
+ grid.add_theme_constant_override("h_separation",5)
+ grid.add_theme_constant_override("v_separation",5)
  grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
  right.add_child(grid)
  var nav := HBoxContainer.new()
+ nav.alignment = BoxContainer.ALIGNMENT_CENTER
+ nav.add_theme_constant_override("separation",8)
  right.add_child(nav)
- _button("<<",func(): page=0; _refresh(),nav)
- _button("<",func(): page=maxi(0,page-1); _refresh(),nav)
- page_label = _text("PAGE 1 / 4",nav,18)
- _button(">",func(): page=mini(3,page+1); _refresh(),nav)
- _button(">>",func(): page=3; _refresh(),nav)
+ _button("≪",func(): page=0; _refresh(),nav)
+ _button("‹",func(): page=maxi(0,page-1); _refresh(),nav)
+ page_label = _text("PAGE 1 / 4",nav,17)
+ _button("›",func(): page=mini(3,page+1); _refresh(),nav)
+ _button("≫",func(): page=3; _refresh(),nav)
+ var separator2 := HSeparator.new()
+ outer.add_child(separator2)
  var toolbar := HBoxContainer.new()
+ toolbar.add_theme_constant_override("separation",18)
  outer.add_child(toolbar)
  money_box = VBoxContainer.new()
  money_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
  toolbar.add_child(money_box)
- var actions := VBoxContainer.new()
+ var actions := HBoxContainer.new()
+ actions.add_theme_constant_override("separation",8)
  toolbar.add_child(actions)
- _button("AUTO SORT",func(): store.sort_items(),actions)
- _button("EQUIP SELECTED",func(): store.equip_selected(),actions)
- _button("BAG +10 SCROLL",func(): store.use_scroll(),actions)
- _button("TRASH SELECTED",func(): trash_dialog.popup_centered(),actions)
+ _button("⟳ AUTO SORT",func(): store.sort_items(),actions)
+ _button("EQUIP",func(): store.equip_selected(),actions)
+ _button("+10 SLOTS",func(): store.use_scroll(),actions)
+ _button("TRASH",func(): trash_dialog.popup_centered(),actions)
  var footer := HBoxContainer.new()
+ footer.add_theme_constant_override("separation",10)
  outer.add_child(footer)
  _button("+ DEMO ITEMS",func(): _starter(),footer)
  _button("SAVE",func(): store.save_data(); _notice("Saved"),footer)
@@ -235,9 +257,9 @@ func _refresh() -> void:
   var abs_idx := page*50+idx
   var locked: bool = abs_idx >= store.unlocked
   var item: String = store.slots[abs_idx]
-  var title: String = "🔒" if locked else (str(abs_idx+1) if item == "" else str(StoreScript.DATA.get(item,{}).get("name",item)))
+  var title: String = "LOCK" if locked else (str(abs_idx+1) if item == "" else str(StoreScript.DATA.get(item,{}).get("name",item)))
   var slot := _button(title,func(index=abs_idx): store.choose(index),grid)
-  slot.custom_minimum_size = Vector2(73,68)
+  slot.custom_minimum_size = Vector2(62,62)
   slot.disabled = locked
   if abs_idx == store.selected:
    slot.add_theme_stylebox_override("normal",_style("#294f81","#f7c96a"))
@@ -247,11 +269,12 @@ func _refresh() -> void:
   var title: String = String(key).replace("_"," ").capitalize()
   var value: String = store.equipped.get(key,"")
   var b := _button(title+"\n"+(value if value!="" else "[EMPTY]"),func(k=key): store.unequip(k),equip_grid)
-  b.custom_minimum_size = Vector2(160,47)
+  b.custom_minimum_size = Vector2(150,47)
  for child in money_box.get_children():
   child.queue_free()
  for key in ["gold","blue","purple","green"]:
-  _text(key.to_upper()+": "+store.pretty(store.currency[key]),money_box,14)
+   var money_line := _text("◆  "+key.to_upper()+"   "+store.pretty(store.currency[key]),money_box,15)
+  money_line.add_theme_color_override("font_color",Color("#f7d48c"))
  page_label.text = "PAGE "+str(page+1)+" / 4"
  capacity_label.text = "BAG "+str(store.unlocked)+" / 200"
 
