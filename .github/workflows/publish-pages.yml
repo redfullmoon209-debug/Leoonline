@@ -28,7 +28,10 @@ jobs:
           unzip -j -q templates.tpz 'templates/*' -d "$HOME/.local/share/godot/export_templates/4.4.1.stable"
       - name: Export site
         run: |
-          ./Godot_v4.4.1-stable_linux.x86_64 --headless --path . --editor --import --quit
+          ./Godot_v4.4.1-stable_linux.x86_64 --headless --path . --editor --import --quit 2>&1 | tee import.log
+          if grep -E '(SCRIPT ERROR:|ERROR:|Parse Error:|Failed to load script)' import.log; then exit 1; fi
+          ./Godot_v4.4.1-stable_linux.x86_64 --headless --path . --script res://scripts/smoke_test.gd 2>&1 | tee smoke.log
+          if grep -E '(SCRIPT ERROR:|ERROR:|Parse Error:|Failed to load script)' smoke.log; then exit 1; fi
           mkdir -p build/web
           ./Godot_v4.4.1-stable_linux.x86_64 --headless --path . --export-release Web build/web/index.html
           test -s build/web/index.html

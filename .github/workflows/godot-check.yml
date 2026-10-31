@@ -12,7 +12,15 @@ jobs:
           curl -fL https://github.com/godotengine/godot-builds/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip -o godot.zip
           unzip -q godot.zip
           chmod +x Godot_v4.4.1-stable_linux.x86_64
-      - name: Import project
-        run: ./Godot_v4.4.1-stable_linux.x86_64 --headless --path . --editor --import --quit
-      - name: Validate scripts
-        run: ./Godot_v4.4.1-stable_linux.x86_64 --headless --path . --quit-after 60
+      - name: Import project and fail on Godot errors
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./Godot_v4.4.1-stable_linux.x86_64 --headless --path . --editor --import --quit 2>&1 | tee import.log
+          if grep -E '(SCRIPT ERROR:|ERROR:|Parse Error:|Failed to load script)' import.log; then exit 1; fi
+      - name: Smoke test playable scene
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./Godot_v4.4.1-stable_linux.x86_64 --headless --path . --script res://scripts/smoke_test.gd 2>&1 | tee smoke.log
+          if grep -E '(SCRIPT ERROR:|ERROR:|Parse Error:|Failed to load script)' smoke.log; then exit 1; fi

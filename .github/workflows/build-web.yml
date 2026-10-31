@@ -19,8 +19,14 @@ jobs:
           curl -fL --retry 3 https://github.com/godotengine/godot-builds/releases/download/4.4.1-stable/Godot_v4.4.1-stable_export_templates.tpz -o export_templates.tpz
           mkdir -p "$HOME/.local/share/godot/export_templates/4.4.1.stable"
           unzip -j -q export_templates.tpz 'templates/*' -d "$HOME/.local/share/godot/export_templates/4.4.1.stable"
-      - name: Import project
-        run: ./Godot_v4.4.1-stable_linux.x86_64 --headless --path . --editor --import --quit
+      - name: Import project and validate main scene
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./Godot_v4.4.1-stable_linux.x86_64 --headless --path . --editor --import --quit 2>&1 | tee import.log
+          if grep -E '(SCRIPT ERROR:|ERROR:|Parse Error:|Failed to load script)' import.log; then exit 1; fi
+          ./Godot_v4.4.1-stable_linux.x86_64 --headless --path . --script res://scripts/smoke_test.gd 2>&1 | tee smoke.log
+          if grep -E '(SCRIPT ERROR:|ERROR:|Parse Error:|Failed to load script)' smoke.log; then exit 1; fi
       - name: Export browser version
         run: |
           mkdir -p build/web
