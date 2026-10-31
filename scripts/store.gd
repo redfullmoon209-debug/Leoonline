@@ -9,9 +9,11 @@ const DATA = {
  "boots":{"name":"Blue Boots","kind":"armor","slot":"shoes"},
  "potion":{"name":"HP Potion","kind":"other"},
  "scroll":{"name":"Bag +10 Scroll","kind":"other"},
- "wood":{"name":"Wood","kind":"other"}
+ "wood":{"name":"Wood","kind":"other"},
+ "fashion_blade":{"name":"Moonlight Fashion Sword","kind":"fashion","slot":"fashion_weapon_right"},
+ "fashion_dagger":{"name":"Crystal Fashion Dagger","kind":"fashion","slot":"fashion_weapon_left"}
 }
-const EQUIPMENT = ["hat","shirt","gloves","pants","shoes","weapon_right","weapon_left","bracelet_left","ring_left","necklace","ring_right","bracelet_right","pet"]
+const EQUIPMENT = ["hat","shirt","gloves","pants","shoes","weapon_right","weapon_left","bracelet_left","ring_left","necklace","ring_right","bracelet_right","pet","mount","fashion_hat","fashion_shirt","fashion_gloves","fashion_pants","fashion_shoes","fashion_weapon_right","fashion_weapon_left"]
 var slots: Array = []
 var equipped: Dictionary = {}
 var currency: Dictionary = {"gold":"0","blue":"0","purple":"0","green":"0"}
