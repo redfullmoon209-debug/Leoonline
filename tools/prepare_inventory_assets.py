@@ -21,7 +21,7 @@ for source, destination in INPUTS.items():
     raw = zlib.decompress(base64.urlsafe_b64decode(payload))
     output = ROOT / destination
     output.parent.mkdir(parents=True, exist_ok=True)
-    if not output.exists() or output.read_bytes() != raw:
+    if not output.exists():
         output.write_bytes(raw)
         print("Restored:", destination, len(raw), "bytes")
 subprocess.run(
