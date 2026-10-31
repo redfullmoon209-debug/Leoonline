@@ -165,6 +165,20 @@ func _make_ui() -> void:
  inventory.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  inventory.call("initialize",store,Callable(self,"_toggle"),Callable(self,"_starter"))
  inventory.visible = false
+ # A real touch target is required to open the bag without a keyboard.
+ var bag_button := TextureButton.new()
+ bag_button.texture_normal = load("res://assets/ui/inventory/icon_inventory.png")
+ bag_button.ignore_texture_size = true
+ bag_button.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+ bag_button.custom_minimum_size = Vector2(56,56)
+ bag_button.tooltip_text = "กระเป๋า / Inventory [B]"
+ hud.add_child(bag_button)
+ bag_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+ bag_button.position = Vector2(get_viewport().get_visible_rect().size.x-72,16)
+ bag_button.size = Vector2(56,56)
+ bag_button.pressed.connect(_toggle)
+ inventory.visibility_changed.connect(func(): bag_button.visible = not inventory.visible)
+ get_viewport().size_changed.connect(func(): bag_button.position = Vector2(get_viewport().get_visible_rect().size.x-72,16))
 
 func _starter() -> void:
  for id in ["sword","shirt","boots","potion","scroll","wood","fashion_blade","fashion_dagger","fashion_mask","fashion_cape"]:

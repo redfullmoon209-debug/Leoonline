@@ -179,11 +179,14 @@ func pretty(value: String) -> String:
   output += value.substr(i,1)
  return output
 
-func save_data() -> void:
+func save_data() -> bool:
  var data := {"slots":slots,"equipped":equipped,"currency":currency,"unlocked":unlocked,"online":seconds_online,"reward":next_reward}
  var file := FileAccess.open("user://leoonline.json",FileAccess.WRITE)
  if file:
   file.store_string(JSON.stringify(data))
+  file.flush()
+  return file.get_error() == OK
+ return false
 
 func load_data() -> void:
  if not FileAccess.file_exists("user://leoonline.json"):

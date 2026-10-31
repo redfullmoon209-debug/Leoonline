@@ -2,11 +2,15 @@ name: Publish Leoonline Web Playtest
 on:
   workflow_dispatch:
   push:
+    branches: [main]
     paths:
       - '.github/workflows/publish-pages.yml'
       - '911/**'
       - 'scripts/**'
       - 'scenes/**'
+      - 'assets/**'
+      - 'project.godot'
+      - 'export_presets.cfg'
 permissions:
   contents: read
   pages: write
@@ -19,10 +23,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Generate original separate PNG inventory assets
-        run: |
-          python3 -m pip install --user --quiet Pillow
-          python3 tools/prepare_inventory_assets.py
       - uses: actions/configure-pages@v5
       - name: Get Godot and web templates
         run: |

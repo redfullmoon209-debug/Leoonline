@@ -1,3 +1,7 @@
 .godot/
 .import/
 *.tmp
+
+build/
+*.uid
+*.import

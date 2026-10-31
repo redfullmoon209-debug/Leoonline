@@ -10,10 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Generate original separate PNG inventory assets
-        run: |
-          python3 -m pip install --user --quiet Pillow
-          python3 tools/prepare_inventory_assets.py
       - name: Install Godot 4.4.1 and matching web export templates
         run: |
           set -euo pipefail
