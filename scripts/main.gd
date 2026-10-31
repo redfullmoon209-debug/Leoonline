@@ -274,7 +274,7 @@ func _refresh() -> void:
   child.queue_free()
  for key in ["gold","blue","purple","green"]:
   var money_line := _text("◆  "+key.to_upper()+"   "+store.pretty(store.currency[key]),money_box,15)
- money_line.add_theme_color_override("font_color",Color("#f7d48c"))
+  money_line.add_theme_color_override("font_color",Color("#f7d48c"))
  page_label.text = "PAGE "+str(page+1)+" / 4"
  capacity_label.text = "BAG "+str(store.unlocked)+" / 200"
 
