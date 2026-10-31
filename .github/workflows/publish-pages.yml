@@ -5,6 +5,8 @@ on:
     paths:
       - '.github/workflows/publish-pages.yml'
       - '911/**'
+      - 'scripts/**'
+      - 'scenes/**'
 permissions:
   contents: read
   pages: write
