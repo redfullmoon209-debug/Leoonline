@@ -1,0 +1,18 @@
+name: Godot 4.4.1 parse verification
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download Godot 4.4.1
+        run: |
+          curl -fL https://github.com/godotengine/godot-builds/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip -o godot.zip
+          unzip -q godot.zip
+          chmod +x Godot_v4.4.1-stable_linux.x86_64
+      - name: Import project
+        run: ./Godot_v4.4.1-stable_linux.x86_64 --headless --path . --editor --import --quit
+      - name: Validate scripts
+        run: ./Godot_v4.4.1-stable_linux.x86_64 --headless --path . --quit-after 60
