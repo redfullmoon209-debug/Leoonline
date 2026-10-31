@@ -244,7 +244,7 @@ func _refresh() -> void:
  for child in equip_grid.get_children():
   child.queue_free()
  for key in StoreScript.EQUIPMENT:
-  var title: String = str(key).replace("_"," ").capitalize()
+  var title: String = String(key).replace("_"," ").capitalize()
   var value: String = store.equipped.get(key,"")
   var b := _button(title+"\n"+(value if value!="" else "[EMPTY]"),func(k=key): store.unequip(k),equip_grid)
   b.custom_minimum_size = Vector2(160,47)
