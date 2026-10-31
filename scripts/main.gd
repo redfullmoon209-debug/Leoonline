@@ -167,7 +167,7 @@ func _make_ui() -> void:
  inventory.visible = false
 
 func _starter() -> void:
- for id in ["sword","shirt","boots","potion","scroll","wood","fashion_blade","fashion_dagger"]:
+ for id in ["sword","shirt","boots","potion","scroll","wood","fashion_blade","fashion_dagger","fashion_mask","fashion_cape"]:
   store.add_item(id)
  store.add_currency("gold","1200")
 
