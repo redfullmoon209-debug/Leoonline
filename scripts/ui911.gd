@@ -16,7 +16,7 @@ func _ready() -> void:
  if not (parsed is Dictionary) or not (parsed.get("items", null) is Array):
   return
  layer = CanvasLayer.new()
- layer.layer = 2
+ layer.layer = 0
  host.add_child.call_deferred(layer)
  # Wait until layer is attached before creating child Controls.
  call_deferred("_build", parsed["items"])
