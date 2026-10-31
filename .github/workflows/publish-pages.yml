@@ -1,0 +1,48 @@
+name: Publish Leoonline Web Playtest
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/publish-pages.yml'
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: leoonline-pages
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - name: Get Godot and web templates
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 https://github.com/godotengine/godot-builds/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip -o godot.zip
+          unzip -q godot.zip
+          chmod +x Godot_v4.4.1-stable_linux.x86_64
+          curl -fL --retry 3 https://github.com/godotengine/godot-builds/releases/download/4.4.1-stable/Godot_v4.4.1-stable_export_templates.tpz -o templates.tpz
+          mkdir -p "$HOME/.local/share/godot/export_templates/4.4.1.stable"
+          unzip -j -q templates.tpz 'templates/*' -d "$HOME/.local/share/godot/export_templates/4.4.1.stable"
+      - name: Export site
+        run: |
+          ./Godot_v4.4.1-stable_linux.x86_64 --headless --path . --editor --import --quit
+          mkdir -p build/web
+          ./Godot_v4.4.1-stable_linux.x86_64 --headless --path . --export-release Web build/web/index.html
+          test -s build/web/index.html
+      - name: Upload static site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web/
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy site
+        id: deployment
+        uses: actions/deploy-pages@v4
