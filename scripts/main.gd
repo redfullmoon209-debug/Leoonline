@@ -27,7 +27,7 @@ func _ready() -> void:
  _make_world()
  _make_character()
  _make_ui()
- var ui911 := load("res://scripts/ui911.gd").new()
+ var ui911: Node = load("res://scripts/ui911.gd").new()
  add_child(ui911)
  Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
