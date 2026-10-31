@@ -40,9 +40,14 @@ def main():
  req=urllib.request.Request("https://models.github.ai/inference/chat/completions",
   data=json.dumps(payload).encode(),headers={"Authorization":"Bearer "+token,"Content-Type":"application/json","Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28"})
  try:
-  with urllib.request.urlopen(req,timeout=150) as res: data=json.load(res)
+  with urllib.request.urlopen(req,timeout=150) as res:
+   raw=res.read().decode("utf-8",errors="replace")
+   if not raw.strip(): raise RuntimeError("GitHub Models returned empty HTTP "+str(res.status)+" response; check model permissions/endpoint")
+   try: data=json.loads(raw)
+   except json.JSONDecodeError as ex: raise RuntimeError("GitHub Models returned non-JSON HTTP "+str(res.status)+" content-type="+str(res.headers.get("Content-Type"))+" body="+raw[:300]) from ex
  except urllib.error.HTTPError as e:
   raise RuntimeError("GitHub Models request failed HTTP "+str(e.code)+": "+e.read().decode()[:500]) from e
+ if "choices" not in data: raise RuntimeError("GitHub Models response missing choices: "+str(data)[:500])
  content=data["choices"][0]["message"]["content"].strip()
  if content.startswith("```"): content=re.sub(r"^\x60{3}(?:json)?\s*|\s*\x60{3}$","",content)
  result=json.loads(content)
