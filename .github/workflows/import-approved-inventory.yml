@@ -1,0 +1,56 @@
+name: Import approved inventory PNG (originals only)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Leoonline_Approved_PNG_Direct.zip'
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: write
+concurrency:
+  group: approved-inventory-import
+  cancel-in-progress: false
+jobs:
+  import-approved-png:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Verify exact original PNGs and install new Godot UI
+        run: |
+          set -euo pipefail
+          python3 tools/import_approved_png_zip.py
+          test "$(find assets/ui/approved -maxdepth 1 -name '*.png' | wc -l)" -eq 10
+          test -s scripts/inventory_ui.gd
+      - name: Commit originals directly into Leoonline
+        id: push
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/inventory_ui.gd assets/ui/approved/
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            git commit -m "inventory: use exact user-approved PNG assets as Godot layers"
+            git fetch origin main
+            git rebase origin/main
+            git push origin HEAD:main
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Verify Godot and publish HTML5 game
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh workflow run godot-check.yml --ref main
+          gh workflow run build-web.yml --ref main
+          gh workflow run publish-pages.yml --ref main
+          echo "Requested Godot smoke test, browser build, and Pages publish" >> "$GITHUB_STEP_SUMMARY"
+          echo "No visual pass is claimed until browser screenshots are reviewed" >> "$GITHUB_STEP_SUMMARY"
