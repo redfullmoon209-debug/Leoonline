@@ -1,0 +1,32 @@
+name: 911 AI Agent (GitHub Models)
+on:
+  workflow_dispatch:
+    inputs:
+      task_path:
+        description: 'Task file under 911/tasks/'
+        required: true
+        default: '911/tasks/002-premium-inventory.md'
+        type: string
+  issues:
+    types: [opened]
+permissions:
+  contents: write
+  pull-requests: write
+  issues: read
+  models: read
+jobs:
+  agent:
+    if: github.event_name == 'workflow_dispatch' || (github.event.issue.user.login == github.repository_owner && startsWith(github.event.issue.title, '[911]'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Run 911 GitHub Models agent
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+          TASK_PATH: ${{ inputs.task_path }}
+          MODEL_NAME: openai/gpt-4.1-mini
+        run: python3 911/agent.py
