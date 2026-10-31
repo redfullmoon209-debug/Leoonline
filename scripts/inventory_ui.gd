@@ -126,94 +126,115 @@ func _hitbox(parent: Node, x: float,y: float,w: float,h: float, click: Callable)
  return b
 
 func _build() -> void:
+ # One existing user-approved PNG forms the exact, undistorted frame.
+ # Only dynamic icons, text, overlays and clickable Controls are layered above it.
  mouse_filter = Control.MOUSE_FILTER_STOP
- var blank_style := StyleBoxEmpty.new()
- add_theme_stylebox_override("panel",blank_style)
+ var backdrop := StyleBoxFlat.new()
+ backdrop.bg_color = Color("#020917e8")
+ backdrop.set_content_margin_all(0)
+ add_theme_stylebox_override("panel",backdrop)
  var viewport_wrapper := Control.new()
  viewport_wrapper.mouse_filter = Control.MOUSE_FILTER_IGNORE
  add_child(viewport_wrapper)
+ viewport_wrapper.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  stage = Control.new()
  stage.mouse_filter = Control.MOUSE_FILTER_PASS
  viewport_wrapper.add_child(stage)
  _rect(stage,0,0,W,H)
- # Background: exact user-approved PNG. Never crop/paint it.
- _art("ornate_blue_gold_inventory_panel_frame",stage,0,0,W,H)
- _art("ornate_four_tab_fantasy_navigation_bar",stage,22,0,1404,315)
- _label("LEOONLINE",stage,542,32,360,57,34)
- language_button = _hitbox(stage,1335,35,72,44,func(): set_language("th" if locale=="en" else "en"))
- _label("TH / EN",stage,1333,36,74,40,14)
+ _art("ornate_blue_gold_inventory_ui_frame",stage,0,0,W,H)
+ _label("LEOONLINE",stage,493,46,454,60,40)
+ language_button = _hitbox(stage,1232,71,107,37,func(): set_language("th" if locale=="en" else "en"))
+ _label("TH / EN",stage,1235,72,104,36,16)
+ var tab_x: Array[float] = [140.0,460.0,744.0,1019.0]
+ var tab_width: Array[float] = [291.0,265.0,258.0,248.0]
+ var titles: Array[String] = ["Inventory","Character","Skill","Shop"]
+ var icons: Array[String] = ["inventory","character","skill","shop"]
  for idx in range(4):
-  var titles := ["Inventory","Character","Skill","Shop"]
-  var xx: float = 150.0 + 308.0 * idx
-  var title: String = titles[idx]
-  var tab: Button = _hitbox(stage,xx,120,278,83,_switch_tab.bind(idx))
-  tab.text = _tr(title)
-  tab.set_meta("l10n",title)
-  for k in ["font_color","font_hover_color","font_pressed_color","font_focus_color"]:
-   tab.add_theme_color_override(k,Color(0,0,0,0))
+  var tx: float = tab_x[idx]
+  var tw: float = tab_width[idx]
+  var tab := _hitbox(stage,tx,123,tw,62,_switch_tab.bind(idx))
+  tab.text = _tr(titles[idx])
+  tab.set_meta("l10n",titles[idx])
+  tab.add_theme_font_size_override("font_size",1)
+  for col in ["font_color","font_hover_color","font_pressed_color","font_focus_color"]:
+   tab.add_theme_color_override(col,Color(0,0,0,0))
   tab_buttons.append(tab)
-  _label(title,stage,xx,119,278,76,25)
+  _art("icon_"+icons[idx],stage,tx+22,133,42,42,false)
+  _label(titles[idx],stage,tx+66,126,tw-85,55,24)
  equipment_panel = Control.new()
  equipment_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
  stage.add_child(equipment_panel)
  _rect(equipment_panel,0,0,W,H)
- _art("luminous_blue_gold_fantasy_inventory_frame",equipment_panel,48,203,611,710)
- _label("Equipment",equipment_panel,85,224,516,42,24)
- _art("character_silhouette",equipment_panel,250,295,200,293,false)
+ _label("Equipment",equipment_panel,132,211,224,44,22)
+ _art("character_silhouette",equipment_panel,255,262,194,282,false)
  main_equip_list = Control.new()
  equipment_panel.add_child(main_equip_list)
- _rect(main_equip_list,92,276,78,350)
+ _rect(main_equip_list,103,263,64,314)
  extra_equip_list = Control.new()
  equipment_panel.add_child(extra_equip_list)
- _rect(extra_equip_list,488,276,78,350)
- _label("Fashion Weapons",equipment_panel,94,628,498,32,17)
- # Exact user-approved purple PNG is placed behind four independent PNG slots.
- _art("neon_winged_fantasy_equipment_slot",equipment_panel,75,650,547,123)
+ _rect(extra_equip_list,474,239,144,288)
+ _label("Fashion Weapons",equipment_panel,197,563,343,33,17)
  fashion_weapon_row = HBoxContainer.new()
- fashion_weapon_row.add_theme_constant_override("separation",8)
+ fashion_weapon_row.add_theme_constant_override("separation",14)
  equipment_panel.add_child(fashion_weapon_row)
- _rect(fashion_weapon_row,118,690,150,74)
+ _rect(fashion_weapon_row,185,604,144,56)
  fashion_side_row = HBoxContainer.new()
- fashion_side_row.add_theme_constant_override("separation",8)
+ fashion_side_row.add_theme_constant_override("separation",14)
  equipment_panel.add_child(fashion_side_row)
- _rect(fashion_side_row,380,690,150,74)
- _label("Accessories",equipment_panel,95,727,492,30,17)
+ _rect(fashion_side_row,408,604,144,56)
+ _label("Accessories",equipment_panel,236,669,243,31,18)
  accessory_row = HBoxContainer.new()
- accessory_row.add_theme_constant_override("separation",6)
+ accessory_row.add_theme_constant_override("separation",39)
  equipment_panel.add_child(accessory_row)
- _rect(accessory_row,110,752,465,67)
- _label("Fashion",equipment_panel,95,810,492,30,17)
+ _rect(accessory_row,127,700,479,63)
+ _label("Fashion",equipment_panel,277,789,167,30,18)
+ # The approved background contains six decorative slots; cover only that
+ # lower row with a native Godot panel, then display exactly five active slots.
+ # No PNG files are cropped, repainted or regenerated.
+ var fashion_back := Panel.new()
+ fashion_back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+ var fashion_style := StyleBoxFlat.new()
+ fashion_style.bg_color = Color("#051b35")
+ fashion_style.border_color = Color("#2167a4")
+ fashion_style.set_border_width_all(1)
+ fashion_style.set_corner_radius_all(8)
+ fashion_back.add_theme_stylebox_override("panel",fashion_style)
+ equipment_panel.add_child(fashion_back)
+ _rect(fashion_back,114,822,505,63)
  fashion_row = HBoxContainer.new()
- fashion_row.add_theme_constant_override("separation",6)
+ fashion_row.add_theme_constant_override("separation",36)
  equipment_panel.add_child(fashion_row)
- _rect(fashion_row,110,837,465,67)
+ _rect(fashion_row,131,825,461,57)
  bag_panel = Control.new()
  bag_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
  stage.add_child(bag_panel)
  _rect(bag_panel,0,0,W,H)
- _art("luminous_blue_gold_fantasy_inventory_frame",bag_panel,662,203,735,705)
- _label("Bag",bag_panel,719,223,215,43,24)
- capacity_text = _label("40 / 50 Slots (40/200)",bag_panel,1040,222,285,43,17)
+ _label("Bag",bag_panel,697,208,207,47,23)
+ capacity_text = _label("40 / 50 Slots (40/200)",bag_panel,1017,214,280,44,17)
  bag_grid = GridContainer.new()
  bag_grid.columns = 10
- bag_grid.add_theme_constant_override("h_separation",3)
+ bag_grid.add_theme_constant_override("h_separation",4)
  bag_grid.add_theme_constant_override("v_separation",3)
  bag_panel.add_child(bag_grid)
- _rect(bag_grid,739,294,605,285)
- for i in range(5):
-  _hitbox(bag_panel,801+80*i,594,69,49,_page_button.bind(i))
- page_text = _label("PAGE 1 / 4",bag_panel,980,584,140,51,17)
- _art("ornate_four_row_currency_panel",bag_panel,726,636,637,228)
+ _rect(bag_grid,678,268,637,309)
+ _hitbox(bag_panel,728,584,72,49,_page_button.bind(0))
+ _hitbox(bag_panel,810,584,70,49,_page_button.bind(1))
+ _hitbox(bag_panel,1120,584,74,49,_page_button.bind(3))
+ _hitbox(bag_panel,1200,584,75,49,_page_button.bind(4))
+ page_text = _label("PAGE 1 / 4",bag_panel,905,584,190,49,19)
  for i in range(4):
   var money: String = MONEY[i]
-  _label(money.capitalize(),bag_panel,790,647+49*i,170,43,20,HORIZONTAL_ALIGNMENT_LEFT)
-  money_labels[money] = _label("0",bag_panel,960,647+49*i,312,43,18,HORIZONTAL_ALIGNMENT_RIGHT,false)
- # Full original action-bar PNG; no slicing/cropping.
- _art("ornate_blue_gold_action_bar",stage,48,865,1346,280)
- var foot_names = ["Demo Items", "Save", "Auto Sort", "Trash", "Equip", "Close"]
+  var row_y: float = 673.0 + float(i) * 42.0
+  _label(money.capitalize(),bag_panel,761,row_y,148,39,20,HORIZONTAL_ALIGNMENT_LEFT)
+  money_labels[money] = _label("0",bag_panel,935,row_y,294,39,19,HORIZONTAL_ALIGNMENT_RIGHT,false)
+  _hitbox(bag_panel,1247,row_y,49,38,func(): set_notice("Cash Shop is not available yet"))
+ var foot_names: Array[String] = ["Demo Items","Save","Auto Sort","Trash","Equip","Close"]
+ var foot_x: Array[float] = [84.0,306.0,488.0,734.0,921.0,1116.0]
+ var foot_w: Array[float] = [216.0,174.0,235.0,187.0,190.0,212.0]
  for i in range(6):
-  var fx: float = 112 + i * 210
-  _label(foot_names[i],stage,fx,953,194,48,17)
+  var fx: float = foot_x[i]
+  var fw: float = foot_w[i]
+  _label(foot_names[i],stage,fx,927,fw,49,20)
   var action: Callable
   match i:
    0: action = func(): demo_callback.call()
@@ -222,13 +243,13 @@ func _build() -> void:
    3: action = _request_trash
    4: action = func(): game_store.call("equip_selected")
    _: action = func(): close_callback.call()
-  _hitbox(stage,fx,942,194,69,action)
+  _hitbox(stage,fx,924,fw,58,action)
  waiting_panel = Control.new()
  waiting_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
  stage.add_child(waiting_panel)
- _rect(waiting_panel,0,220,W,730)
+ _rect(waiting_panel,80,202,1280,702)
  waiting_panel.visible = false
- notice_text = _label("",stage,375,1020,699,45,16)
+ notice_text = _label("",stage,393,884,680,30,15)
  trash_dialog = ConfirmationDialog.new()
  trash_dialog.title = "Discard item?"
  trash_dialog.dialog_text = "Discard selected item permanently?"
@@ -246,19 +267,33 @@ func _equip_icon(key: String, active: String) -> String:
  if key.begins_with("bracelet"): return "bracelet"
  return key
 
-func _image_button(parent: Node, x: float,y: float,wh: float, key: String, state: String) -> TextureButton:
+func _image_button(parent: Node, x: float,y: float,wh: float, key: String, state: String, height: float = -1.0) -> TextureButton:
  var b := TextureButton.new()
  b.ignore_texture_size = true
  b.stretch_mode = TextureButton.STRETCH_SCALE
- b.texture_normal = _texture("ornate_golden_crystal_inventory_slot",true)
- b.texture_hover = b.texture_normal
- b.texture_pressed = b.texture_normal
- b.texture_disabled = _texture("ornate_neon_locked_inventory_slot",true)
- b.disabled = state == "locked"
+ b.focus_mode = Control.FOCUS_NONE
+ var selected_png := _texture("ornate_golden_crystal_inventory_slot",true)
+ var locked_png := _texture("ornate_neon_locked_inventory_slot",true)
+ if state == "selected" or state == "fashion" or state == "unlocked_last_row":
+  b.texture_normal = selected_png
+ elif state == "locked":
+  b.texture_normal = locked_png
+  b.texture_disabled = locked_png
+  b.disabled = true
+ elif state == "locked_base":
+  # The already-approved full frame draws these 10 locks. Do not double-render.
+  b.disabled = true
+  b.texture_disabled = null
+ else:
+  # The already-approved full frame has the exact slot backgrounds.
+  # Show a separately approved PNG only on hover/press, not twice at rest.
+  b.texture_hover = selected_png
+  b.texture_pressed = selected_png
  parent.add_child(b)
- _rect(b,x,y,wh,wh)
- b.custom_minimum_size = Vector2(wh,wh)
- if key != "" and state != "locked":
+ var hh: float = wh if height < 0.0 else height
+ _rect(b,x,y,wh,hh)
+ b.custom_minimum_size = Vector2(wh,hh)
+ if key != "" and state != "locked" and state != "locked_base":
   var art: Texture2D = _texture("icon_"+key)
   if art != null:
    var icon := TextureRect.new()
@@ -267,7 +302,7 @@ func _image_button(parent: Node, x: float,y: float,wh: float, key: String, state
    icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
    icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
    b.add_child(icon)
-   _rect(icon,10,10,wh-20,wh-20)
+   _rect(icon,8,7,wh-16,hh-14)
  return b
 
 func _clear_container(container: Node) -> void:
@@ -280,9 +315,32 @@ func _refresh_equipment(container: Control, keys: Array, width: float, space: fl
  for i in range(keys.size()):
   var key: String = str(keys[i])
   var active: String = str(game_store.get("equipped").get(key,""))
-  var bx: float = 0 if direction == "v" else i * (width+space)
-  var by: float = i*(width+space) if direction == "v" else 0
-  var b := _image_button(container,bx,by,width,_equip_icon(key,active),"normal")
+  var bx: float = 0.0
+  var by: float = 0.0
+  var bw: float = width
+  var bh: float = width
+  var state := "normal"
+  if container == main_equip_list:
+   by = float(i) * 62.0
+   bw = 61.0
+   bh = 57.0
+  elif container == extra_equip_list:
+   if i < 2:
+    by = float(i) * 64.0
+    bw = 61.0
+    bh = 57.0
+   else:
+    bx = 8.0
+    by = 132.0 if i == 2 else 219.0
+    bw = 129.0
+    bh = 58.0
+  elif direction == "h":
+   bw = width
+   bh = width
+   state = "fashion" if container == fashion_row else "normal"
+  else:
+   by = float(i) * (width+space)
+  var b := _image_button(container,bx,by,bw,_equip_icon(key,active),state,bh)
   b.mouse_entered.connect(func(): _show_details(active,key,false))
   b.mouse_exited.connect(_hide_details)
   b.pressed.connect(func():
@@ -299,13 +357,21 @@ func _fill_bag() -> void:
   var index: int = current_page*50+i
   var is_locked: bool = index >= unlocked
   var item_id: String = str(items[index])
-  var b := _image_button(bag_grid,0,0,55,item_id,"locked" if is_locked else "normal")
-  if index==selected and not is_locked:
-   b.modulate = Color("#ffe096")
-  b.mouse_entered.connect(func(): _show_details(item_id,"",is_locked))
-  b.mouse_exited.connect(_hide_details)
+  var state: String = "normal"
+  if is_locked:
+   state = "locked_base" if current_page == 0 and i >= 40 else "locked"
+  elif index == selected:
+   state = "selected"
+  elif current_page == 0 and i >= 40:
+   state = "unlocked_last_row"
+  var b := _image_button(bag_grid,0,0,60,item_id,state,59)
   if not is_locked:
+   b.mouse_entered.connect(func(): _show_details(item_id,"",false))
+   b.mouse_exited.connect(_hide_details)
    b.pressed.connect(_pick_item.bind(index))
+  else:
+   b.mouse_entered.connect(func(): _show_details("", "", true))
+   b.mouse_exited.connect(_hide_details)
  var shown: int = maxi(0,mini(50,unlocked-current_page*50))
  capacity_text.text = str(shown)+" / 50 Slots  ("+str(unlocked)+"/200)"
  page_text.text = ("หน้า " if locale=="th" else "PAGE ")+str(current_page+1)+" / 4"
