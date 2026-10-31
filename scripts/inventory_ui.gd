@@ -175,11 +175,22 @@ func _button(text_value: String, parent: Node, icon_name: String = "", skin: Str
  b.add_theme_color_override("font_pressed_color",Color("#ffffff"))
  b.add_theme_font_size_override("font_size",14)
  b.alignment = HORIZONTAL_ALIGNMENT_CENTER
- if icon_name != "":
-  b.icon = _texture("icon_"+icon_name)
-  b.icon_max_width = 26
-  b.expand_icon = false
  parent.add_child(b)
+ if icon_name != "":
+  var icon_resource := _texture("icon_"+icon_name)
+  if icon_resource != null:
+   var icon_rect := TextureRect.new()
+   icon_rect.texture = icon_resource
+   icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+   b.add_child(icon_rect)
+   icon_rect.anchor_top = 0.5
+   icon_rect.anchor_bottom = 0.5
+   icon_rect.offset_left = 12
+   icon_rect.offset_right = 38
+   icon_rect.offset_top = -13
+   icon_rect.offset_bottom = 13
+   icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+   icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
  return b
 
 func _make_interface() -> void:
