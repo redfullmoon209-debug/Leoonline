@@ -305,7 +305,7 @@ func _create_waiting_panel() -> void:
 func _equip_slot(parent: Node, key: String, width: int = 120, icon_only: bool = false, purple: bool = false) -> void:
  var active: String = str(game_store.get("equipped").get(key,""))
  var skin := "slot_fashion" if purple else "slot_equipment"
- var display := EQUIP_NAMES.get(key,key)
+ var display: String = str(EQUIP_NAMES.get(key,key))
  var b := _button("" if icon_only else str(display),parent,"",skin,Vector2(width,47 if not icon_only else 54))
  b.tooltip_text = str(display) + (" : " + active if active != "" else " · Empty") + " · Click to unequip"
  b.add_theme_font_size_override("font_size",12)
