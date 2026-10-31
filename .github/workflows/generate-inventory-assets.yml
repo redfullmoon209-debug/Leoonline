@@ -22,13 +22,20 @@ jobs:
         run: python3 -m pip install --user Pillow
       - name: Paint individual PNGs and restore Godot script
         run: python3 tools/prepare_inventory_assets.py
+      - name: Add open-source Thai/English UI font and license
+        run: |
+          set -euo pipefail
+          mkdir -p assets/fonts
+          curl -fL --retry 3 'https://raw.githubusercontent.com/google/fonts/main/ofl/notosansthai/NotoSansThai%5Bwdth%2Cwght%5D.ttf' -o assets/fonts/NotoSansThai.ttf
+          curl -fL --retry 3 'https://raw.githubusercontent.com/google/fonts/main/ofl/notosansthai/OFL.txt' -o assets/fonts/OFL.txt
+          test -s assets/fonts/NotoSansThai.ttf
       - name: Commit generated PNG assets and readable source
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add tools/generate_inventory_assets.py scripts/inventory_ui.gd assets/ui/inventory/
+          git add tools/generate_inventory_assets.py scripts/inventory_ui.gd assets/ui/inventory/ assets/fonts/
           if ! git diff --cached --quiet; then
             git commit -m "ui: add independently generated fantasy inventory PNGs"
             git fetch origin main
