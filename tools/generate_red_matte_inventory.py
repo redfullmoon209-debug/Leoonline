@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Make eleven original PNG sprites: matte crimson and gold, no neon/glow.
+"""Make fourteen standalone PNG sprites: matte crimson/gold with interactive red-white highlights.
 
 All sprites are drawn independently by Pillow; NO screenshots or existing PNGs
 are cropped, sampled, recolored, or pasted. All words remain Godot labels.
@@ -9,7 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 
 SCALE = 3
 OUT = Path(__file__).resolve().parents[1] / "assets" / "ui" / "red_matte"
@@ -101,6 +101,49 @@ def button(name, variant):
     save(im,name)
 
 
+
+def glow_button(name, variant):
+    """Original beveled button with bright scarlet pressed/selected art and soft white highlights.
+
+    Pure vector-like Pillow drawing, not a crop or recolor of source art.
+    The existing dimensions, button collision areas, icons, and text stay unchanged.
+    """
+    w, h = 320, 84
+    im = canvas(w, h)
+    points = bevel(w, h, 18)
+
+    if variant == "selected":
+        colors = [(255, 35, 46, 255), (219, 10, 24, 255), (116, 3, 15, 255)]
+        red_strength, white_strength = 175, 125
+    elif variant == "pressed":
+        colors = [(255, 65, 72, 255), (244, 9, 29, 255), (164, 3, 19, 255)]
+        red_strength, white_strength = 225, 190
+    else:
+        colors = [(178, 31, 35, 255), (122, 13, 23, 255), (75, 5, 13, 255)]
+        red_strength, white_strength = 105, 55
+
+    # Independent soft halos are rendered UNDER the original beveled silhouette.
+    red = canvas(w, h)
+    ImageDraw.Draw(red).polygon(P(points), fill=(255, 8, 28, red_strength))
+    im.alpha_composite(red.filter(ImageFilter.GaussianBlur(8 * SCALE)))
+    bright = canvas(w, h)
+    ImageDraw.Draw(bright).line(
+        P(points + [points[0]]), fill=(255, 242, 221, white_strength), width=3*SCALE
+    )
+    im.alpha_composite(bright.filter(ImageFilter.GaussianBlur(3 * SCALE)))
+
+    gradient_masked(im, points, colors)
+    d = ImageDraw.Draw(im)
+    outline_poly(d, points, GOLD, 3)
+    inset = [
+        (x+3 if x < w/2 else x-3, y+3 if y < h/2 else y-3)
+        for x,y in points
+    ]
+    outline_poly(d, inset, (255, 239, 221, 248) if variant != "hover" else GOLD_LIGHT, 2)
+    d.line(P((48, 10, w-48, 10)), fill=(255, 251, 243, 245), width=2*SCALE)
+    d.line(P((60, h-11, w-60, h-11)), fill=(240, 103, 55, 210), width=2*SCALE)
+    save(im, name)
+
 def slot(name,mode):
     w=104
     im=canvas(w,w)
@@ -143,13 +186,16 @@ def main():
     button("action_button.png","action")
     button("close_button.png","close")
     button("pager_button.png","pager")
+    glow_button("tab_lit.png","selected")
+    glow_button("button_hover.png","hover")
+    glow_button("button_pressed.png","pressed")
     slot("slot_empty.png","empty")
     slot("slot_selected.png","selected")
     slot("slot_locked.png","locked")
     row()
     result={p.name:{"width":Image.open(p).width,"height":Image.open(p).height,"sha256":hashlib.sha256(p.read_bytes()).hexdigest()} for p in sorted(OUT.glob("*.png"))}
     (OUT/"manifest.json").write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
-    print("Created",len(result),"standalone matte ruby-gold PNGs; no source PNG modified")
+    print("Created",len(result),"standalone matte ruby-gold PNG sprites including bright-red pressed/selected states; no source PNG modified")
 
 
 if __name__=="__main__":

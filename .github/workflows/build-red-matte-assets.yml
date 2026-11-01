@@ -1,4 +1,4 @@
-name: Build original matte-red inventory PNG layers
+name: Build original red-gold inventory PNG layers and interactive glow states
 on:
   push:
     branches: [main]
@@ -22,13 +22,13 @@ jobs:
           set -euo pipefail
           python3 -m pip install --disable-pip-version-check 'Pillow==11.3.0'
           python3 tools/generate_red_matte_inventory.py
-          test "$(find assets/ui/red_matte -maxdepth 1 -name '*.png' | wc -l)" -eq 11
+          test "$(find assets/ui/red_matte -maxdepth 1 -name '*.png' | wc -l)" -eq 14
           python3 - <<'PY'
           from pathlib import Path
           import json, hashlib
           p=Path('assets/ui/red_matte')
           m=json.loads((p/'manifest.json').read_text())
-          assert len(m)==11
+          assert len(m)==14
           for name,info in m.items():
               data=(p/name).read_bytes()
               assert data.startswith(b'\x89PNG\r\n\x1a\n'),name
