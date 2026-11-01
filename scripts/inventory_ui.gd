@@ -78,6 +78,39 @@ const LABELS = {
  "Mask":"หน้ากากแฟชั่น",
  "Cape":"ผ้าคลุมแฟชั่น",
 
+ "Character Status":"ข้อมูลตัวละคร",
+ "Character Information":"ข้อมูลตัวละคร",
+ "Basic Information":"ข้อมูลพื้นฐาน",
+ "Base Attributes":"ค่าสถานะพื้นฐาน",
+ "PvE & PvP Records":"ข้อมูล PvE / PvP",
+ "Wealth & Currencies":"ทรัพย์สินและสกุลเงิน",
+ "Player Name":"ชื่อตัวละคร",
+ "Level":"เลเวล",
+ "Class":"คลาส",
+ "Experience":"ค่าประสบการณ์",
+ "Job":"อาชีพ",
+ "Path":"สายอาชีพ",
+ "Faction":"ฝ่าย",
+ "Stat Points":"แต้มสถานะ",
+ "Strength":"ความแข็งแรง",
+ "Vitality":"ความอึด",
+ "Agility":"ความว่องไว",
+ "Intelligence":"สติปัญญา",
+ "Dexterity":"ความแม่นยำ",
+ "Luck":"โชค",
+ "PvE Kills":"กำจัดมอนสเตอร์",
+ "PvE Rank":"อันดับ PvE",
+ "PvP Wins":"ชนะ PvP",
+ "PvP Losses":"แพ้ PvP",
+ "PvP Rank":"อันดับ PvP",
+ "Wealth Rank":"อันดับความร่ำรวย",
+ "Unranked":"ยังไม่มีอันดับ",
+ "Adventurer":"นักผจญภัย",
+ "Novice":"ผู้เริ่มต้น",
+ "Unchosen":"ยังไม่เลือก",
+ "None":"ไม่สังกัด",
+ "Rankings require an online leaderboard.":"อันดับจะเปิดใช้เมื่อมีระบบจัดอันดับออนไลน์",
+ "Starter attributes; combat effects are pending.":"ค่าสถานะเริ่มต้น ยังไม่เชื่อมระบบต่อสู้",
  "Shop Items":"สินค้าร้านค้า",
  "Shop Stock":"ช่องร้านค้า",
  "Inventory & Shop":"กระเป๋าและร้านค้า",
@@ -143,6 +176,9 @@ var ui_font: Font
 var language_button: Button
 var tab_buttons: Array[Button] = []
 var text_nodes: Dictionary = {}
+var character_panel: Control
+var character_values: Dictionary = {}
+var character_rank_note: Label
 var equipment_panel: Control
 var bag_panel: Control
 var waiting_panel: Control
@@ -497,6 +533,7 @@ func _build() -> void:
   _style_text_button(money_button,18)
   _red_button(money_button,"pager_button",true)
  _make_shop_panel()
+ _make_character_panel()
  # Footer buttons float directly over the crimson surface with no enclosing frame.
  _red_aura(stage,115,780,1214,102,0.12)
  var foot_names := ["Demo Items","Save","Auto Sort","Trash","Equip","Close"]
@@ -548,6 +585,104 @@ func _build() -> void:
    shop_sell_dialog.hide()
  )
 
+
+func _character_section(title: String, y: float) -> void:
+ var heading := _label(title,character_panel,738,y,566,26,21,HORIZONTAL_ALIGNMENT_LEFT)
+ heading.add_theme_color_override("font_color",Color("#f0bd78"))
+ _fine_separator(character_panel,732,y+29.0,590.0)
+
+func _character_row(title: String, key: String, x: float, y: float, width: float = 286.0) -> void:
+ _label(title,character_panel,x,y,142,25,18,HORIZONTAL_ALIGNMENT_LEFT)
+ var value := _label("—",character_panel,x+146.0,y,width-146.0,25,19,HORIZONTAL_ALIGNMENT_RIGHT,false)
+ value.clip_text = true
+ character_values[key] = value
+
+func _character_money_row(title: String, key: String, y: float) -> void:
+ _art("icon_"+key,character_panel,737,y+1,23,23,false)
+ _label(title,character_panel,771,y,132,25,18,HORIZONTAL_ALIGNMENT_LEFT)
+ var value := _label("0",character_panel,918,y,397,25,18,HORIZONTAL_ALIGNMENT_RIGHT,false)
+ value.add_theme_color_override("font_color",Color("#ffe2ad"))
+ character_values["currency_"+key] = value
+
+func _make_character_panel() -> void:
+ # Same red-gold fantasy asset as the left Equipment panel.
+ # No baked-in text, no new or cropped screenshots, no fake leaderboard values.
+ character_panel = Control.new()
+ character_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+ stage.add_child(character_panel)
+ _rect(character_panel,0,0,W,H)
+ _red_panel(character_panel,694,204,682,564,"inner_panel")
+ _red_aura(character_panel,761,244,549,430,0.085)
+ _white_red_glint(character_panel,850,211,360,2)
+ _label("Character Status",character_panel,743,213,573,31,25)
+ _character_section("Basic Information",247)
+ _character_row("Player Name","name",728,286)
+ _character_row("Level","level",1032,286)
+ _character_row("Class","class_tier",728,315)
+ _character_row("Experience","experience",1032,315)
+ _character_row("Job","job",728,344)
+ _character_row("Path","path",1032,344)
+ _character_row("Faction","faction",728,373)
+ _character_row("Stat Points","stat_points",1032,373)
+ _character_section("Base Attributes",405)
+ _character_row("Strength","strength",728,435)
+ _character_row("Vitality","vitality",1032,435)
+ _character_row("Agility","agility",728,462)
+ _character_row("Intelligence","intelligence",1032,462)
+ _character_row("Dexterity","dexterity",728,489)
+ _character_row("Luck","luck",1032,489)
+ _character_section("PvE & PvP Records",521)
+ _character_row("PvE Kills","pve_kills",728,550)
+ _character_row("PvP Wins","pvp_wins",1032,550)
+ _character_row("PvE Rank","pve_rank",728,577)
+ _character_row("PvP Losses","pvp_losses",1032,577)
+ _character_row("Wealth Rank","wealth_rank",728,604)
+ _character_row("PvP Rank","pvp_rank",1032,604)
+ _character_section("Wealth & Currencies",635)
+ _character_money_row("Gold","gold",662)
+ _character_money_row("Blue","blue",686)
+ _character_money_row("Purple","purple",710)
+ _character_money_row("Green","green",734)
+ character_panel.visible = false
+
+func _refresh_character_panel() -> void:
+ if not is_instance_valid(character_panel) or game_store==null: return
+ var snapshot: Dictionary = game_store.call("character_snapshot")
+ var profile_data: Dictionary = snapshot.get("profile",{})
+ var attributes: Dictionary = profile_data.get("attributes",{})
+ var values: Dictionary = {
+  "name":_tr(str(profile_data.get("name","Adventurer"))),
+  "level":str(profile_data.get("level",1)),
+  "class_tier":str(profile_data.get("class_tier",0)),
+  "experience":str(profile_data.get("experience",0))+" / "+str(snapshot.get("experience_required",100)),
+  "job":_tr(str(profile_data.get("job","Novice"))),
+  "path":_tr(str(profile_data.get("path","Unchosen"))),
+  "faction":_tr(str(profile_data.get("faction","None"))),
+  "stat_points":str(profile_data.get("stat_points",0)),
+  "strength":str(attributes.get("strength",10)),
+  "vitality":str(attributes.get("vitality",10)),
+  "agility":str(attributes.get("agility",10)),
+  "intelligence":str(attributes.get("intelligence",10)),
+  "dexterity":str(attributes.get("dexterity",10)),
+  "luck":str(attributes.get("luck",10)),
+  "pve_kills":str(profile_data.get("pve_kills",0)),
+  "pvp_wins":str(profile_data.get("pvp_wins",0)),
+  "pvp_losses":str(profile_data.get("pvp_losses",0)),
+  "pve_rank":_tr("Unranked"),
+  "pvp_rank":_tr("Unranked"),
+  "wealth_rank":_tr("Unranked")
+ }
+ for key in values:
+  if character_values.has(key):
+   var target: Label = character_values[key]
+   target.text=str(values[key])
+   target.tooltip_text=str(values[key])
+ var money: Dictionary = snapshot.get("currency",{})
+ for kind in MONEY:
+  if character_values.has("currency_"+kind):
+   var target: Label = character_values["currency_"+kind]
+   target.text=str(game_store.call("pretty",str(money.get(kind,"0"))))
+   target.tooltip_text=target.text
 
 func _make_shop_panel() -> void:
  # The current 200-slot Player Inventory is reused at the left in Shop mode.
@@ -848,6 +983,7 @@ func _adapt_layout() -> void:
  scroll_content.custom_minimum_size = Vector2(W,H)*ratio
  stage.position = Vector2(maxf(0.0,(size.x-W*ratio)*0.5),maxf(0.0,(size.y-H*ratio)*0.5))
  equipment_panel.visible = current_tab in [0,1]
+ character_panel.visible = current_tab==1
  bag_panel.position = Vector2(-655.0,0.0) if current_tab==3 else Vector2.ZERO
  bag_panel.visible = current_tab==0 or current_tab==3
  shop_left_frame.visible = current_tab==3
@@ -855,7 +991,7 @@ func _adapt_layout() -> void:
  waiting_panel.visible = current_tab==2
  if waiting_panel.visible:
   waiting_text.text = _tr("Skills are not available yet")
- header_label.text = _tr("Inventory & Shop") if current_tab==3 else "LEOONLINE · INVENTORY"
+ header_label.text = _tr("Inventory & Shop") if current_tab==3 else (_tr("Character Information") if current_tab==1 else "LEOONLINE · INVENTORY")
  for i in range(tab_buttons.size()):
   tab_buttons[i].add_theme_color_override("font_color",Color.WHITE if i==current_tab else Color("#ffde93"))
   _red_button(tab_buttons[i],"tab_active" if i==current_tab else "tab_idle")
@@ -872,6 +1008,7 @@ func refresh() -> void:
  _refresh_equipment(accessory_row,JEWELRY,61,17,"h")
  _refresh_equipment(fashion_row,FASHION,61,17,"h")
  _fill_bag()
+ _refresh_character_panel()
  if is_instance_valid(shop_grid): _refresh_shop()
  footer_buttons[4].text = _tr("Unequip" if selected_equipment != "" else "Equip")
 
