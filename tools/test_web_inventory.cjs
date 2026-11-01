@@ -79,7 +79,9 @@ async function swipe(dx,dy){
   check(hud.hud_row[0][0]>hud.hud_profile_bounds[0]+hud.hud_profile_bounds[2],'Desktop icon row leaves room for character portrait');
   check(hud.hud_row[9][0]+hud.hud_row[9][2]<hud.hud_minimap_bounds[0],'Desktop icon row leaves room for the minimap');
   await snap('web-premium-ten-icon-row');
-  check(hud.hud_target_frame_custom===true,'Ornate centered target card is built from real Godot vector strokes, not cropped screenshot');
+  check(hud.hud_target_frame_custom===true&&hud.hud_player_outer_frame_simple===true,'Profile has a clean outer frame; target medallion remains native Godot art');
+  check(hud.hud_caption_visible.every(Boolean)&&hud.hud_caption_font_sizes.every(n=>n>=11),'Desktop icon captions are visible, live and readable');
+  check(hud.hud_caption_bounds.every((r,i)=>r[1]>=hud.hud_row[i][1]+hud.hud_row[i][3]*0.9),'Desktop menu captions sit BELOW the independent PNGs');
   check(hud.hud_training_target_present&&hud.hud_training_target_name==='อสูรหินฝึก','Real training golem is available for interactive target testing');
   check(!hud.hud_target_portrait_visible&&!hud.hud_target_mp_visible,'No enemy selected: do not show fictional monster portrait, HP or MP');
   // Select the real scene target via the actual physical T keyboard input,
@@ -359,7 +361,14 @@ async function swipe(dx,dy){
      check(Math.abs(rect[1]-touchHud.hud_row[0][1])<=1,'Every phone icon stays on a single horizontal row');
     }
     check(touchHud.hud_profile_bounds[0]+touchHud.hud_profile_bounds[2]<touchHud.hud_minimap_bounds[0],'Phone portrait and minimap remain in separate top corners');
-    check(touchHud.hud_target_bounds[1]>touchHud.hud_row[0][1]+touchHud.hud_row[0][3],'Target info is below the menu row on phone');
+    check(touchHud.hud_row[0][1]<=12,'Portrait 10-icon menu occupies the very top of the game');
+    check(touchHud.hud_caption_visible.every(Boolean)&&touchHud.hud_caption_font_sizes.every(n=>n>=10),'All ten portrait icon labels are visible and high contrast');
+    check(touchHud.hud_caption_bounds.every((r,i)=>r[1]>=touchHud.hud_row[i][1]+touchHud.hud_row[i][3]*0.9),'Portrait icon name appears under the whole PNG, no baked base');
+    const captionBottom=Math.max(...touchHud.hud_caption_bounds.map(r=>r[1]+r[3]));
+    const [profile,target,map]=[touchHud.hud_profile_bounds,touchHud.hud_target_bounds,touchHud.hud_minimap_bounds];
+    check(profile[1]>=captionBottom+5&&Math.abs(profile[1]-target[1])<2&&Math.abs(map[1]-target[1])<2,'Portrait character, target and minimap align as one SECOND row');
+    check(profile[0]+profile[2]+3<=target[0]&&target[0]+target[2]+3<=map[0],'Portrait player left, target middle and minimap right have no overlap');
+    check(touchHud.hud_target_bounds[1]>touchHud.hud_row[0][1]+touchHud.hud_row[0][3],'Target is below the top menu on phone');
     check(Object.values(touchHud.hud_notification_badges).every(v=>v===false),'Phone Mail and all other icons start without fake red dots');
     check(touchHud.hud_touch_target_visible&&touchHud.hud_touch_target[2]>=42,'Portrait phone has a real standalone TARGET touch button');
     const targetButton=touchHud.hud_touch_target;

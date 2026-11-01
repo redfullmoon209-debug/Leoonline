@@ -475,6 +475,7 @@ func validate() -> void:
   "Ten compact icons sit immediately left of the minimap without overlapping it")
  var top:Control=hud_menu.top_status
  check(top!=null and top.player_panel.visible and top.minimap_button.visible and top.target_panel.visible,"Character data, minimap and target status are three real HUD regions")
+ check(top.player_panel.get_theme_stylebox("panel") is StyleBoxFlat,"Character panel has a clean gold outer frame without image-painted inner dividers")
  check(top.player_name.text.contains("Lv.") and top.player_class.text.contains("Class"),"Top-left character profile displays current saved level and class")
  check(top.exp_bar.value>=0.0 and top.exp_bar.value<=100.0,"Character EXP bar shows actual saved progression")
  check(top.minimap.get_script()!=null and top.minimap.items.size()==game.loot.size(),"Circular minimap plots real dropped items and player position")
@@ -655,13 +656,14 @@ func validate() -> void:
  hud_menu.layout_state=old_hud_layout.duplicate(true)
  hud_menu._reflow()
  hud_menu._save_local()
- # Phone width: all ten buttons stay in ONE compact row below the
- # portrait/minimap instead of overlapping those panels or wrapping to 3x3.
+ # Portrait: ten icons are the FIRST row at the TOP; below them
+ # character, target and minimap form one aligned side-by-side info row.
  root.size=Vector2i(390,844)
  await process_frame
  await process_frame
  var phone_row_y:float=-1.0
  var last_phone_end:float=0.0
+ var highest_caption_end:float=0.0
  for i in range(menu_order.size()):
   var control:Control=hud_menu.controls[menu_order[i]] as Control
   var rect:Rect2=control.get_global_rect()
@@ -670,9 +672,25 @@ func validate() -> void:
   check(rect.position.x>=0.0 and rect.end.x<=391.0,"Phone icon stays inside screen: "+menu_order[i])
   check(rect.position.x>=last_phone_end-1.0,"Phone icon has no horizontal overlap: "+menu_order[i])
   last_phone_end=rect.end.x
+  var caption:Label=control.get_node("Caption") as Label
+  var cap_rect:Rect2=caption.get_global_rect()
+  highest_caption_end=maxf(highest_caption_end,cap_rect.end.y)
+  check(caption.visible and not caption.text.is_empty() and caption.get_theme_font_size("font_size")>=10,"Portrait menu captions are visible with legible live type: "+menu_order[i])
+  check(cap_rect.position.y>=rect.position.y+rect.size.y*0.9 and cap_rect.position.y<rect.end.y+6.0,"Caption is below the intact PNG: "+menu_order[i])
+ check(phone_row_y<=12.0,"Portrait ten-icon menu starts at the TOP of the screen")
+ var portrait_player:Rect2=top.player_panel.get_global_rect()
+ var portrait_target:Rect2=top.target_panel.get_global_rect()
+ var portrait_map:Rect2=top.minimap_button.get_global_rect()
+ check(portrait_player.position.y>=highest_caption_end+5.0 and absf(portrait_player.position.y-portrait_target.position.y)<2.0 and absf(portrait_target.position.y-portrait_map.position.y)<2.0,"Character, target and minimap share a second row below icon captions")
+ check(portrait_player.end.x+3.0<=portrait_target.position.x and portrait_target.end.x+3.0<=portrait_map.position.x,"Portrait left/center/right info panels never overlap")
  check(hud_menu.top_status.minimap_button.get_global_rect().end.x<=390.0,"Mini map remains wholly visible on phone")
  check(hud_menu.top_status.player_panel.get_global_rect().end.x<hud_menu.top_status.minimap_button.get_global_rect().position.x,"Phone profile and minimap occupy separate top corners")
  check(hud_menu.top_status.target_panel.get_global_rect().position.y>phone_row_y,"Target status stays below ten-icon row on phone")
+ game._set_test_target(game.test_targets[1])
+ check(top.target_label.text=="สไลม์มรกต" and top.target_bar.visible and top.target_mana_bar.visible and top.target_portrait.visible,"Compact portrait card shows real monster name portrait HP and MP")
+ check(top.target_health_value.text.contains("430/430") and top.target_mana_value.text.contains("80/80"),"Compact target numbers stay legible rather than clipping full percentages")
+ check(top.target_health_value.get_global_rect().end.x<=portrait_target.end.x+1.0,"Portrait HP numbers fit inside the clean target frame")
+ hud_menu.clear_target()
  root.size=Vector2i(1440,1100)
  await process_frame
  await process_frame

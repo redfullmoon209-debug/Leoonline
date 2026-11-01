@@ -62,6 +62,11 @@ async function runLiveGame(browser,{width,height,mobile}){
     'Character information and minimap remain present: '+scenario);
   check(data.hud_target_bounds[2]>=200&&Object.values(data.hud_notification_badges).every(v=>v===false),
     'Centered target and event-only red dots unchanged: '+scenario);
+  check(data.hud_caption_visible.every(Boolean)&&data.hud_caption_font_sizes.every(n=>n>=11),
+    'All ten separate nameplate-free icons have high-contrast live captions: '+scenario);
+  const captionsEnd=Math.max(...data.hud_caption_bounds.map(c=>c[1]+c[3]));
+  check(data.hud_target_bounds[1]>=captionsEnd+4,
+    'Landscape target card stays clearly below the icon text row: '+scenario);
   for(let i=0;i<10;i++){
    const [x,y,w,h]=data.hud_row[i];
    check(w>=27&&x>=0&&y>=0&&x+w<=rect.width+2,
