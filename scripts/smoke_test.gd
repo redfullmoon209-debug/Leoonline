@@ -442,7 +442,7 @@ func validate() -> void:
  # HUD main-menu regression: no picture crops, nine independent working icons,
  # local functional menu panels, mobile controls and a persistent drag/resize UI.
  var hud_menu: Control=game.hud_menu
- check(hud_menu!=null and hud_menu.controls.size()==14,"HUD exposes nine distinct menus, bag, joystick, Jump, Pickup and Run")
+ check(hud_menu!=null and hud_menu.controls.size()==15,"HUD exposes nine distinct menus, bag, joystick, Jump, Pickup, Run and TARGET")
  check(hud_menu.controls["bag"]==game.hud.get_node("OpenInventory"),"Original Inventory button and save data are preserved")
  # Ten native standalone RGBA PNGs, NOT crops of the approved reference sheet.
  # All notification badges are separate controls with zero unread at start.
@@ -475,6 +475,7 @@ func validate() -> void:
   "Ten compact icons sit immediately left of the minimap without overlapping it")
  var top:Control=hud_menu.top_status
  check(top!=null and top.player_panel.visible and top.minimap_button.visible and top.target_panel.visible,"Character data, minimap and target status are three real HUD regions")
+ check(top.player_panel.get_theme_stylebox("panel") is StyleBoxFlat,"Character panel has a clean gold outer frame without image-painted inner dividers")
  check(top.player_name.text.contains("Lv.") and top.player_class.text.contains("Class"),"Top-left character profile displays current saved level and class")
  check(top.exp_bar.value>=0.0 and top.exp_bar.value<=100.0,"Character EXP bar shows actual saved progression")
  check(top.minimap.get_script()!=null and top.minimap.items.size()==game.loot.size(),"Circular minimap plots real dropped items and player position")
@@ -655,13 +656,14 @@ func validate() -> void:
  hud_menu.layout_state=old_hud_layout.duplicate(true)
  hud_menu._reflow()
  hud_menu._save_local()
- # Phone width: all ten buttons stay in ONE compact row below the
- # portrait/minimap instead of overlapping those panels or wrapping to 3x3.
+ # Portrait: ten icons are the FIRST row at the TOP; below them
+ # character, target and minimap form one aligned side-by-side info row.
  root.size=Vector2i(390,844)
  await process_frame
  await process_frame
  var phone_row_y:float=-1.0
  var last_phone_end:float=0.0
+ var highest_caption_end:float=0.0
  for i in range(menu_order.size()):
   var control:Control=hud_menu.controls[menu_order[i]] as Control
   var rect:Rect2=control.get_global_rect()
@@ -670,15 +672,41 @@ func validate() -> void:
   check(rect.position.x>=0.0 and rect.end.x<=391.0,"Phone icon stays inside screen: "+menu_order[i])
   check(rect.position.x>=last_phone_end-1.0,"Phone icon has no horizontal overlap: "+menu_order[i])
   last_phone_end=rect.end.x
+  var caption:Label=control.get_node("Caption") as Label
+  var cap_rect:Rect2=caption.get_global_rect()
+  highest_caption_end=maxf(highest_caption_end,cap_rect.end.y)
+  check(caption.visible and not caption.text.is_empty() and caption.get_theme_font_size("font_size")>=10,"Portrait menu captions are visible with legible live type: "+menu_order[i])
+  check(cap_rect.position.y>=rect.position.y+rect.size.y*0.9 and cap_rect.position.y<rect.end.y+6.0,"Caption is below the intact PNG: "+menu_order[i])
+ check(phone_row_y<=12.0,"Portrait ten-icon menu starts at the TOP of the screen")
+ var portrait_player:Rect2=top.player_panel.get_global_rect()
+ var portrait_target:Rect2=top.target_panel.get_global_rect()
+ var portrait_map:Rect2=top.minimap_button.get_global_rect()
+ check(portrait_player.position.y>=highest_caption_end+5.0 and absf(portrait_player.position.y-portrait_target.position.y)<2.0 and absf(portrait_target.position.y-portrait_map.position.y)<2.0,"Character, target and minimap share a second row below icon captions")
+ check(portrait_player.end.x+3.0<=portrait_target.position.x and portrait_target.end.x+3.0<=portrait_map.position.x,"Portrait left/center/right info panels never overlap")
+ check(top.player_job.visible and top.player_job.text=="Novice" and top.player_name.text=="Adventurer" and top.player_class.text.contains("Lv."),"Compact character HUD keeps actual name, job, level, class and EXP legible")
  check(hud_menu.top_status.minimap_button.get_global_rect().end.x<=390.0,"Mini map remains wholly visible on phone")
  check(hud_menu.top_status.player_panel.get_global_rect().end.x<hud_menu.top_status.minimap_button.get_global_rect().position.x,"Phone profile and minimap occupy separate top corners")
  check(hud_menu.top_status.target_panel.get_global_rect().position.y>phone_row_y,"Target status stays below ten-icon row on phone")
+ game._set_test_target(game.test_targets[1])
+ check(top.target_label.text=="สไลม์มรกต" and top.target_bar.visible and top.target_mana_bar.visible and top.target_portrait.visible,"Compact portrait card shows real monster name portrait HP and MP")
+ check(top.target_health_value.text.contains("430/430") and top.target_mana_value.text.contains("80/80"),"Compact target numbers stay legible rather than clipping full percentages")
+ check(top.target_health_value.get_global_rect().end.x<=portrait_target.end.x+1.0,"Portrait HP numbers fit inside the clean target frame")
+ hud_menu.clear_target()
  root.size=Vector2i(1440,1100)
  await process_frame
  await process_frame
  hud_menu.display_mobile_controls=true
  hud_menu._refresh_touch_visibility()
- check(hud_menu.controls["joystick"].visible and hud_menu.controls["jump"].visible and hud_menu.controls["pickup"].visible and hud_menu.controls["run"].visible,"Mobile movement, jump, pickup and run controls can be shown and edited on PC")
+ check(hud_menu.controls["joystick"].visible and hud_menu.controls["jump"].visible and hud_menu.controls["pickup"].visible and hud_menu.controls["run"].visible and hud_menu.controls["target"].visible,"Mobile movement, jump, pickup, run and target controls can be shown and edited on PC")
+ var mobile_target_button:Button=hud_menu.controls["target"] as Button
+ check(ResourceLoader.exists("res://assets/ui/hud/target.svg") and (mobile_target_button.get_node("Glyph") as TextureRect).texture!=null,"Target mobile control has its own original SVG, not a cropped menu PNG")
+ var target_button_rect:Rect2=mobile_target_button.get_global_rect()
+ var jump_button_rect:Rect2=hud_menu.controls["jump"].get_global_rect()
+ check(target_button_rect.end.y+4.0<=jump_button_rect.position.y and target_button_rect.position.x>=0.0,"Target control sits above Jump without blocking the other mobile buttons")
+ mobile_target_button.pressed.emit()
+ check(top.current_target==game.training_target and top.target_bar.visible and top.target_portrait.visible,"Touch TARGET selects a real physical enemy and fills centered target HUD")
+ mobile_target_button.pressed.emit()
+ check(top.current_target==null and not top.target_bar.visible,"Pressing TARGET again clears target, including HP and portrait")
  var stick:Control=hud_menu.controls["joystick"]
  stick._point_to_vector(stick.size*0.8)
  check(hud_menu.get_movement_vector().length()>0.05,"Virtual mobile joystick drives real movement vector")

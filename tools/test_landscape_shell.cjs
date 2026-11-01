@@ -56,12 +56,17 @@ async function runLiveGame(browser,{width,height,mobile}){
   check(data.hud_landscape_preview===true,'Runtime accepts landscape test UI flag: '+scenario);
   check(data.hud_row.length===10,'All ten original separate PNG menu buttons retained: '+scenario);
   check(data.hud_png_paths.every(x=>x.endsWith('.png')),'No cropped or newly replaced menu assets: '+scenario);
-  check(data.hud_joystick_visible&&data.hud_touch_jump_visible&&data.hud_touch_pickup_visible&&data.hud_touch_run_visible,
-    'Joystick, Jump, Pickup and Run work in landscape mode: '+scenario);
+  check(data.hud_joystick_visible&&data.hud_touch_jump_visible&&data.hud_touch_pickup_visible&&data.hud_touch_run_visible&&data.hud_touch_target_visible,
+    'Joystick, Jump, Pickup, Run and TARGET work in landscape mode: '+scenario);
   check(data.hud_profile_bounds[2]>100&&data.hud_minimap_bounds[2]>=88,
     'Character information and minimap remain present: '+scenario);
   check(data.hud_target_bounds[2]>=200&&Object.values(data.hud_notification_badges).every(v=>v===false),
     'Centered target and event-only red dots unchanged: '+scenario);
+  check(data.hud_caption_visible.every(Boolean)&&data.hud_caption_font_sizes.every(n=>n>=11),
+    'All ten separate nameplate-free icons have high-contrast live captions: '+scenario);
+  const captionsEnd=Math.max(...data.hud_caption_bounds.map(c=>c[1]+c[3]));
+  check(data.hud_target_bounds[1]>=captionsEnd+4,
+    'Landscape target card stays clearly below the icon text row: '+scenario);
   for(let i=0;i<10;i++){
    const [x,y,w,h]=data.hud_row[i];
    check(w>=27&&x>=0&&y>=0&&x+w<=rect.width+2,
@@ -87,6 +92,19 @@ async function runLiveGame(browser,{width,height,mobile}){
     const x=rect.x+bounds[0]+bounds[2]/2,y=rect.y+bounds[1]+bounds[3]/2;
     if(mobile)await page.touchscreen.tap(x,y);else await page.mouse.click(x,y);
   };
+  check(data.hud_touch_target[2]>=42&&data.hud_touch_target[0]>=0,'Real mobile TARGET button stays visible and touchable: '+scenario);
+  await tapFrame(data.hud_touch_target);
+  await page.waitForFunction(()=>{
+    try{return document.getElementById('game-frame')?.contentWindow?.__leoQA?.hud_target_name==='อสูรหินฝึก';}
+    catch(e){return false;}
+  });
+  check((await state()).hud_target_health_visible,'Touch TARGET selects the actual 3D training golem in landscape: '+scenario);
+  await tapFrame((await state()).hud_touch_target);
+  await page.waitForFunction(()=>{
+    try{return document.getElementById('game-frame')?.contentWindow?.__leoQA?.hud_target_name?.includes('ยังไม่ได้เลือก');}
+    catch(e){return false;}
+  });
+  check(!(await state()).hud_target_health_visible,'Second TARGET touch clears the selected enemy: '+scenario);
   await tapFrame(data.hud_gm_button_bounds);
   await page.waitForFunction(()=>{
     try{return document.getElementById('game-frame')?.contentWindow?.__leoQA?.hud_gm_panel_open===true;}

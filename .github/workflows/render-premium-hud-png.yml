@@ -18,7 +18,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Rebuild ten user-approved ornate gold PNGs from independently authored art
+      - name: Rebuild ten approved nameplate-free PNG icons from original separate art
         run: |
           python -m pip install --quiet 'cairosvg>=2.7,<3' 'Pillow>=11,<13'
           python tools/build_premium_hud_png.py
@@ -33,7 +33,7 @@ jobs:
               assert b[25] == 6, (p, 'PNG must be RGBA with transparency')
               print(p, len(b), 'bytes')
           PY
-      - name: Publish the 10 PNG assets to the feature branch
+      - name: Commit the 10 standalone PNG assets to the current branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -41,7 +41,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "All ten native PNG files already up to date"
           else
-            git commit -m "Replace 10 placeholder icons with approved ornate fantasy artwork, independently drawn"
+            git commit -m "Remove baked nameplates from 10 independently authored HUD icons"
             git push
           fi
       - uses: actions/upload-artifact@v4

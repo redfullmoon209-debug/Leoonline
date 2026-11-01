@@ -43,10 +43,19 @@ func _process(delta: float) -> void:
  var ten_ids: Array[String]=["bag","world","party","friends","ranking","settings","guild","quest","mail","events"]
  var ten_bounds: Array=[]
  var ten_textures: Array=[]
+ var caption_bounds: Array=[]
+ var caption_labels: Array=[]
+ var caption_visible: Array=[]
+ var caption_fonts: Array=[]
  var alert_state: Dictionary={}
  for id in ten_ids:
   var control: Control=menu.controls[id] as Control
   ten_bounds.append(bounds(control))
+  var caption:Label=control.get_node("Caption") as Label
+  caption_bounds.append(bounds(caption))
+  caption_labels.append(caption.text)
+  caption_visible.append(caption.visible)
+  caption_fonts.append(caption.get_theme_font_size("font_size"))
   var art: Texture2D=control.texture_normal if id=="bag" else (control.get_node("Glyph") as TextureRect).texture
   ten_textures.append(art.resource_path if art!=null else "")
   alert_state[id]=menu.notification_badges[id].visible
@@ -69,10 +78,17 @@ func _process(delta: float) -> void:
   "hud_row_order":ten_ids,
   "hud_row":ten_bounds,
   "hud_png_paths":ten_textures,
+  "hud_caption_bounds":caption_bounds,
+  "hud_caption_labels":caption_labels,
+  "hud_caption_visible":caption_visible,
+  "hud_caption_font_sizes":caption_fonts,
+  "hud_player_outer_frame_simple":menu.top_status.player_panel.get_theme_stylebox("panel") is StyleBoxFlat,
   "hud_notification_badges":alert_state,
   "hud_profile_bounds":bounds(menu.top_status.player_panel),
   "hud_profile_label":menu.top_status.player_name.text,
   "hud_profile_experience":menu.top_status.player_exp.text,
+  "hud_profile_job":menu.top_status.player_job.text,
+  "hud_profile_job_visible":menu.top_status.player_job.visible,
   "hud_minimap_bounds":bounds(menu.top_status.minimap_button),
   "hud_minimap_items":menu.top_status.minimap.items.size(),
   "hud_target_bounds":bounds(menu.top_status.target_panel),
@@ -128,9 +144,11 @@ func _process(delta: float) -> void:
   "hud_touch_jump_visible":menu.controls["jump"].visible,
   "hud_touch_pickup_visible":menu.controls["pickup"].visible,
   "hud_touch_run_visible":menu.controls["run"].visible,
+  "hud_touch_target_visible":menu.controls["target"].visible,
   "hud_touch_jump":bounds(menu.controls["jump"]),
   "hud_touch_pickup":bounds(menu.controls["pickup"]),
   "hud_touch_run":bounds(menu.controls["run"]),
+  "hud_touch_target":bounds(menu.controls["target"]),
   "hud_joystick_value":menu.controls["joystick"].movement,
   "hud_quest_pickups":menu.pickups,
   "hud_mail_claimed":menu.mail_claimed,

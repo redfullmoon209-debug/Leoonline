@@ -15,11 +15,15 @@ image. It is built from independent, real Godot controls:
 ## Expected visual composition
 
 On landscape PC and phone: **top-left** player portrait/name/EXP,
-**top-center** ornate burgundy/gold target card (below the upper icon row),
-**top-right** ten compact approved PNG menu icons immediately LEFT of the
-circular minimap. On narrow portrait phones the ten icons occupy a second row
-under the player/minimap; the target card follows beneath. UI is responsive
-and resizable by the same Godot control system.
+**top-center** gold-bordered target below the icon caption row,
+**top-right** ten separate icons immediately LEFT of the circular minimap.
+On portrait screens the TEN ICONS sit at the TOP on one line. The character
+card LEFT, live target card CENTER and minimap RIGHT all sit on the next
+aligned row. The gold outer borders and target portrait medallion remain,
+but all distracting interior horizontal/vertical divider lines are removed.
+The narrow target card shows actual compact HP/MP counts; landscape retains
+full counts and percentage text. All labels are live Godot text, not image
+crops.
 
 The target card contains a left circular portrait, name, optional level and
 category at top, a live **red HP** progress bar with numeric current/max and

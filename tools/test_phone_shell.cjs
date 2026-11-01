@@ -47,7 +47,12 @@ async function runScenario(browser,{width,height,mobile}){
     check(hud.hud_joystick_visible===true,'Mobile-look viewport shows the actual movement joystick even on PC');
     check(hud.hud_touch_jump_visible===true,'Mobile-look viewport shows the real jump button');
     check(hud.hud_touch_pickup_visible===true,'Mobile-look viewport shows the real pickup button');
-    check(hud.hud_profile_bounds[2]>100&&hud.hud_minimap_bounds[2]>80,'Portrait viewport retains player card and minimap');
+    check(hud.hud_profile_bounds[2]>=89&&hud.hud_minimap_bounds[2]>=68,'Portrait viewport retains clear player card and a deliberately compact minimap');
+    const captionsBottom=Math.max(...hud.hud_caption_bounds.map(r=>r[1]+r[3]));
+    const [profile,target,map]=[hud.hud_profile_bounds,hud.hud_target_bounds,hud.hud_minimap_bounds];
+    check(hud.hud_row[0][1]<=12&&hud.hud_caption_visible.every(Boolean),'All ten portrait icons form the topmost row with real visible captions');
+    check(profile[1]>=captionsBottom+5&&Math.abs(profile[1]-target[1])<2&&Math.abs(map[1]-target[1])<2,'Profile, selected target and minimap all share the second portrait row');
+    check(profile[0]+profile[2]+3<=target[0]&&target[0]+target[2]+3<=map[0],'Portrait info panels are in left/center/right order without overlap');
     check(Object.values(hud.hud_notification_badges).every(value=>!value),'Mail and all other icons have no fake red dot');
     for(let i=0;i<10;i++){
       const [x,y,w,h]=hud.hud_row[i];
