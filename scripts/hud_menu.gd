@@ -618,12 +618,13 @@ func _settings_page() -> void:
  sensitivity.value_changed.connect(func(value:float): camera_sensitivity=value; _save_local())
  page_body.add_child(sensitivity)
  _section("เครื่องมือ")
- _action_button(page_body,"คืนตำแหน่งและขนาด HUD เดิม",func():
+ var restore_button:=_action_button(page_body,"คืนตำแหน่งและขนาด HUD เดิม",func():
   layout_state.clear()
   _reflow()
   _save_local()
   _toast("คืนตำแหน่งเดิมแล้ว")
  )
+ restore_button.name="ResetHUDLayout"
 
 func _process(_delta: float) -> void:
  if popup_key=="world" and is_instance_valid(popup_map) and popup.visible:
@@ -667,9 +668,12 @@ func _build_toolbar() -> void:
  size_slider.value_changed.connect(_resize_selected)
  col.add_child(size_slider)
  var buttons:=_line(col)
- _action_button(buttons,"บันทึก",func(): _finish_edit(true))
- _action_button(buttons,"ยกเลิก",func(): _finish_edit(false))
- _action_button(buttons,"ค่าเดิม",_reset_edit_layout)
+ var save_btn:=_action_button(buttons,"บันทึก",func(): _finish_edit(true))
+ save_btn.name="SaveHUDLayout"
+ var cancel_btn:=_action_button(buttons,"ยกเลิก",func(): _finish_edit(false))
+ cancel_btn.name="CancelHUDLayout"
+ var defaults_btn:=_action_button(buttons,"ค่าเดิม",_reset_edit_layout)
+ defaults_btn.name="DefaultHUDLayout"
  toolbar.visible=false
  _place_toolbar()
 
