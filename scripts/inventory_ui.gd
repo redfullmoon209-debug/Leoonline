@@ -6,6 +6,9 @@ const Approved = "res://assets/ui/approved/"
 const Icons = "res://assets/ui/inventory/"
 const RedAssets = "res://assets/ui/red_matte/"
 const StoreScript = preload("res://scripts/store.gd")
+const ShopCatalog = preload("res://scripts/shop_catalog.gd")
+const ShopScript = preload("res://scripts/shop_service.gd")
+const ShopAssets = "res://assets/ui/shop/"
 const W := 1448.0
 const H := 910.0
 const MAIN_EQUIPMENT = ["hat", "shirt", "gloves", "pants", "shoes"]
@@ -75,6 +78,44 @@ const LABELS = {
  "Mask":"หน้ากากแฟชั่น",
  "Cape":"ผ้าคลุมแฟชั่น",
 
+ "Shop Items":"สินค้าร้านค้า",
+ "Shop Stock":"ช่องร้านค้า",
+ "Inventory & Shop":"กระเป๋าและร้านค้า",
+ "Buy":"ซื้อ",
+ "Sell":"ขาย",
+ "Price":"ราคา",
+ "Sell price":"ราคาขาย",
+ "Select a product":"เลือกสินค้าที่ต้องการซื้อ",
+ "Select a bag item to sell":"เลือกไอเทมในกระเป๋าเพื่อขาย",
+ "Sell item?":"ยืนยันขายไอเทม",
+ "This product is not for sale":"ร้านค้าไม่มีสินค้านี้",
+ "Not enough currency":"เงินไม่เพียงพอ",
+ "This item cannot be sold":"ไอเทมนี้ขายไม่ได้",
+ "Currency limit reached":"เงินถึงจำนวนสูงสุด",
+ "Purchase completed":"ซื้อสินค้าสำเร็จ",
+ "Sale completed":"ขายสินค้าสำเร็จ",
+ "Shop has no stock on this page":"ไม่มีสินค้าในหน้านี้",
+ "HP Potion (Small)":"ยาฟื้น HP ขนาดเล็ก",
+ "HP Potion (Medium)":"ยาฟื้น HP ขนาดกลาง",
+ "HP Potion (Large)":"ยาฟื้น HP ขนาดใหญ่",
+ "SP Potion (Small)":"ยาฟื้น SP ขนาดเล็ก",
+ "SP Potion (Medium)":"ยาฟื้น SP ขนาดกลาง",
+ "SP Potion (Large)":"ยาฟื้น SP ขนาดใหญ่",
+ "Upgrade Stone +1":"หินตีบวก +1",
+ "Upgrade Stone +2":"หินตีบวก +2",
+ "Upgrade Stone +3":"หินตีบวก +3",
+ "Upgrade Stone +4":"หินตีบวก +4",
+ "Upgrade Stone +5":"หินตีบวก +5",
+ "Upgrade Stone +6":"หินตีบวก +6",
+ "Upgrade Stone +7":"หินตีบวก +7",
+ "Upgrade Stone +8":"หินตีบวก +8",
+ "Upgrade Stone +9":"หินตีบวก +9",
+ "Upgrade Stone +10":"หินตีบวก +10",
+ "Upgrade Stone +11":"หินตีบวก +11",
+ "Upgrade Stone +12":"หินตีบวก +12",
+ "Upgrade Stone +13":"หินตีบวก +13",
+ "Upgrade Stone +14":"หินตีบวก +14",
+ "Upgrade Stone +15":"หินตีบวก +15",
  "Inventory":"กระเป๋า", "Character":"ตัวละคร", "Skill":"สกิล", "Shop":"ร้านค้า",
  "Equipment":"อุปกรณ์สวมใส่", "Bag":"กระเป๋าเก็บของ", "Fashion Weapons":"อาวุธแฟชั่น",
  "Accessories":"เครื่องประดับ", "Fashion":"ชุดแฟชั่น", "Demo Items":"ไอเทมทดลอง",
@@ -130,6 +171,23 @@ var detail_dismiss: Button
 var scroller: ScrollContainer
 var scroll_content: Control
 var currency_panel: Control
+var header_label: Label
+var shop_panel: Control
+var shop_grid: GridContainer
+var shop_page_buttons: Array[Button] = []
+var shop_buy_button: Button
+var shop_sell_button: Button
+var shop_page_label: Label
+var shop_stock_label: Label
+var shop_product_label: Label
+var shop_price_label: Label
+var shop_status_label: Label
+var shop_service: Node
+var shop_page: int = 0
+var shop_selected_id: String = ""
+var shop_sell_dialog: ConfirmationDialog
+var pending_shop_sell_index: int = -1
+var pending_shop_sell_id: String = ""
 var waiting_text: Label
 var page_buttons: Array[Button] = []
 var footer_buttons: Array[Button] = []
@@ -140,6 +198,10 @@ var pending_trash_item := ""
 
 func initialize(p_store: Node, p_close: Callable, p_demo: Callable) -> void:
  game_store = p_store
+ shop_service = ShopScript.new()
+ shop_service.setup(game_store)
+ add_child(shop_service)
+ shop_service.notice.connect(_on_shop_notice)
  close_callback = p_close
  demo_callback = p_demo
  if ResourceLoader.exists("res://assets/fonts/NotoSansThai.ttf"):
@@ -347,7 +409,7 @@ func _build() -> void:
  language_button.text = "ไทย / EN"
  _style_text_button(language_button,17)
  _red_button(language_button,"action_button")
- _label("LEOONLINE · INVENTORY",stage,475,165,499,32,22)
+ header_label = _label("LEOONLINE · INVENTORY",stage,400,165,648,32,22)
  equipment_panel = Control.new()
  equipment_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
  stage.add_child(equipment_panel)
@@ -429,6 +491,7 @@ func _build() -> void:
   money_button.text = "+"
   _style_text_button(money_button,18)
   _red_button(money_button,"pager_button",true)
+ _make_shop_panel()
  # Footer buttons float directly over the crimson surface with no enclosing frame.
  _red_aura(stage,115,780,1214,102,0.12)
  var foot_names := ["Demo Items","Save","Auto Sort","Trash","Equip","Close"]
@@ -464,11 +527,20 @@ func _build() -> void:
   trash_dialog.theme = dialog_theme
  trash_dialog.confirmed.connect(_confirm_trash)
  add_child(trash_dialog)
+ shop_sell_dialog = ConfirmationDialog.new()
+ shop_sell_dialog.title = _tr("Sell item?")
+ if ui_font != null:
+  var sale_theme := Theme.new()
+  sale_theme.default_font = ui_font
+  shop_sell_dialog.theme = sale_theme
+ shop_sell_dialog.confirmed.connect(_confirm_shop_sell)
+ add_child(shop_sell_dialog)
  _create_details()
  visibility_changed.connect(func():
   if not is_visible_in_tree():
    _hide_details()
    trash_dialog.hide()
+   shop_sell_dialog.hide()
  )
 
 
@@ -514,6 +586,8 @@ func _image_button(parent: Node, x: float, y: float, wh: float, key: String, sta
  b.custom_minimum_size = Vector2(wh,hh)
  if key != "" and state != "locked":
   var art: Texture2D = _texture("icon_"+key)
+  if art == null and ResourceLoader.exists(ShopAssets+key+".png"):
+   art = load(ShopAssets+key+".png") as Texture2D
   if art != null:
    var icon := TextureRect.new()
    icon.texture = art
@@ -590,6 +664,7 @@ func _pick_item(index: int) -> void:
  details_pinned = true
  var items: Array = game_store.get("slots")
  _show_details(str(items[index]),"",false)
+ if current_tab==3: _refresh_shop_selection()
  _reveal_slot(bag_grid.get_child(index%50))
 
 func _reveal_slot(button: Control) -> void:
@@ -630,10 +705,13 @@ func _adapt_layout() -> void:
  scroll_content.custom_minimum_size = Vector2(W,H)*ratio
  stage.position = Vector2(maxf(0.0,(size.x-W*ratio)*0.5),maxf(0.0,(size.y-H*ratio)*0.5))
  equipment_panel.visible = current_tab in [0,1]
- bag_panel.visible = current_tab==0
- waiting_panel.visible = current_tab>=2
+ bag_panel.position = Vector2(-655.0,0.0) if current_tab==3 else Vector2.ZERO
+ bag_panel.visible = current_tab==0 or current_tab==3
+ shop_panel.visible = current_tab==3
+ waiting_panel.visible = current_tab==2
  if waiting_panel.visible:
-  waiting_text.text = _tr("Skills are not available yet" if current_tab==2 else "Shop is not available yet")
+  waiting_text.text = _tr("Skills are not available yet")
+ header_label.text = _tr("Inventory & Shop") if current_tab==3 else "LEOONLINE · INVENTORY"
  for i in range(tab_buttons.size()):
   tab_buttons[i].add_theme_color_override("font_color",Color.WHITE if i==current_tab else Color("#ffde93"))
   _red_button(tab_buttons[i],"tab_active" if i==current_tab else "tab_idle")
@@ -650,6 +728,7 @@ func refresh() -> void:
  _refresh_equipment(accessory_row,JEWELRY,61,17,"h")
  _refresh_equipment(fashion_row,FASHION,61,17,"h")
  _fill_bag()
+ if is_instance_valid(shop_grid): _refresh_shop()
  footer_buttons[4].text = _tr("Unequip" if selected_equipment != "" else "Equip")
 
 func set_language(value: String) -> void:
@@ -780,12 +859,13 @@ func _layout_details() -> void:
   _rect(detail_description,text_x,dh*0.16+57,text_width,dh*0.68-57)
   _rect(detail_dismiss,dw*0.87,dh*0.11,44,44)
  else:
-  _rect(detail_panel,680,605,692,160)
-  _rect(detail_art,0,0,692,160)
-  _rect(detail_icon,108,48,58,58)
-  _rect(detail_heading,184,18,385,30)
-  _rect(detail_description,184,49,385,90)
-  _rect(detail_dismiss,620,19,47,43)
+  var is_shop: bool = current_tab==3
+  _rect(detail_panel,66 if is_shop else 680,605,635 if is_shop else 692,160)
+  _rect(detail_art,0,0,635 if is_shop else 692,160)
+  _rect(detail_icon,76 if is_shop else 108,48,58,58)
+  _rect(detail_heading,154 if is_shop else 184,18,365 if is_shop else 385,30)
+  _rect(detail_description,154 if is_shop else 184,49,365 if is_shop else 385,90)
+  _rect(detail_dismiss,570 if is_shop else 620,19,47,43)
 
 func _notification(what: int) -> void:
  if what==NOTIFICATION_RESIZED and is_built: _adapt_layout()
