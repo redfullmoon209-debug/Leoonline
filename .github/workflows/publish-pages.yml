@@ -41,8 +41,27 @@ jobs:
           ./Godot_v4.4.1-stable_linux.x86_64 --headless --path . --script res://scripts/smoke_test.gd 2>&1 | tee smoke.log
           if grep -E '(SCRIPT ERROR:|ERROR:|Parse Error:|Failed to load script)' smoke.log; then exit 1; fi
           mkdir -p build/web
-          ./Godot_v4.4.1-stable_linux.x86_64 --headless --path . --export-release Web build/web/index.html
-          test -s build/web/index.html
+          # Each deployment has its own Godot entry point and PCK/JS/WASM paths.
+          # This prevents browsers and GitHub Pages CDN from mixing old and new
+          # game files when users revisit the same /Leoonline/ URL.
+          game_id="game-${GITHUB_SHA:0:12}"
+          ./Godot_v4.4.1-stable_linux.x86_64 --headless --path . --export-release Web "build/web/${game_id}.html"
+          for ext in html pck js wasm; do test -s "build/web/${game_id}.${ext}"; done
+          # Keep the usual index URL functional while giving every release a
+          # direct, never-before-used URL for reliable fresh loads.
+          cp "build/web/${game_id}.html" build/web/index.html
+          python3 - <<'PYCODE'
+          import os
+          from pathlib import Path
+          name = "game-" + os.environ["GITHUB_SHA"][:12]
+          page = Path("build/web/index.html").read_text()
+          for required in (f'src="{name}.js"', f'"executable":"{name}"',
+                           f'"{name}.pck"', f'"{name}.wasm"'):
+              assert required in page, f"Versioned Godot asset missing from HTML: {required}"
+          print("Verified cache-independent Godot entrypoint:", name + ".html")
+          PYCODE
+          printf '{"commit":"%s","entrypoint":"%s.html"}\n' "$GITHUB_SHA" "$game_id" > build/web/build-info.json
+          echo "Open this verified build: https://redfullmoon209-debug.github.io/Leoonline/${game_id}.html" >> "$GITHUB_STEP_SUMMARY"
           mkdir -p build/web/911
           cp 911/index.html 911/manifest.webmanifest 911/icon.svg 911/sw.js build/web/911/
           test -s build/web/911/manifest.webmanifest
