@@ -1,6 +1,7 @@
 extends PanelContainer
-## LEOONLINE UI: original approved PNG files displayed directly as Godot layers.
-## NO art generation, screenshot crops, or baked-in text. Text/interaction are native Controls.
+## LEOONLINE: lightweight flat borders, no oversized decorative wing/diamond frames.
+## Original approved PNGs remain untouched; only item slots/icons use PNG layers.
+## All text and interaction use native localized Godot Controls.
 const Approved = "res://assets/ui/approved/"
 const Icons = "res://assets/ui/inventory/"
 const StoreScript = preload("res://scripts/store.gd")
@@ -123,7 +124,7 @@ var trash_dialog: ConfirmationDialog
 var is_built := false
 var viewport_wrapper: Control
 var detail_content: Control
-var detail_art: TextureRect
+var detail_art: Control
 var detail_dismiss: Button
 var scroller: ScrollContainer
 var scroll_content: Control
@@ -167,6 +168,36 @@ func _art(name: String, parent: Node, x: float, y: float, w: float, h: float, ap
  _rect(img,x,y,w,h)
  return img
 
+func _flat_style(background: Color, border_color: Color, radius: int = 9) -> StyleBoxFlat:
+ var skin := StyleBoxFlat.new()
+ skin.bg_color = background
+ skin.border_color = border_color
+ skin.set_border_width_all(2)
+ skin.set_corner_radius_all(radius)
+ return skin
+
+func _flat_panel(parent: Node, x: float, y: float, w: float, h: float) -> Panel:
+ var panel := Panel.new()
+ panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+ panel.add_theme_stylebox_override("panel",_flat_style(Color("#071c32"),Color("#2d647f"),12))
+ parent.add_child(panel)
+ _rect(panel,x,y,w,h)
+ return panel
+
+func _flat_button(button: Button, active: bool = false, is_close: bool = false) -> void:
+ # No ornamental images. These are lightweight native styles, not new PNGs.
+ var outline: Color = Color("#e8be76") if active else Color("#3e748e")
+ var base: Color = Color("#17364f") if active else Color("#0b2741")
+ if is_close:
+  outline = Color("#ad5860")
+  base = Color("#421d2c")
+ button.flat = false
+ button.add_theme_stylebox_override("normal",_flat_style(base,outline,8))
+ button.add_theme_stylebox_override("hover",_flat_style(Color("#23506b") if not is_close else Color("#672b35"),Color("#82dbef"),8))
+ button.add_theme_stylebox_override("pressed",_flat_style(Color("#1c4764"),Color("#e8be76"),8))
+ button.add_theme_stylebox_override("focus",_flat_style(Color("#102d4b"),Color("#82dbef"),8))
+ button.add_theme_stylebox_override("disabled",_flat_style(Color("#091728"),Color("#304254"),8))
+
 func _label(s: String, parent: Node, x: float, y: float, w: float, h: float, size: int = 17, align: HorizontalAlignment = HORIZONTAL_ALIGNMENT_CENTER, gold: bool = true) -> Label:
  var l := Label.new()
  l.text = _tr(s)
@@ -200,8 +231,8 @@ func _hitbox(parent: Node, x: float,y: float,w: float,h: float, click: Callable)
  return b
 
 func _build() -> void:
- # Each region has one approved background. The flattened reference has six
- # fashion slots, so it cannot serve as a dynamic five-slot background.
+ # Remove decorative corner gems, wings and thick fantasy frames.
+ # Keep the original PNG files unchanged on disk and preserve functional item slots.
  mouse_filter = Control.MOUSE_FILTER_STOP
  var backdrop := StyleBoxFlat.new()
  backdrop.bg_color = Color("#020917")
@@ -221,7 +252,8 @@ func _build() -> void:
  stage.mouse_filter = Control.MOUSE_FILTER_PASS
  scroll_content.add_child(stage)
  _rect(stage,0,0,W,H)
- _art("ornate_four_tab_fantasy_navigation_bar",stage,0,-65,W,370)
+ _flat_panel(stage,68,48,1312,154)
+ _label("LEOONLINE",stage,113,55,590,52,33,HORIZONTAL_ALIGNMENT_LEFT)
  var tab_x := [105.0,432.0,746.0,1065.0]
  var titles := ["Inventory","Character","Skill","Shop"]
  for idx in range(4):
@@ -229,16 +261,18 @@ func _build() -> void:
   tab.text = _tr(titles[idx])
   tab.set_meta("l10n",titles[idx])
   _style_text_button(tab,24)
+  _flat_button(tab,idx==current_tab)
   tab_buttons.append(tab)
  language_button = _hitbox(stage,1180,194,180,38,func(): set_language("th" if locale=="en" else "en"))
  language_button.text = "ไทย / EN"
  _style_text_button(language_button,20)
- _label("LEOONLINE · INVENTORY",stage,400,211,648,38,25)
+ _flat_button(language_button)
+ _label("LEOONLINE · INVENTORY",stage,400,214,648,38,25)
  equipment_panel = Control.new()
  equipment_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
  stage.add_child(equipment_panel)
  _rect(equipment_panel,0,0,W,H)
- _art("luminous_blue_gold_fantasy_inventory_frame",equipment_panel,0,140,650,920)
+ _flat_panel(equipment_panel,76,279,506,643)
  _label("Equipment",equipment_panel,150,310,350,36,23)
  _art("character_silhouette",equipment_panel,233,360,185,250,false)
  main_equip_list = Control.new()
@@ -276,7 +310,7 @@ func _build() -> void:
  bag_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
  stage.add_child(bag_panel)
  _rect(bag_panel,0,0,W,H)
- _art("luminous_blue_gold_fantasy_inventory_frame",bag_panel,620,180,828,620)
+ _flat_panel(bag_panel,705,288,657,406)
  _label("Bag",bag_panel,764,305,230,36,23)
  capacity_text = _label("",bag_panel,1000,305,280,36,18)
  bag_grid = GridContainer.new()
@@ -291,21 +325,25 @@ func _build() -> void:
   var button := _hitbox(bag_panel,x,634,60,44,_page_button.bind([0,1,3,4][i]))
   button.text = ["<<","<",">",">>"][i]
   _style_text_button(button,30)
+  _flat_button(button)
   page_buttons.append(button)
  page_text = _label("",bag_panel,934,634,220,44,20)
  currency_panel = Control.new()
  currency_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
  bag_panel.add_child(currency_panel)
  _rect(currency_panel,0,0,W,H)
- _art("ornate_four_row_currency_panel",currency_panel,701,738,666,192)
+ _flat_panel(currency_panel,704,751,654,184)
  for i in range(4):
   var money: String = MONEY[i]
   var row_y: float = 778.0 + float(i)*31.5
   _art("icon_"+money,currency_panel,774,row_y,25,25,false)
   _label(money.capitalize(),currency_panel,806,row_y,120,25,16,HORIZONTAL_ALIGNMENT_LEFT)
   money_labels[money] = _label("0",currency_panel,921,row_y,322,25,17,HORIZONTAL_ALIGNMENT_RIGHT,false)
-  _hitbox(currency_panel,1249,row_y,45,28,func(): set_notice("Cash Shop is not available yet"))
- _art("ornate_blue_gold_action_bar",stage,0,934,W,192)
+  var cash_button := _hitbox(currency_panel,1249,row_y,45,28,func(): set_notice("Cash Shop is not available yet"))
+  cash_button.text = "+"
+  _style_text_button(cash_button,20)
+  _flat_button(cash_button)
+ _flat_panel(stage,79,981,1285,85)
  var foot_names := ["Demo Items","Save","Auto Sort","Trash","Equip","Close"]
  var foot_x := [110.0,324.0,536.0,746.0,959.0,1169.0]
  for i in range(6):
@@ -321,6 +359,7 @@ func _build() -> void:
   button.text = _tr(foot_names[i])
   button.set_meta("l10n",foot_names[i])
   _style_text_button(button,19)
+  _flat_button(button,false,i==5)
   footer_buttons.append(button)
  waiting_panel = Control.new()
  waiting_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -500,6 +539,7 @@ func _adapt_layout() -> void:
   waiting_text.text = _tr("Skills are not available yet" if current_tab==2 else "Shop is not available yet")
  for i in range(tab_buttons.size()):
   tab_buttons[i].add_theme_color_override("font_color",Color.WHITE if i==current_tab else Color("#ffde93"))
+  _flat_button(tab_buttons[i],i==current_tab)
  if current_tab != 0:
   _hide_details()
  _layout_details()
@@ -569,7 +609,7 @@ func _create_details() -> void:
  detail_content = Control.new()
  var content := detail_content
  detail_panel.add_child(content)
- detail_art = _art("luminous_blue_gold_fantasy_inventory_frame",content,0,0,648,210)
+ detail_art = _flat_panel(content,0,0,648,210)
  detail_icon = _art("",content,105,65,62,62,false)
  detail_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
  detail_heading = _label("",content,180,42,355,33,20,HORIZONTAL_ALIGNMENT_LEFT)
@@ -581,6 +621,7 @@ func _create_details() -> void:
  detail_dismiss = dismiss
  dismiss.text = "×"
  _style_text_button(dismiss,26)
+ _flat_button(dismiss)
  detail_panel.visible = false
 
 func _show_details(item: String, equipment_key: String = "", locked: bool = false) -> void:
