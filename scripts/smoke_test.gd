@@ -519,6 +519,13 @@ func validate() -> void:
  game._toggle_target_lock()
  check(top.current_target==null and not top.target_bar.visible and not top.target_mana_bar.visible,
   "Pressing T again clears target selection and hides fake HP/MP")
+ # Tap/click also uses an actual 3D camera ray and golem hitbox; not
+ # screen-position arithmetic or fake touch success.
+ var golem_screen:Vector2=game.camera.unproject_position(game.training_target.global_position)
+ var tapped:bool=game._select_target_at(golem_screen)
+ check(tapped and top.current_target==game.training_target,
+  "Click/touch camera ray can select the actual 3D monster collision shape")
+ hud_menu.clear_target()
  var wide_target_bounds:Rect2=top.target_panel.get_global_rect()
  var wide_menu_bounds:Rect2=hud_menu.controls["bag"].get_global_rect()
  check(absf(wide_target_bounds.get_center().x-720.0)<2.0,
