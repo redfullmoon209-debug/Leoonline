@@ -76,6 +76,7 @@ func _process(delta: float) -> void:
   "hud_editor_slider":bounds(menu.size_slider),
   "hud_selected":menu.selected_id,
   "hud_show_touch":menu.display_mobile_controls,
+  "hud_landscape_preview":menu.force_touch_preview,
   "hud_layout":menu.layout_state,
   "hud_settings_button":bounds(menu.controls["settings"]),
   "hud_world_button":bounds(menu.controls["world"]),
