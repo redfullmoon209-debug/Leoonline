@@ -7,6 +7,8 @@ on:
       - 'tools/test_web_inventory.cjs'
       - 'tools/test_phone_shell.cjs'
       - 'tools/create_mobile_shell.py'
+      - 'tools/create_landscape_shell.py'
+      - 'tools/test_landscape_shell.cjs'
 jobs:
   browser-hud:
     runs-on: ubuntu-latest
@@ -58,6 +60,8 @@ jobs:
           node tools/test_web_inventory.cjs
           python3 tools/create_mobile_shell.py --web build/web --game _qa.html --output _phone_qa.html
           node tools/test_phone_shell.cjs
+          python3 tools/create_landscape_shell.py --web build/web --game _qa.html --output _landscape_qa.html
+          node tools/test_landscape_shell.cjs
       - name: Upload HUD screenshots and test results
         uses: actions/upload-artifact@v4
         if: always()
