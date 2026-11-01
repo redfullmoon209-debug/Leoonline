@@ -646,3 +646,34 @@ func _layout_details() -> void:
 
 func _notification(what: int) -> void:
  if what==NOTIFICATION_RESIZED and is_built: _adapt_layout()
+
+# Handle real screen drags independently of Web mouse-emulation routing.
+var pan_finger: int = -1
+var pan_origin := Vector2.ZERO
+var pan_scroll := Vector2.ZERO
+var pan_active := false
+
+func _input(event: InputEvent) -> void:
+ if not is_built or not is_visible_in_tree(): return
+ if event is InputEventScreenTouch:
+  if event.pressed and pan_finger == -1 and scroller.get_global_rect().has_point(event.position):
+   pan_finger = event.index
+   pan_origin = event.position
+   pan_scroll = Vector2(scroller.scroll_horizontal,scroller.scroll_vertical)
+   pan_active = false
+  elif not event.pressed and event.index == pan_finger:
+   if pan_active:
+    scroller.propagate_notification(Control.NOTIFICATION_SCROLL_END)
+    get_viewport().set_input_as_handled()
+   pan_finger = -1
+   pan_active = false
+ elif event is InputEventScreenDrag and event.index == pan_finger:
+  var delta: Vector2 = pan_origin-event.position
+  if not pan_active and delta.length() > 12.0:
+   pan_active = true
+   scroller.propagate_notification(Control.NOTIFICATION_SCROLL_BEGIN)
+   _hide_details()
+  if pan_active:
+   scroller.scroll_horizontal = int(pan_scroll.x+delta.x)
+   scroller.scroll_vertical = int(pan_scroll.y+delta.y)
+   get_viewport().set_input_as_handled()
