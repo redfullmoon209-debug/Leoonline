@@ -1,48 +1,22 @@
-name: Generate independent inventory PNG assets
+name: Verify existing approved inventory assets
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'tools/**'
-      - 'scripts/*.zlib.b64'
-      - '.github/workflows/generate-inventory-assets.yml'
   workflow_dispatch:
 permissions:
-  contents: write
-  actions: write
+  contents: read
 jobs:
-  generate:
+  verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 7
     steps:
       - uses: actions/checkout@v4
-        with:
-          persist-credentials: true
-      - name: Install image renderer
-        run: python3 -m pip install --user Pillow
-      - name: Paint individual PNGs and restore Godot script
-        run: python3 tools/prepare_inventory_assets.py
-      - name: Add open-source Thai/English UI font and license
+      - name: Verify the original PNG files without generating or modifying artwork
         run: |
-          set -euo pipefail
-          mkdir -p assets/fonts
-          curl -fL --retry 3 'https://raw.githubusercontent.com/google/fonts/main/ofl/notosansthai/NotoSansThai%5Bwdth%2Cwght%5D.ttf' -o assets/fonts/NotoSansThai.ttf
-          curl -fL --retry 3 'https://raw.githubusercontent.com/google/fonts/main/ofl/notosansthai/OFL.txt' -o assets/fonts/OFL.txt
-          test -s assets/fonts/NotoSansThai.ttf
-      - name: Commit generated PNG assets and readable source
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add tools/generate_inventory_assets.py scripts/inventory_ui.gd assets/ui/inventory/ assets/fonts/
-          if ! git diff --cached --quiet; then
-            git commit -m "ui: add independently generated fantasy inventory PNGs"
-            git fetch origin main
-            git rebase origin/main
-            git push origin HEAD:main
-          fi
-      - name: Request updated web preview
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh workflow run publish-pages.yml --ref main
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          files = sorted(Path('assets/ui/approved').glob('*.png'))
+          assert len(files) == 10, 'Expected exactly ten approved PNG originals'
+          for path in files:
+              payload = path.read_bytes()
+              assert payload.startswith(b'\x89PNG\r\n\x1a\n'), str(path)
+              print(hashlib.sha256(payload).hexdigest(), path)
+          PY
