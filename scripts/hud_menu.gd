@@ -268,7 +268,12 @@ func _build_popup() -> void:
  popup=PanelContainer.new()
  popup.name="HUDMenuWindow"
  popup.mouse_filter=Control.MOUSE_FILTER_STOP
- popup.add_theme_stylebox_override("panel",_style("outer_panel",29.0))
+ var popup_frame:=_style("outer_panel",29.0)
+ popup_frame.content_margin_left=26.0
+ popup_frame.content_margin_right=26.0
+ popup_frame.content_margin_top=22.0
+ popup_frame.content_margin_bottom=22.0
+ popup.add_theme_stylebox_override("panel",popup_frame)
  add_child(popup)
  var content:=VBoxContainer.new()
  content.add_theme_constant_override("separation",10)
@@ -281,11 +286,12 @@ func _build_popup() -> void:
  popup_title.add_theme_font_size_override("font_size",24)
  if _font()!=null: popup_title.add_theme_font_override("font",_font())
  header.add_child(popup_title)
- var close:=_action_button(header,"✕ ปิด",_hide_popup)
+ var close:=_action_button(header,"ปิด",_hide_popup)
  close.name="CloseHUDPanel"
  close.custom_minimum_size=Vector2(86,40)
  popup_notice=Label.new()
  popup_notice.add_theme_font_size_override("font_size",13)
+ if _font()!=null: popup_notice.add_theme_font_override("font",_font())
  popup_notice.add_theme_color_override("font_color",Color("#e9cfaa"))
  popup_notice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
  content.add_child(popup_notice)
@@ -353,7 +359,7 @@ func is_gameplay_blocked() -> bool:
 func _render_page() -> void:
  if popup_key.is_empty(): return
  popup_title.text=_label_for(popup_key)
- popup_notice.text="LEOONLINE  •  "+("แผงข้อมูลในเกม" if inventory.get("locale")=="th" else "In-game panel")
+ popup_notice.text="LEOONLINE - "+("แผงข้อมูลในเกม" if inventory.get("locale")=="th" else "In-game panel")
  for child in page_body.get_children():
   page_body.remove_child(child)
   child.queue_free()
@@ -581,7 +587,7 @@ func _events_page() -> void:
 func _settings_page() -> void:
  _section("ปรับแต่ง HUD")
  _description("ลากปุ่มบนหน้าจอเพื่อย้ายตำแหน่งด้วยนิ้วหรือเมาส์ เลือกปุ่มแล้วเลื่อนสไลเดอร์เพื่อเปลี่ยนขนาด บันทึกตำแหน่งแยกตามอุปกรณ์ได้")
- var action:=_action_button(page_body,"✥ เริ่มจัดปุ่มบนหน้าจอ",_begin_edit)
+ var action:=_action_button(page_body,"เริ่มจัดปุ่มบนหน้าจอ",_begin_edit)
  action.name="EditHUDLayout"
  var check:=CheckBox.new()
  check.text="แสดงชื่อใต้ไอคอน"
@@ -652,12 +658,17 @@ func _build_toolbar() -> void:
  toolbar=PanelContainer.new()
  toolbar.name="HUDEditToolbar"
  toolbar.mouse_filter=Control.MOUSE_FILTER_STOP
- toolbar.add_theme_stylebox_override("panel",_style("outer_panel",26.0))
+ var edit_frame:=_style("outer_panel",26.0)
+ edit_frame.content_margin_left=17.0
+ edit_frame.content_margin_right=17.0
+ edit_frame.content_margin_top=19.0
+ edit_frame.content_margin_bottom=16.0
+ toolbar.add_theme_stylebox_override("panel",edit_frame)
  add_child(toolbar)
  var col:=VBoxContainer.new()
  col.add_theme_constant_override("separation",4)
  toolbar.add_child(col)
- toolbar_hint=_text(col,"จัดตำแหน่ง HUD • แตะเลือกปุ่ม แล้วลากนิ้ว/เมาส์",15,true)
+ toolbar_hint=_text(col,"จัดตำแหน่ง HUD - แตะเลือก แล้วลากด้วยนิ้วหรือเมาส์",15,true)
  toolbar_hint.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
  select_name=_text(col,"",15)
  select_name.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
@@ -681,8 +692,8 @@ func _build_toolbar() -> void:
 func _place_toolbar() -> void:
  if not is_instance_valid(toolbar): return
  var w:float=minf(540.0,maxf(304.0,size.x-12.0))
- toolbar.position=Vector2(maxf(2.0,(size.x-w)*0.5),maxf(8.0,size.y-165.0))
- toolbar.size=Vector2(w,157.0)
+ toolbar.position=Vector2(maxf(2.0,(size.x-w)*0.5),maxf(8.0,size.y-187.0))
+ toolbar.size=Vector2(w,180.0)
 
 func _begin_edit() -> void:
  _hide_popup()
