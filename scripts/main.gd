@@ -263,9 +263,9 @@ func _unhandled_input(event: InputEvent) -> void:
  elif event.is_action_pressed("pickup") and not open and not event.is_echo():
   _collect_nearest()
  elif event is InputEventMouseButton and event.pressed and not open and not DisplayServer.is_touchscreen_available():
-  if not is_instance_valid(hud_menu) or (not hud_menu.is_gameplay_blocked() and hud_menu.size.x>=600.0):
-   # Portrait preview on desktop should use mouse as a touch pointer.
-   # Capturing the cursor here would make the on-screen joystick unusable.
+  if not is_instance_valid(hud_menu) or (not hud_menu.is_gameplay_blocked() and hud_menu.size.x>=600.0 and not hud_menu.force_touch_preview):
+   # Keep mouse pointer usable for landscape-test mobile controls,
+   # even when a landscape viewport is wider than 600 pixels.
    Input.mouse_mode=Input.MOUSE_MODE_CAPTURED
  elif event is InputEventMouseMotion and not open and Input.mouse_mode==Input.MOUSE_MODE_CAPTURED:
   if not is_instance_valid(hud_menu) or not hud_menu.is_gameplay_blocked():
