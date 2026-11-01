@@ -26,12 +26,20 @@ async function start(viewport,mobile=false){
  await until(()=>!!window.__leoQA);
  return context;
 }
-async function pan(dx,dy){
- // Real wheel events, useful for desktop and for positioning before touch tests.
- const q=await state(),r=q.scroller;
- await page.mouse.move(Math.min(page.viewportSize().width-20,r[2]/2),Math.min(r[3]-20,200));
- await page.mouse.wheel(dx,dy);
- await page.waitForTimeout(350);
+async function swipe(dx,dy){
+ const v=page.viewportSize(),q=await state();
+ const x=Math.min(v.width-25,v.width*0.85),y=Math.min(q.scroller[3]-25,v.height*0.75);
+ const endX=Math.max(20,x-dx),endY=Math.max(20,y-dy);
+ const client=await page.context().newCDPSession(page);
+ const point=(x,y)=>({x,y,id:0,radiusX:2,radiusY:2,force:1});
+ await client.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[point(x,y)]});
+ for(let i=1;i<=14;i++){
+  await client.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[point(x+(endX-x)*i/14,y+(endY-y)*i/14)]});
+  await page.waitForTimeout(25);
+ }
+ await client.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+ await client.detach();
+ await page.waitForTimeout(500);
 }
 (async()=>{
  try{
@@ -104,10 +112,13 @@ async function pan(dx,dy){
    await until(()=>window.__leoQA.open);
    check((await state()).bag[0][2]>=44,'Mobile bag targets >=44px');
    // Scroll the actual canvas to its bag region before tapping a locked slot.
-   await pan(900,viewport.height<500?290:0);
+   await swipe(500,0);
+   if(viewport.width<500) await swipe(500,0);
+   check((await state()).scroll[0]>0,'Horizontal finger swipe pans mobile inventory');
+   if(viewport.height<500) await swipe(0,280);
    q=await state();
    let cell=q.bag.find((r,i)=>i>=40&&r[0]>=0&&r[0]+r[2]<viewport.width&&r[1]>0&&r[1]+r[3]<Math.min(q.scroller[3],viewport.height));
-   if(!cell){await pan(-250,160);q=await state();cell=q.bag.find((r,i)=>i>=40&&r[0]>=0&&r[0]+r[2]<viewport.width&&r[1]>0&&r[1]+r[3]<Math.min(q.scroller[3],viewport.height));}
+   if(!cell){await swipe(0,160);q=await state();cell=q.bag.find((r,i)=>i>=40&&r[0]>=0&&r[0]+r[2]<viewport.width&&r[1]>0&&r[1]+r[3]<Math.min(q.scroller[3],viewport.height));}
    check(!!cell,'Mobile locked cell reachable by scrolling');
    await clickRect(cell,true);
    await until(()=>window.__leoQA.detail_visible);
