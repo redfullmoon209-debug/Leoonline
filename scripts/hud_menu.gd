@@ -350,6 +350,7 @@ func _reflow() -> void:
   control.position=Vector2(clampf(coordinates.x,5.0,maxf(5.0,size.x-wh-5.0)),clampf(coordinates.y,5.0,maxf(5.0,size.y-wh-5.0)))
   if MENU_ORDER.has(id):
    var caption:Label=control.get_node("Caption") as Label
+   caption.text=_label_for(id)
    if id!="bag":
     var icon:TextureRect=control.get_node("Glyph") as TextureRect
     icon.position=Vector2(wh*0.075,-wh*0.04)
