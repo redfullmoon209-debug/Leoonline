@@ -45,6 +45,55 @@ async function swipe(dx,dy){
  try{
   browser=await chromium.launch({headless:true,args:['--use-angle=swiftshader','--enable-webgl','--enable-unsafe-swiftshader','--no-sandbox']});
   let context=await start({width:1440,height:1100});
+  // Nine independent HUD icons must open actual interactive pages without
+  // replacing the existing bag HUD. Use only real browser clicks.
+  let hud=await state();
+  check(hud.hud_icon_count===9&&Object.keys(hud.hud_icons).length===9,'Nine separate visible HUD menu icons');
+  for(const name of ['world','party','friends','ranking','guild','quest','mail','events']){
+   check(hud.hud_icons[name][2]>=42,'HUD icon has a touch-friendly viewport hit target: '+name);
+   await clickRect(hud.hud_icons[name]);
+   await until(()=>window.__leoQA.hud_panel_open);
+   hud=await state();
+   check(hud.hud_panel_key===name&&hud.hud_panel_children>0,'Menu icon opens its own real page: '+name);
+   await clickRect(hud.hud_close_button);
+   await until(()=>!window.__leoQA.hud_panel_open);
+   hud=await state();
+  }
+  await clickRect(hud.hud_icons.settings);
+  await until(()=>window.__leoQA.hud_panel_key==='settings');
+  hud=await state();
+  check(hud.hud_start_editor.length===4,'HUD Settings includes a real edit-layout button');
+  await snap('web-hud-settings');
+  await clickRect(hud.hud_start_editor);
+  await until(()=>window.__leoQA.hud_editing);
+  hud=await state();
+  check(hud.hud_toolbar.length===4&&!hud.hud_panel_open,'HUD drag editor exposes an accessible persistent toolbar');
+  await snap('web-hud-editor');
+  const oldWorldRect=hud.hud_world_button;
+  const startX=oldWorldRect[0]+oldWorldRect[2]/2, startY=oldWorldRect[1]+oldWorldRect[3]/2;
+  await page.mouse.move(startX,startY);
+  await page.mouse.down();
+  await page.mouse.move(startX-130,startY+110,{steps:12});
+  await page.mouse.up();
+  await until(()=>!!window.__leoQA.hud_layout.world);
+  hud=await state();
+  check(hud.hud_world_button[0]<oldWorldRect[0]-75&&hud.hud_world_button[1]>oldWorldRect[1]+60,'Desktop mouse drag actually moves the selected icon');
+  await clickRect(hud.hud_save_button);
+  await until(()=>!window.__leoQA.hud_editing);
+  const hudSaved=await page.evaluate(()=>JSON.parse(localStorage.getItem('leoonline_hud_v1')));
+  check(!!hudSaved.layout.world,'New HUD coordinates are saved to localStorage, not only a temporary drawing');
+  await page.reload();
+  await until(()=>!!window.__leoQA);
+  hud=await state();
+  check(Math.abs(hud.hud_world_button[0]-oldWorldRect[0])>70,'Saved HUD coordinates survive a full browser reload');
+  await clickRect(hud.hud_icons.settings);
+  await until(()=>window.__leoQA.hud_panel_key==='settings');
+  await clickRect((await state()).hud_reset_button);
+  await until(()=>Object.keys(window.__leoQA.hud_layout).length===0);
+  check(Object.keys((await state()).hud_layout).length===0,'Reset HUD restores built-in control positions');
+  await clickRect((await state()).hud_close_button);
+  await until(()=>!window.__leoQA.hud_panel_open);
+  await snap('web-hud-main-icons');
   await clickRect((await state()).opener);
   await until(()=>window.__leoQA.open);
   let q=await state();
