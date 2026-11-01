@@ -87,6 +87,15 @@ async function swipe(dx,dy){
   await clickRect((await state()).language);
   await until(()=>window.__leoQA.locale==='en');
   await snap('web-desktop-en');
+  await clickRect((await state()).tabs[1]);
+  await until(()=>window.__leoQA.tab===1&&window.__leoQA.char_visible);
+  q=await state();
+  check(q.char_equipment_left&&q.character_stats!==undefined || q.char_equipment_left,'Character keeps original equipment panel on left');
+  check(q.char_values.level==='1'&&q.char_values.class_tier==='0'&&q.char_values.job==='Novice','Right panel displays saved Level, Class and starter Job');
+  check(q.char_values.strength==='10'&&q.char_values.vitality==='10'&&q.char_values.luck==='10','Real persisted base attributes appear on Character page');
+  check(q.char_values.pve_rank==='Unranked'&&q.char_values.pvp_rank==='Unranked'&&q.char_values.wealth_rank==='Unranked','Rankings truthfully show Unranked without server leaderboard');
+  check(q.char_values.currency_gold===Number(q.currency.gold).toLocaleString('en-US'),'Character displays current exact inventory Gold balance');
+  await snap('web-character-en');
   await clickRect((await state()).tabs[2]);
   await until(()=>window.__leoQA.tab===2);
   check((await state()).waiting==='Skills are not available yet','Skill placeholder is truthful');

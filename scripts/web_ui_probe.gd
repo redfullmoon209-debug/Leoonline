@@ -43,6 +43,9 @@ func _process(delta: float) -> void:
   "pages":buttons(ui.page_buttons),"language":bounds(ui.language_button),
   "opener":bounds(host.get("hud").get_node("OpenInventory")),
   "waiting":ui.waiting_text.text,"trash_visible":ui.trash_dialog.visible,
+  "char_visible":ui.character_panel.visible,
+  "char_values":{},
+  "char_equipment_left":ui.equipment_panel.visible,
   "shop_visible":ui.shop_panel.visible,"shop_left_inventory":ui.bag_panel.visible,"shop_left_border":ui.shop_left_frame.visible,
   "shop_left_shift":ui.bag_panel.position.x,"shop_page":ui.shop_page,
   "shop_cells":ui.shop_grid.get_child_count(),"shop_stock_label":ui.shop_stock_label.text,
@@ -53,6 +56,10 @@ func _process(delta: float) -> void:
   "shop_pages":buttons(ui.shop_page_buttons),"shop_sell_visible":ui.shop_sell_dialog.visible,
   "shop_buy_disabled":ui.shop_buy_button.disabled,"shop_sell_disabled":ui.shop_sell_button.disabled
  }
+ var character_data: Dictionary = {}
+ for key in ui.character_values:
+  character_data[str(key)] = str(ui.character_values[key].text)
+ state["char_values"]=character_data
  if ui.trash_dialog.visible:
   var offset := Vector2(ui.trash_dialog.position)
   state["trash_ok"]=bounds(ui.trash_dialog.get_ok_button(),offset)

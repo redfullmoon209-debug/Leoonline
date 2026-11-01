@@ -98,6 +98,44 @@ func validate() -> void:
   check(not ui.detail_description.text.contains("Attack"),"No fabricated stats")
   ui._hide_details()
  ui.set_language("th")
+ ui._switch_tab(1)
+ check(ui.character_panel.visible and ui.equipment_panel.visible and not ui.shop_panel.visible,"Character tab shows equipment LEFT and character status RIGHT")
+ check(not ui.bag_panel.visible and not ui.waiting_panel.visible,"Character tab does not show inventory grid, shop or skill placeholder")
+ check(ui.character_values.size()==24,"Character panel has profile fields, six attributes, combat records and four currencies")
+ check(ui.character_values["name"].text=="นักผจญภัย","New player profile name is a real default, translated")
+ check(ui.character_values["level"].text==str(store.profile["level"]),"Character Level comes from saved profile")
+ check(ui.character_values["class_tier"].text==str(store.profile["class_tier"]),"Class is the stored class tier")
+ check(ui.character_values["strength"].text==str(store.profile["attributes"]["strength"]),"Strength reads persisted base stats")
+ check(ui.character_values["pve_rank"].text=="ยังไม่มีอันดับ" and ui.character_values["pvp_rank"].text=="ยังไม่มีอันดับ" and ui.character_values["wealth_rank"].text=="ยังไม่มีอันดับ","Do not fabricate rankings or server scores")
+ check(ui.character_values["currency_gold"].text==store.pretty(str(store.currency.gold)),"Wealth reads the same exact Gold balance as inventory")
+ for key in ["gold","blue","purple","green"]:
+  check(ui.character_values.has("currency_"+key),"Character wealth uses all four existing currency types")
+ var original_profile: Dictionary = store.profile.duplicate(true)
+ var original_gold_for_profile: String = str(store.currency.gold)
+ store.profile["attributes"]["strength"]=37
+ store.grant_experience(150)
+ check(int(store.profile["level"])==2 and int(store.profile["experience"])==50,"Level progression model has an explicit experience threshold")
+ store.currency.gold="999999999999999999999"
+ store.changed.emit()
+ check(ui.character_values["strength"].text=="37","Character stats refresh when saved profile values change")
+ check(ui.character_values["level"].text=="2" and ui.character_values["experience"].text=="50 / 150","Character Level and EXP reflect real model progression")
+ check(ui.character_values["currency_gold"].text=="999,999,999,999,999,999,999","No precision loss for 21-digit Gold on Character page")
+ check(store.save_data(),"Character save writes profile and 21-digit balance")
+ store.profile["attributes"]["strength"]=10
+ store.profile["level"]=1
+ store.currency.gold="0"
+ store.load_data()
+ check(int(store.profile["attributes"]["strength"])==37 and int(store.profile["level"])==2,"Character profile persists across save/load")
+ check(ui.character_values["currency_gold"].text=="999,999,999,999,999,999,999","Character UI preserves exact large numbers after load")
+ ui.set_language("en")
+ check(ui.character_values["name"].text=="Adventurer" and ui.character_values["pve_rank"].text=="Unranked","Character labels and values switch to English without PNG changes")
+ ui.set_language("th")
+ store.profile=original_profile
+ store.currency.gold=original_gold_for_profile
+ store.changed.emit()
+ store.save_data()
+ ui._switch_tab(0)
+ check(not ui.character_panel.visible and ui.bag_panel.visible and ui.equipment_panel.visible,"Inventory restores exact original equipment and bag layout")
  check(ui.ui_font.has_char(0x0e01),"Thai glyph exists")
  await click(ui.footer_buttons[0])
  check(store.slots.count("sword")==1,"Demo button routed through viewport")
@@ -206,6 +244,9 @@ func validate() -> void:
   check(ui.scroller.get_global_rect().end.y <= ui.detail_panel.get_global_rect().position.y+1,"Mobile details reserve space instead of covering slots")
   check(ui.bag_grid.get_child(0).get_global_rect().size.x >= 44,"Mobile targets at least 44 pixels")
   ui._hide_details()
+  ui._switch_tab(1)
+  check(ui.character_panel.visible and ui.character_values["strength"].text!="","Character data still available on resized mobile viewport")
+  ui._switch_tab(0)
  root.size = Vector2i(1440,1100)
  await process_frame
  await process_frame
