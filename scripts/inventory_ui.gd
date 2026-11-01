@@ -407,7 +407,9 @@ func _refresh_equipment(container: Control, keys: Array, width: float, space: fl
   var by: float = float(i)*54.0 if direction == "v" else 0.0
   var b := _image_button(container,0,by,width,active,"selected" if selected_equipment==key else "normal")
   b.set_meta("equipment_key",key)
-  b.mouse_entered.connect(func(): _show_details(active,key,false))
+  b.mouse_entered.connect(func():
+   if not DisplayServer.is_touchscreen_available(): _show_details(active,key,false)
+  )
   b.mouse_exited.connect(_hide_hover_details)
   b.pressed.connect(func():
    selected_equipment = key
@@ -429,7 +431,9 @@ func _fill_bag() -> void:
   var state: String = "locked" if is_locked else ("selected" if index == selected else "normal")
   var b := _image_button(bag_grid,0,0,54,item_id,state)
   b.set_meta("slot_index",index)
-  b.mouse_entered.connect(func(): _show_details(item_id,"",is_locked))
+  b.mouse_entered.connect(func():
+   if not DisplayServer.is_touchscreen_available(): _show_details(item_id,"",is_locked)
+  )
   b.mouse_exited.connect(_hide_hover_details)
   if not is_locked:
    b.pressed.connect(_pick_item.bind(index))
