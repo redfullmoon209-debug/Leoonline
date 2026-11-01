@@ -26,6 +26,18 @@ async function start(viewport,mobile=false){
  await until(()=>!!window.__leoQA);
  return context;
 }
+async function dragHudTouch(startX,startY,endX,endY){
+ const session=await page.context().newCDPSession(page);
+ const point=(x,y)=>({x,y,id:0,radiusX:2,radiusY:2,force:1});
+ await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[point(startX,startY)]});
+ for(let i=1;i<=12;i++){
+  await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[point(startX+(endX-startX)*i/12,startY+(endY-startY)*i/12)]});
+  await page.waitForTimeout(30);
+ }
+ await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+ await session.detach();
+ await page.waitForTimeout(450);
+}
 async function swipe(dx,dy){
  const v=page.viewportSize(),q=await state();
  const x=Math.min(v.width-25,v.width*0.85),y=Math.min(q.scroller[3]-25,v.height*0.75);
@@ -296,6 +308,25 @@ async function swipe(dx,dy){
   await context.close();
   for(const viewport of [{width:390,height:844},{width:844,height:390}]){
    context=await start(viewport,true);
+   if(viewport.width===390){
+    let touchHud=await state();
+    check(touchHud.hud_icon_count===9&&touchHud.hud_joystick[2]>=90,'Portrait mobile renders nine independent menus and the touch joystick');
+    await clickRect(touchHud.hud_settings_button,true);
+    await until(()=>window.__leoQA.hud_panel_key==='settings');
+    await clickRect((await state()).hud_start_editor,true);
+    await until(()=>window.__leoQA.hud_editing);
+    touchHud=await state();
+    const original=touchHud.hud_world_button;
+    await dragHudTouch(original[0]+original[2]/2,original[1]+original[3]/2,
+       original[0]+original[2]/2-67,original[1]+original[3]/2+66);
+    await until(()=>!!window.__leoQA.hud_layout.world);
+    touchHud=await state();
+    check(touchHud.hud_world_button[0]<original[0]-25,'Real finger drag changes HUD icon position on mobile');
+    await snap('web-hud-touch-edit');
+    await clickRect(touchHud.hud_cancel_button,true);
+    await until(()=>!window.__leoQA.hud_editing);
+    check(Object.keys((await state()).hud_layout).length===0,'Cancel restores previous HUD layout after touchscreen drag');
+   }
    await clickRect((await state()).opener,true);
    await until(()=>window.__leoQA.open);
    check((await state()).bag[0][2]>=44,'Mobile bag targets >=44px');
