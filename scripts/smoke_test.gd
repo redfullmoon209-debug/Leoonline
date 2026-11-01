@@ -458,7 +458,7 @@ func validate() -> void:
   check(art!=null and art.get_width()==256 and art.get_height()==256,"Premium icon was authored independently at 256px: "+key)
   var control:Control=hud_menu.controls[key] as Control
   var rect:Rect2=control.get_global_rect()
-  check(rect.size.x>=42 and rect.size.x<=100,"Desktop icon uses compact touch-sized geometry: "+key)
+  check(rect.size.x>=32 and rect.size.x<=100,"Desktop icon uses compact right-aligned geometry: "+key)
   if i==0: row_y=rect.position.y
   check(is_equal_approx(rect.position.y,row_y),"Every main icon is on the same HUD row")
   if i>0:
@@ -471,6 +471,8 @@ func validate() -> void:
    check((control.get_node("Glyph") as TextureRect).texture.resource_path==icon_path,"HUD renders original standalone PNG for "+key)
  check(prior_rect.end.x<game.hud_menu.size.x-150.0,"Ten-icon row leaves free space for the right-hand minimap")
  check(hud_menu.controls["bag"].position.x>265.0,"Ten-icon row leaves room for the left-hand character portrait")
+ check(hud_menu.controls["events"].get_global_rect().end.x < hud_menu.top_status.minimap_button.get_global_rect().position.x,
+  "Ten compact icons sit immediately left of the minimap without overlapping it")
  var top:Control=hud_menu.top_status
  check(top!=null and top.player_panel.visible and top.minimap_button.visible and top.target_panel.visible,"Character data, minimap and target status are three real HUD regions")
  check(top.player_name.text.contains("Lv.") and top.player_class.text.contains("Class"),"Top-left character profile displays current saved level and class")
@@ -489,6 +491,54 @@ func validate() -> void:
  hud_menu.clear_target()
  test_target.queue_free()
  check(not top.target_bar.visible and top.target_label.text.contains("ยังไม่ได้เลือก"),"Clearing target removes stale HP")
+ check(not top.target_mana_bar.visible and not top.target_portrait.visible,"No selected target hides HP/MP values and portrait without fake monster information")
+ check(top.target_decor.get_script()!=null,"Center golden frame is native Godot vector drawing, not a crop")
+ check(ResourceLoader.exists("res://assets/ui/hud/target_training_golem.svg"),"Standalone golem portrait is an original asset, not a cropped reference image")
+ check(game.training_target != null and is_instance_valid(game.training_target),"Actual targetable training golem exists in the 3D test world")
+ check(game.training_target.get_meta("hp")==3240.0 and game.training_target.get_meta("mp")==670.0,
+  "Training golem health and mana are actual entity metadata, not hard-coded HUD labels")
+ game._toggle_target_lock()
+ check(top.current_target==game.training_target,"T target lock selects the real nearby world entity")
+ check(top.target_label.text=="อสูรหินฝึก" and top.target_level_label.text=="Lv.12" and top.target_type_label.text=="Monster",
+  "Centered target card shows actual enemy name, level and type")
+ check(top.target_portrait.visible and top.target_portrait.texture!=null,
+  "Selected enemy shows its own full portrait asset without cropping the approved screenshot")
+ check(top.target_bar.visible and is_equal_approx(top.target_bar.value,100.0) and top.target_health_value.text.contains("3240"),
+  "Red target HP bar and numeric value read actual entity data")
+ check(top.target_mana_bar.visible and is_equal_approx(top.target_mana_bar.value,100.0) and top.target_mana_value.text.contains("670"),
+  "Blue target MP bar and numeric value read actual entity data")
+ game.training_target.set_meta("hp",810.0)
+ game.training_target.set_meta("mp",335.0)
+ top._refresh_target()
+ check(is_equal_approx(top.target_bar.value,25.0) and top.target_health_value.text.contains("25%"),
+  "Real target damage updates red HP bar and percentage dynamically")
+ check(is_equal_approx(top.target_mana_bar.value,50.0) and top.target_mana_value.text.contains("50%"),
+  "Real target mana changes update blue MP bar and percentage dynamically")
+ game.training_target.set_meta("hp",3240.0)
+ game.training_target.set_meta("mp",670.0)
+ game._toggle_target_lock()
+ check(top.current_target==null and not top.target_bar.visible and not top.target_mana_bar.visible,
+  "Pressing T again clears target selection and hides fake HP/MP")
+ var wide_target_bounds:Rect2=top.target_panel.get_global_rect()
+ var wide_menu_bounds:Rect2=hud_menu.controls["bag"].get_global_rect()
+ check(absf(wide_target_bounds.get_center().x-720.0)<2.0,
+  "Ornate portrait and HP/MP card is horizontally centered at top on desktop")
+ check(wide_target_bounds.position.y>=wide_menu_bounds.end.y+4.0,
+  "Top-centered target card sits below right-side icon row with clear visual spacing")
+ root.size=Vector2i(844,390)
+ await process_frame
+ await process_frame
+ var landscape_target:Rect2=top.target_panel.get_global_rect()
+ var landscape_menu:Rect2=hud_menu.controls["bag"].get_global_rect()
+ check(absf(landscape_target.get_center().x-422.0)<2.0 and landscape_target.position.y<85.0,
+  "In actual phone landscape, target card stays centered near the top")
+ check(landscape_target.position.y>=landscape_menu.end.y+4.0,
+  "Phone landscape right-side icon row never covers center target data")
+ check(hud_menu.controls["events"].get_global_rect().end.x<top.minimap_button.get_global_rect().position.x,
+  "Right-side icons never overlap landscape minimap")
+ root.size=Vector2i(1440,1100)
+ await process_frame
+ await process_frame
  # Server/social hooks do not manufacture notifications. A verified incoming
  # friend event may show its own red dot, while Mail remains unmarked.
  hud_menu.receive_friend_request("")
