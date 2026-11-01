@@ -172,6 +172,7 @@ var scroller: ScrollContainer
 var scroll_content: Control
 var currency_panel: Control
 var header_label: Label
+var shop_left_frame: NinePatchRect
 var shop_panel: Control
 var shop_grid: GridContainer
 var shop_page_buttons: Array[Button] = []
@@ -450,6 +451,10 @@ func _build() -> void:
  fashion_row.add_theme_constant_override("separation",23)
  equipment_panel.add_child(fashion_row)
  _rect(fashion_row,139,692,374,55)
+ # Shop-only decorative border for the *reused* player inventory.
+ # Existing Inventory tab and its border-free original layout are unchanged.
+ shop_left_frame = _red_panel(stage,43,205,648,561,"inner_panel")
+ shop_left_frame.visible = false
  bag_panel = Control.new()
  bag_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
  stage.add_child(bag_panel)
@@ -845,6 +850,7 @@ func _adapt_layout() -> void:
  equipment_panel.visible = current_tab in [0,1]
  bag_panel.position = Vector2(-655.0,0.0) if current_tab==3 else Vector2.ZERO
  bag_panel.visible = current_tab==0 or current_tab==3
+ shop_left_frame.visible = current_tab==3
  shop_panel.visible = current_tab==3
  waiting_panel.visible = current_tab==2
  if waiting_panel.visible:
@@ -883,7 +889,11 @@ func _translate(node: Node) -> void:
  for ch in node.get_children(): _translate(ch)
 
 func set_notice(msg: String) -> void:
- if is_instance_valid(notice_text): notice_text.text=_tr(msg)
+ if current_tab==3 and is_instance_valid(shop_status_label):
+  shop_status_label.text=_tr(msg)
+  if is_instance_valid(notice_text): notice_text.text=""
+ elif is_instance_valid(notice_text):
+  notice_text.text=_tr(msg)
 
 func _request_trash() -> void:
  var selected: int = int(game_store.get("selected"))

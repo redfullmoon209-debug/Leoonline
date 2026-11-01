@@ -94,6 +94,7 @@ async function swipe(dx,dy){
   await until(()=>window.__leoQA.tab===3&&window.__leoQA.shop_visible);
   q=await state();
   check(q.shop_left_inventory&&q.shop_left_shift===-655,'Shop reuses actual player inventory on left');
+  check(q.shop_left_border,'Shop-only left gold frame matches right-hand shop frame');
   check(q.shop_cells===50&&q.shop_stock_label==='21 / 500','Shop has 50 grid cells on each of 10 catalog pages');
   await clickRect(q.shop_slots[0]);
   await until(()=>window.__leoQA.shop_selected_id==='hp_potion_small');

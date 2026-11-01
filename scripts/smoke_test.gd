@@ -148,6 +148,7 @@ func validate() -> void:
  check(ui.waiting_panel.visible and ui.waiting_text.text.contains("ยังไม่"),"Skill unavailable truthfully")
  ui._switch_tab(3)
  check(ui.shop_panel.visible and ui.bag_panel.visible and not ui.equipment_panel.visible,"Shop shows player bag on the LEFT and shop stock on the RIGHT")
+ check(ui.shop_left_frame.visible,"Shop-only left inventory border is visible behind the reused bag")
  check(not ui.waiting_panel.visible,"Shop is usable, not a placeholder")
  check(ui.bag_panel.position==Vector2(-655,0),"Existing 200-slot bag is reused on the left in Shop")
  check(ui.shop_grid.columns==10 and ui.shop_grid.get_child_count()==50,"Shop has 10x5 sellable stock slots")
@@ -191,7 +192,7 @@ func validate() -> void:
  store.selected=-1
  ui.refresh()
  ui._switch_tab(0)
- check(ui.bag_panel.position==Vector2.ZERO and not ui.shop_panel.visible,"Inventory tab restores normal bag position and hides Shop")
+ check(ui.bag_panel.position==Vector2.ZERO and not ui.shop_panel.visible and not ui.shop_left_frame.visible,"Inventory restores the original layout and hides Shop-only borders")
  ui._show_details("sword")
  for viewport_size in [Vector2i(390,844),Vector2i(844,390)]:
   root.size = viewport_size
