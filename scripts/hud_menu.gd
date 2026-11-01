@@ -321,7 +321,11 @@ func _max_size(id: String) -> float:
  return 195.0 if id=="joystick" else 100.0
 
 func _min_size(id: String) -> float:
- return 90.0 if id=="joystick" else 42.0
+ if id=="joystick": return 90.0
+ # Responsive small PNGs must be allowed below 42px to keep all ten
+ # icons in one row on a 320-390px phone with zero overlap.
+ if MENU_ORDER.has(id) and size.x<600.0: return 27.0
+ return 42.0
 
 func _size_of(id: String) -> float:
  var setting: Variant=layout_state.get(id,{})
