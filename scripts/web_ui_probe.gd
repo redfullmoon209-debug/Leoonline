@@ -25,7 +25,33 @@ func _process(delta: float) -> void:
  var locked := 0
  for button in ui.bag_grid.get_children():
   if button.get_meta("locked",false): locked+=1
+ var menu: Control=host.get("hud_menu")
+ var hud_icons: Dictionary={}
+ for id in menu.MENU_IDS:
+  hud_icons[id]=bounds(menu.controls[id])
  var state := {
+  "hud_icons":hud_icons,
+  "hud_icon_count":menu.MENU_IDS.size(),
+  "hud_panel_open":menu.popup.visible,
+  "hud_panel_key":menu.popup_key,
+  "hud_panel_bounds":bounds(menu.popup),
+  "hud_panel_children":menu.page_body.get_child_count(),
+  "hud_editing":menu.edit_mode,
+  "hud_toolbar":bounds(menu.toolbar),
+  "hud_editor_slider":bounds(menu.size_slider),
+  "hud_selected":menu.selected_id,
+  "hud_show_touch":menu.display_mobile_controls,
+  "hud_layout":menu.layout_state,
+  "hud_settings_button":bounds(menu.controls["settings"]),
+  "hud_world_button":bounds(menu.controls["world"]),
+  "hud_party_button":bounds(menu.controls["party"]),
+  "hud_joystick":bounds(menu.controls["joystick"]),
+  "hud_touch_jump":bounds(menu.controls["jump"]),
+  "hud_touch_pickup":bounds(menu.controls["pickup"]),
+  "hud_touch_run":bounds(menu.controls["run"]),
+  "hud_joystick_value":menu.controls["joystick"].movement,
+  "hud_quest_pickups":menu.pickups,
+  "hud_mail_claimed":menu.mail_claimed,
   "input_counts":input_counts,"touchscreen":DisplayServer.is_touchscreen_available(),
   "pan":[ui.pan_finger,ui.pan_active],"h_range":[ui.scroller.get_h_scroll_bar().max_value,ui.scroller.get_h_scroll_bar().page],
   "open":ui.visible,"page":ui.current_page,"locale":ui.locale,"tab":ui.current_tab,
