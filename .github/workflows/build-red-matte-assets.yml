@@ -1,0 +1,51 @@
+name: Build original matte-red inventory PNG layers
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/generate_red_matte_inventory.py'
+      - '.github/workflows/build-red-matte-assets.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: leo-red-matte-assets
+  cancel-in-progress: false
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate standalone red-gold PNG layers, with NO screenshot crops
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check 'Pillow==11.3.0'
+          python3 tools/generate_red_matte_inventory.py
+          test "$(find assets/ui/red_matte -maxdepth 1 -name '*.png' | wc -l)" -eq 11
+          python3 - <<'PY'
+          from pathlib import Path
+          import json, hashlib
+          p=Path('assets/ui/red_matte')
+          m=json.loads((p/'manifest.json').read_text())
+          assert len(m)==11
+          for name,info in m.items():
+              data=(p/name).read_bytes()
+              assert data.startswith(b'\x89PNG\r\n\x1a\n'),name
+              assert hashlib.sha256(data).hexdigest()==info['sha256'],name
+              print('Verified',name)
+          PY
+      - name: Commit only NEW red-matte PNG assets, preserve approved originals
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/ui/red_matte/
+          if git diff --cached --quiet; then
+            echo 'All red-matte PNG files already match originals'
+          else
+            git commit -m 'assets: add 11 standalone matte-crimson inventory PNG layers'
+            git fetch origin main
+            git rebase origin/main
+            git push origin HEAD:main
+          fi
