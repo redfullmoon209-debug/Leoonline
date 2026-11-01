@@ -137,11 +137,15 @@ async function swipe(dx,dy){
   await page.reload();
   await until(()=>!!window.__leoQA);
   check(JSON.stringify((await state()).slots)===JSON.stringify(before),'Web save persists across reload');
-    // Check Storage via the actual independent HUD chest icon (not a simulated UI change).
+  // Open the single Inventory HUD icon, then choose the nested Storage submenu.
   q=await state();
-  check(q.storage_opener[0]+q.storage_opener[2]<=q.opener[0],'Standalone Storage chest button sits to the left of bag opener');
+  check(!q.has_storage_hud,'Storage has no standalone HUD opener');
   check(q.storage_slots.length===200&&q.storage_cells===50,'Storage owns a separate 200-slot model and 10x5 rendered grid');
-  await clickRect(q.storage_opener);
+  await clickRect(q.opener);
+  await until(()=>window.__leoQA.open);
+  q=await state();
+  check(q.storage_menu_visible&&q.storage_menu_text==='Storage','Storage is listed directly below Inventory');
+  await clickRect(q.storage_menu);
   await until(()=>window.__leoQA.storage_mode&&window.__leoQA.storage_visible);
   q=await state();
   check(q.storage_bag_right&&q.storage_equipment_hidden,'Storage grid replaces equipment LEFT, original bag remains RIGHT');
@@ -165,7 +169,9 @@ async function swipe(dx,dy){
   await until(()=>!!window.__leoQA);
   q=await state();
   check(q.storage_slots[0]==='sword'&&!q.slots.includes('sword'),'Stored item survives immediate reload without duplicating');
-  await clickRect(q.storage_opener);
+  await clickRect(q.opener);
+  await until(()=>window.__leoQA.open);
+  await clickRect((await state()).storage_menu);
   await until(()=>window.__leoQA.storage_visible);
   q=await state();
   await clickRect(q.storage_grid[0]);
@@ -216,12 +222,16 @@ async function swipe(dx,dy){
    await until(()=>!window.__leoQA.detail_visible);
    await context.close();
   }
-  // Additional real touch test: independent chest icon opens the same left
-  // 50-cell Storage grid on both mobile portrait and landscape.
+  // Real mobile touch: Inventory icon -> its Storage submenu (no separate HUD icon).
   for(const viewport of [{width:390,height:844},{width:844,height:390}]){
    context=await start(viewport,true);
    let mobileStorage=await state();
-   await clickRect(mobileStorage.storage_opener,true);
+   check(!mobileStorage.has_storage_hud,'Mobile HUD has no standalone Storage icon');
+   await clickRect(mobileStorage.opener,true);
+   await until(()=>window.__leoQA.open);
+   mobileStorage=await state();
+   check(mobileStorage.storage_menu_visible,'Mobile Storage submenu appears inside Inventory');
+   await clickRect(mobileStorage.storage_menu,true);
    await until(()=>window.__leoQA.storage_mode&&window.__leoQA.storage_visible);
    mobileStorage=await state();
    check(mobileStorage.storage_bag_right&&mobileStorage.storage_equipment_hidden,'Mobile Storage keeps bank left and inventory right');

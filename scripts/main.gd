@@ -180,30 +180,12 @@ func _make_ui() -> void:
  bag_button.position = Vector2(get_viewport().get_visible_rect().size.x-72,16)
  bag_button.size = Vector2(56,56)
  bag_button.pressed.connect(_toggle)
- # Independent Storage chest icon sits immediately to the left of Inventory.
- # PNG is a standalone original asset (not a crop of the inventory screenshot).
- var storage_button := TextureButton.new()
- storage_button.name = "OpenStorage"
- storage_button.texture_normal = load("res://assets/ui/inventory/icon_storage.png")
- storage_button.texture_hover = storage_button.texture_normal
- storage_button.texture_pressed = storage_button.texture_normal
- storage_button.ignore_texture_size = true
- storage_button.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
- storage_button.custom_minimum_size = Vector2(56,56)
- storage_button.tooltip_text = "คลังเก็บของ / Storage"
- hud.add_child(storage_button)
- storage_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
- storage_button.position = Vector2(get_viewport().get_visible_rect().size.x-140,16)
- storage_button.size = Vector2(56,56)
- storage_button.pressed.connect(_open_storage)
  inventory.visibility_changed.connect(func():
   bag_button.visible = not inventory.visible
-  storage_button.visible = not inventory.visible
  )
  get_viewport().size_changed.connect(func():
   var width: float = get_viewport().get_visible_rect().size.x
   bag_button.position = Vector2(width-72,16)
-  storage_button.position = Vector2(width-140,16)
  )
 
 func _starter() -> void:
@@ -218,14 +200,6 @@ func _notice(message: String) -> void:
 func _refresh() -> void:
  if is_instance_valid(inventory) and inventory.has_method("refresh"):
   inventory.call("refresh")
-
-func _open_storage() -> void:
- # The chest icon opens Storage mode; the bag icon and B still open Inventory.
- if not open:
-  open = true
-  inventory.visible = true
- inventory.call("open_storage")
- Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 func _toggle() -> void:
  open = not open
