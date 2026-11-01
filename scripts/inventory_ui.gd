@@ -200,19 +200,79 @@ func _red_style(asset: String, margin_x: float = 24.0, margin_y: float = 14.0) -
  return st
 
 func _red_button(button: Button, asset: String = "action_button", pager: bool = false) -> void:
+ # Retain EVERY button's position, label, icon, signal and beveled silhouette.
+ # Only native Godot state sprites change: active = ruby red, pressed = vivid
+ # scarlet wash with a white halo, hover = softer red/white light.
  var x_margin: float = 10.0 if pager else 24.0
  var y_margin: float = 9.0 if pager else 14.0
  button.flat = false
- var normal_name: String = asset
- var hover_name: String = "tab_active" if asset == "tab_idle" else asset
+ var selected: bool = asset == "tab_active"
+ var normal_name: String = "tab_lit" if selected else ("button_hover" if asset == "close_button" else asset)
  button.add_theme_stylebox_override("normal",_red_style(normal_name,x_margin,y_margin))
- button.add_theme_stylebox_override("hover",_red_style(hover_name,x_margin,y_margin))
- button.add_theme_stylebox_override("pressed",_red_style("tab_active",x_margin,y_margin))
- button.add_theme_stylebox_override("disabled",_red_style(normal_name,x_margin,y_margin))
+ button.add_theme_stylebox_override("hover",_red_style("button_hover",x_margin,y_margin))
+ button.add_theme_stylebox_override("pressed",_red_style("button_pressed",x_margin,y_margin))
+ button.add_theme_stylebox_override("disabled",_red_style(asset,x_margin,y_margin))
  button.add_theme_stylebox_override("focus",StyleBoxEmpty.new())
+ button.add_theme_color_override("font_color",Color("#fff7df") if selected else Color("#ffde93"))
+ button.add_theme_color_override("font_hover_color",Color.WHITE)
+ button.add_theme_color_override("font_pressed_color",Color.WHITE)
  button.add_theme_color_override("font_disabled_color",Color("#8b7162"))
 
 
+
+func _red_aura(parent: Node, x: float, y: float, w: float, h: float, strength: float = 0.21) -> TextureRect:
+ # An in-engine radial highlight; no screenshot crop, new object or hit target.
+ var gradient := Gradient.new()
+ gradient.set_color(0,Color(0.95,0.045,0.09,strength))
+ gradient.set_color(1,Color(0.95,0.045,0.09,0.0))
+ var texture := GradientTexture2D.new()
+ texture.gradient = gradient
+ texture.width = 256
+ texture.height = 256
+ texture.fill = GradientTexture2D.FILL_RADIAL
+ texture.fill_from = Vector2(0.5,0.5)
+ texture.fill_to = Vector2(0.5,0.95)
+ var sheen := TextureRect.new()
+ sheen.texture = texture
+ sheen.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+ sheen.stretch_mode = TextureRect.STRETCH_SCALE
+ sheen.mouse_filter = Control.MOUSE_FILTER_IGNORE
+ parent.add_child(sheen)
+ _rect(sheen,x,y,w,h)
+ return sheen
+
+func _white_red_glint(parent: Node, x: float, y: float, w: float, h: float = 3.0) -> TextureRect:
+ # Tapered white-hot core and ruby edge; only a LIGHT stroke, not a box frame.
+ var gradient := Gradient.new()
+ gradient.set_color(0,Color(1.0,0.12,0.2,0.0))
+ gradient.set_color(1,Color(1.0,0.12,0.2,0.0))
+ gradient.add_point(0.22,Color(0.98,0.09,0.16,0.45))
+ gradient.add_point(0.50,Color(1.0,0.95,0.86,0.94))
+ gradient.add_point(0.78,Color(0.98,0.09,0.16,0.45))
+ var texture := GradientTexture2D.new()
+ texture.gradient = gradient
+ texture.width = 256
+ texture.height = 8
+ texture.fill = GradientTexture2D.FILL_LINEAR
+ texture.fill_from = Vector2(0.0,0.5)
+ texture.fill_to = Vector2(1.0,0.5)
+ var sheen := TextureRect.new()
+ sheen.texture = texture
+ sheen.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+ sheen.stretch_mode = TextureRect.STRETCH_SCALE
+ sheen.mouse_filter = Control.MOUSE_FILTER_IGNORE
+ parent.add_child(sheen)
+ _rect(sheen,x,y,w,h)
+ return sheen
+
+func _fine_separator(parent: Node, x: float, y: float, w: float) -> ColorRect:
+ # A thin currency divider, not the decorative outer currency frame.
+ var line := ColorRect.new()
+ line.color = Color(0.91,0.45,0.18,0.38)
+ line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+ parent.add_child(line)
+ _rect(line,x,y,w,1.0)
+ return line
 
 func _label(s: String, parent: Node, x: float, y: float, w: float, h: float, size: int = 17, align: HorizontalAlignment = HORIZONTAL_ALIGNMENT_CENTER, gold: bool = true) -> Label:
  var l := Label.new()
@@ -269,6 +329,8 @@ func _build() -> void:
  scroll_content.add_child(stage)
  _rect(stage,0,0,W,H)
  _red_panel(stage,23,10,W-46,H-20,"outer_panel")
+ _red_aura(stage,170,85,1110,670,0.10)
+ _white_red_glint(stage,515,88,422,3)
  _label("LEOONLINE",stage,491,33,466,52,32)
  var tab_x := [101.0,407.0,713.0,1019.0]
  var titles := ["Inventory","Character","Skill","Shop"]
@@ -291,6 +353,8 @@ func _build() -> void:
  stage.add_child(equipment_panel)
  _rect(equipment_panel,0,0,W,H)
  _red_panel(equipment_panel,72,200,581,566)
+ _red_aura(equipment_panel,240,266,272,265,0.31)
+ _white_red_glint(equipment_panel,166,207,385,3)
  _label("Equipment",equipment_panel,195,211,330,29,21)
  _art("character_silhouette",equipment_panel,262,249,211,247,false)
  main_equip_list = Control.new()
@@ -328,7 +392,9 @@ func _build() -> void:
  bag_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
  stage.add_child(bag_panel)
  _rect(bag_panel,0,0,W,H)
- _red_panel(bag_panel,677,200,698,397)
+ # No decorative outer border here: the inventory slots themselves are framed.
+ _red_aura(bag_panel,707,215,663,351,0.075)
+ _white_red_glint(bag_panel,854,204,376,2)
  _label("Bag",bag_panel,733,211,228,30,22)
  capacity_text = _label("",bag_panel,1031,211,300,30,18)
  bag_grid = GridContainer.new()
@@ -350,11 +416,12 @@ func _build() -> void:
  currency_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
  bag_panel.add_child(currency_panel)
  _rect(currency_panel,0,0,W,H)
- _red_panel(currency_panel,677,605,698,160)
+ # No currency container border or per-row boxed background.
+ _red_aura(currency_panel,710,607,660,160,0.072)
  for i in range(4):
   var money: String = MONEY[i]
   var row_y: float = 620.0 + float(i)*34.0
-  _red_panel(currency_panel,717,row_y,621,34,"currency_row")
+  if i > 0: _fine_separator(currency_panel,747,row_y-2,570)
   _art("icon_"+money,currency_panel,741,row_y+5,23,23,false)
   _label(money.capitalize(),currency_panel,773,row_y,118,33,16,HORIZONTAL_ALIGNMENT_LEFT)
   money_labels[money] = _label("0",currency_panel,944,row_y,297,33,17,HORIZONTAL_ALIGNMENT_RIGHT,false)
@@ -362,7 +429,8 @@ func _build() -> void:
   money_button.text = "+"
   _style_text_button(money_button,18)
   _red_button(money_button,"pager_button",true)
- _red_panel(stage,74,782,1301,104,"inner_panel")
+ # Footer buttons float directly over the crimson surface with no enclosing frame.
+ _red_aura(stage,115,780,1214,102,0.12)
  var foot_names := ["Demo Items","Save","Auto Sort","Trash","Equip","Close"]
  var foot_x := [105.0,315.0,525.0,735.0,945.0,1155.0]
  for i in range(6):
@@ -437,6 +505,8 @@ func _image_button(parent: Node, x: float, y: float, wh: float, key: String, sta
  # One separate matte-red PNG per slot state, without baked text.
  var background: String = "slot_locked" if state == "locked" else ("slot_selected" if state == "selected" else "slot_empty")
  b.texture_normal = _red_texture(background)
+ b.texture_hover = _red_texture("slot_selected") if state != "locked" else null
+ b.texture_pressed = _red_texture("slot_selected") if state != "locked" else null
  b.set_meta("locked",state=="locked")
  parent.add_child(b)
  var hh: float = wh if height < 0.0 else height

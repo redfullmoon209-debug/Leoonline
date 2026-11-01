@@ -42,10 +42,34 @@ func validate() -> void:
  check(store.slots.size()==200,"200 storage entries")
  check(ui.bag_grid.columns==10 and ui.bag_grid.get_child_count()==50,"10 by 5 grid")
  check(ui.stage.scale.x*1448.0 <= root.size.x*0.75+2.0,"Landscape inventory uses at most 75 percent of screen width")
- for sprite in ["outer_panel","inner_panel","tab_active","tab_idle","action_button","close_button","pager_button","slot_empty","slot_locked","slot_selected","currency_row"]:
+ for sprite in ["outer_panel","inner_panel","tab_active","tab_idle","action_button","close_button","pager_button","slot_empty","slot_locked","slot_selected","currency_row","tab_lit","button_hover","button_pressed"]:
   check(ResourceLoader.exists("res://assets/ui/red_matte/"+sprite+".png"),"Standalone red matte PNG exists: "+sprite)
  check(ui._red_texture("slot_empty") != null,"Matte red slot texture loaded")
  check(ui.tab_buttons[0].get_child_count() >= 1,"Menu buttons keep independent PNG icon layers")
+ check(ui.tab_buttons.size()==4 and ui.footer_buttons.size()==6 and ui.page_buttons.size()==4,"All original functional menu and pagination buttons preserved")
+ check(ui.tab_buttons[0].position==Vector2(101,100),"Tab locations unchanged")
+ check(ui.footer_buttons[0].position==Vector2(105,807),"Footer button locations unchanged")
+ check(ui.bag_grid.position==Vector2(729,249),"Bag grid location unchanged")
+ var source_frames := 0
+ for node in ui.stage.get_children():
+  if node is NinePatchRect and node.name=="RedMattePanel_inner_panel": source_frames+=1
+ check(source_frames==0,"Footer group has no decorative perimeter frame")
+ var bag_border := 0
+ for node in ui.bag_panel.get_children():
+  if node is NinePatchRect: bag_border+=1
+ check(bag_border==0,"Bag panel has no decorative perimeter frame")
+ var money_border := 0
+ for node in ui.currency_panel.get_children():
+  if node is NinePatchRect: money_border+=1
+ check(money_border==0,"Currency section has no decorative box or row frames")
+ var luminous := ui.tab_buttons[0].get_theme_stylebox("normal")
+ check(luminous is StyleBoxTexture,"Selected tab uses separate luminous PNG state")
+ if luminous is StyleBoxTexture:
+  check(luminous.texture.resource_path.ends_with("/tab_lit.png"),"Selected tab is vivid ruby red")
+ var pressed := ui.footer_buttons[1].get_theme_stylebox("pressed")
+ check(pressed is StyleBoxTexture,"Action button has pressed PNG state")
+ if pressed is StyleBoxTexture:
+  check(pressed.texture.resource_path.ends_with("/button_pressed.png"),"Bright red and white pressed feedback has a separate PNG")
  for row in [ui.main_equip_list,ui.extra_equip_list,ui.fashion_weapon_row,ui.fashion_side_row,ui.accessory_row,ui.fashion_row]:
   for button in row.get_children():
    check(button is TextureButton,"Equipment uses PNG button")
