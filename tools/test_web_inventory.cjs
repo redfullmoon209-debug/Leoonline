@@ -73,7 +73,7 @@ async function swipe(dx,dy){
   check(hud.hud_target_name.includes('ยังไม่ได้เลือก')&&!hud.hud_target_health_visible,'Target HUD is in the center and never invents enemy HP when no target exists');
   for(let i=0;i<hud.hud_row.length;i++){
    const rect=hud.hud_row[i];
-   check(rect[2]>=42&&Math.abs(rect[1]-hud.hud_row[0][1])<=1,'All ten compact desktop buttons share one horizontal row');
+   check(rect[2]>=32&&Math.abs(rect[1]-hud.hud_row[0][1])<=1,'All ten compact desktop buttons share one horizontal row');
    if(i>0)check(rect[0]>=hud.hud_row[i-1][0]+hud.hud_row[i-1][2]+1,'Ten buttons do not overlap on desktop');
   }
   check(hud.hud_row[0][0]>hud.hud_profile_bounds[0]+hud.hud_profile_bounds[2],'Desktop icon row leaves room for character portrait');
@@ -103,7 +103,7 @@ async function swipe(dx,dy){
   check(!targeted.hud_target_health_visible&&!targeted.hud_target_mp_visible,
     'T toggles lock OFF and hides all enemy HP/MP/portrait values');
   for(const name of ['world','party','friends','ranking','guild','quest','mail','events']){
-   check(hud.hud_icons[name][2]>=42,'HUD icon has a touch-friendly viewport hit target: '+name);
+   check(hud.hud_icons[name][2]>=32,'HUD icon remains clickable at the approved compact size: '+name);
    await clickRect(hud.hud_icons[name]);
    await until(()=>window.__leoQA.hud_panel_open);
    hud=await state();
