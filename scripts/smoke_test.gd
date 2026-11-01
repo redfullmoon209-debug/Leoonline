@@ -444,6 +444,63 @@ func validate() -> void:
  var hud_menu: Control=game.hud_menu
  check(hud_menu!=null and hud_menu.controls.size()==14,"HUD exposes nine distinct menus, bag, joystick, Jump, Pickup and Run")
  check(hud_menu.controls["bag"]==game.hud.get_node("OpenInventory"),"Original Inventory button and save data are preserved")
+ # Ten native standalone RGBA PNGs, NOT crops of the approved reference sheet.
+ # All notification badges are separate controls with zero unread at start.
+ var menu_order: Array[String]=["bag","world","party","friends","ranking","settings","guild","quest","mail","events"]
+ check(hud_menu.MENU_ORDER.size()==10 and hud_menu.MENU_ORDER==menu_order,"HUD has ten distinct buttons in the requested left-to-right order")
+ var prior_rect:Rect2=Rect2()
+ var row_y:float=-1.0
+ for i in range(menu_order.size()):
+  var key:String=menu_order[i]
+  var icon_path:String="res://assets/ui/hud/premium/"+key+".png"
+  check(ResourceLoader.exists(icon_path),"Standalone premium PNG exists for "+key)
+  var art:Texture2D=load(icon_path) as Texture2D
+  check(art!=null and art.get_width()==256 and art.get_height()==256,"Premium icon was authored independently at 256px: "+key)
+  var control:Control=hud_menu.controls[key] as Control
+  var rect:Rect2=control.get_global_rect()
+  check(rect.size.x>=42 and rect.size.x<=100,"Desktop icon uses compact touch-sized geometry: "+key)
+  if i==0: row_y=rect.position.y
+  check(is_equal_approx(rect.position.y,row_y),"Every main icon is on the same HUD row")
+  if i>0:
+   check(rect.position.x>prior_rect.position.x and rect.position.x>=prior_rect.end.x+2.0,"Each icon is to the RIGHT of its predecessor without overlap")
+  prior_rect=rect
+  check(hud_menu.notification_badges.has(key) and not hud_menu.notification_badges[key].visible,"No red alert dot is displayed unless a real event arrives: "+key)
+  if key=="bag":
+   check(game.hud.get_node("OpenInventory").texture_normal.resource_path==icon_path,"The existing functional bag button uses its own premium PNG")
+  else:
+   check((control.get_node("Glyph") as TextureRect).texture.resource_path==icon_path,"HUD renders original standalone PNG for "+key)
+ check(prior_rect.end.x<game.hud_menu.size.x-150.0,"Ten-icon row leaves free space for the right-hand minimap")
+ check(hud_menu.controls["bag"].position.x>265.0,"Ten-icon row leaves room for the left-hand character portrait")
+ var top:Control=hud_menu.top_status
+ check(top!=null and top.player_panel.visible and top.minimap_button.visible and top.target_panel.visible,"Character data, minimap and target status are three real HUD regions")
+ check(top.player_name.text.contains("Lv.") and top.player_class.text.contains("Class"),"Top-left character profile displays current saved level and class")
+ check(top.exp_bar.value>=0.0 and top.exp_bar.value<=100.0,"Character EXP bar shows actual saved progression")
+ check(top.minimap.get_script()!=null and top.minimap.items.size()==game.loot.size(),"Circular minimap plots real dropped items and player position")
+ check(top.target_label.text.contains("ยังไม่ได้เลือก") and not top.target_bar.visible,"Center target info honestly shows no selected target instead of fake HP")
+ var test_target:=Node3D.new()
+ test_target.name="TrainingTargetForQA"
+ test_target.set_meta("target_name","หุ่นฝึก")
+ test_target.set_meta("level",3)
+ test_target.set_meta("hp",250.0)
+ test_target.set_meta("max_hp",500.0)
+ game.add_child(test_target)
+ hud_menu.set_target(test_target)
+ check(top.target_label.text.contains("หุ่นฝึก") and top.target_bar.visible and is_equal_approx(top.target_bar.value,50.0),"Center target shows actual name, level and correct HP proportion when data exists")
+ hud_menu.clear_target()
+ test_target.queue_free()
+ check(not top.target_bar.visible and top.target_label.text.contains("ยังไม่ได้เลือก"),"Clearing target removes stale HP")
+ # Server/social hooks do not manufacture notifications. A verified incoming
+ # friend event may show its own red dot, while Mail remains unmarked.
+ hud_menu.receive_friend_request("")
+ check(not hud_menu.notification_badges["friends"].visible,"Invalid empty friend sender never displays an alert")
+ hud_menu.receive_friend_request("verified-sender-qa")
+ check(hud_menu.notification_badges["friends"].visible and not hud_menu.notification_badges["mail"].visible,"Real incoming friend event marks Friends ONLY; Mail has no red dot")
+ hud_menu.acknowledge_notifications("friends")
+ check(not hud_menu.notification_badges["friends"].visible,"Acknowledging a friend event clears the separate badge")
+ hud_menu.receive_mail_notification("real-message-qa")
+ check(hud_menu.notification_badges["mail"].visible,"Mail notification is added dynamically only when a real event is supplied")
+ hud_menu.acknowledge_notifications("mail")
+ check(not hud_menu.notification_badges["mail"].visible,"Mail alert clears without modifying its transparent PNG")
  for id in ["world","party","friends","ranking","settings","guild","quest","mail","events"]:
   check(ResourceLoader.exists("res://assets/ui/hud/"+id+".svg"),"Menu icon is an original SVG asset: "+id)
   var menu_button: Button=hud_menu.controls[id]
@@ -479,6 +536,27 @@ func validate() -> void:
  hud_menu.layout_state=old_hud_layout.duplicate(true)
  hud_menu._reflow()
  hud_menu._save_local()
+ # Phone width: all ten buttons stay in ONE compact row below the
+ # portrait/minimap instead of overlapping those panels or wrapping to 3x3.
+ root.size=Vector2i(390,844)
+ await process_frame
+ await process_frame
+ var phone_row_y:float=-1.0
+ var last_phone_end:float=0.0
+ for i in range(menu_order.size()):
+  var control:Control=hud_menu.controls[menu_order[i]] as Control
+  var rect:Rect2=control.get_global_rect()
+  if i==0: phone_row_y=rect.position.y
+  check(is_equal_approx(rect.position.y,phone_row_y),"Phone icon remains on one horizontal row: "+menu_order[i])
+  check(rect.position.x>=0.0 and rect.end.x<=391.0,"Phone icon stays inside screen: "+menu_order[i])
+  check(rect.position.x>=last_phone_end-1.0,"Phone icon has no horizontal overlap: "+menu_order[i])
+  last_phone_end=rect.end.x
+ check(hud_menu.top_status.minimap_button.get_global_rect().end.x<=390.0,"Mini map remains wholly visible on phone")
+ check(hud_menu.top_status.player_panel.get_global_rect().end.x<hud_menu.top_status.minimap_button.get_global_rect().position.x,"Phone profile and minimap occupy separate top corners")
+ check(hud_menu.top_status.target_panel.get_global_rect().position.y>phone_row_y,"Target status stays below ten-icon row on phone")
+ root.size=Vector2i(1440,1100)
+ await process_frame
+ await process_frame
  hud_menu.display_mobile_controls=true
  hud_menu._refresh_touch_visibility()
  check(hud_menu.controls["joystick"].visible and hud_menu.controls["jump"].visible and hud_menu.controls["pickup"].visible and hud_menu.controls["run"].visible,"Mobile movement, jump, pickup and run controls can be shown and edited on PC")

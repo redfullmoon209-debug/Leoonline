@@ -1,0 +1,50 @@
+name: Build individually authored premium HUD PNG icons
+on:
+  push:
+    branches: [feature/premium-png-hud-notifications-20261101]
+    paths:
+      - 'tools/build_premium_hud_png.py'
+      - '.github/workflows/render-premium-hud-png.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Render each original vector directly to its own transparent PNG
+        run: |
+          python -m pip install --quiet 'cairosvg>=2.7,<3'
+          python tools/build_premium_hud_png.py
+          test "$(find assets/ui/hud/premium -maxdepth 1 -name '*.png' | wc -l)" -eq 10
+          python - <<'PY'
+          import struct
+          from pathlib import Path
+          for p in sorted(Path('assets/ui/hud/premium').glob('*.png')):
+              b=p.read_bytes()
+              assert b[:8] == b'\x89PNG\r\n\x1a\n'
+              assert struct.unpack('>II',b[16:24]) == (256,256)
+              assert b[25] == 6, (p, 'PNG must be RGBA with transparency')
+              print(p, len(b), 'bytes')
+          PY
+      - name: Publish the 10 PNG assets to the feature branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/ui/hud/premium/*.png
+          if git diff --cached --quiet; then
+            echo "All ten native PNG files already up to date"
+          else
+            git commit -m "Render 10 independent 256px HUD icon PNGs (no crops or baked notifications)"
+            git push
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Leoonline-Premium-Individual-PNG
+          path: assets/ui/hud/premium/*.png

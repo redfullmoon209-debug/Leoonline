@@ -3,6 +3,11 @@ extends Control
 ## and restore per-device layout; native vector icons and original red/gold sprites.
 ## Online-only systems are explicitly presented as offline local prototypes.
 const MENU_IDS: Array[String] = ["world","party","friends","ranking","settings","guild","quest","mail","events"]
+# The actual 10-icon row, left to right, includes the existing Inventory button.
+const MENU_ORDER: Array[String] = ["bag","world","party","friends","ranking","settings","guild","quest","mail","events"]
+const LAYOUT_VERSION: int = 2
+const PREMIUM_ROOT: String = "res://assets/ui/hud/premium/"
+const TopStatusScript = preload("res://scripts/hud_top_status.gd")
 const ALL_IDS: Array[String] = ["bag","world","party","friends","ranking","settings","guild","quest","mail","events","joystick","jump","pickup","run"]
 const MENU_LABELS: Dictionary = {
  "bag":"กระเป๋า","world":"แผนที่โลก","party":"ปาร์ตี้","friends":"เพื่อน",
@@ -28,6 +33,9 @@ var game_store: Node
 var inventory: Control
 var bag_button: TextureButton
 var controls: Dictionary = {}
+var notification_badges: Dictionary = {}
+var unread_counts: Dictionary = {}
+var top_status: Control
 var layout_state: Dictionary = {}
 var friends_list: Array[String] = []
 var guild_draft: String = ""
@@ -75,6 +83,7 @@ func initialize(p_game: Node3D, p_store: Node, p_inventory: Control, p_bag: Text
  mouse_filter=Control.MOUSE_FILTER_IGNORE
  set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  _load_local()
+ _build_top_status()
  _build_buttons()
  _build_popup()
  _build_toolbar()
@@ -84,6 +93,63 @@ func initialize(p_game: Node3D, p_store: Node, p_inventory: Control, p_bag: Text
  inventory.visibility_changed.connect(_on_inventory_visibility)
  if is_instance_valid(bag_button):
   bag_button.tooltip_text = MENU_LABELS["bag"]+" [B]"
+
+func _build_top_status() -> void:
+ top_status=TopStatusScript.new() as Control
+ top_status.name="CharacterTargetAndMinimap"
+ add_child(top_status)
+ top_status.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ top_status.call("initialize",game,game_store)
+ top_status.minimap_button.pressed.connect(_open_page.bind("world"))
+
+# UI-only notifications are never part of an icon PNG. They begin hidden and
+# can only be raised by an actual incoming event from a future social server.
+func set_notification_count(key: String,count: int) -> void:
+ if not MENU_ORDER.has(key): return
+ if count>0:
+  unread_counts[key]=mini(count,99)
+ else:
+  unread_counts.erase(key)
+ if not notification_badges.has(key): return
+ var badge: Label=notification_badges[key]
+ badge.visible=count>0
+ badge.text="" if count<=1 else str(mini(count,99))
+
+func receive_friend_request(sender_id: String) -> void:
+ # No locally added 'friend' can fake an incoming request.
+ if sender_id.strip_edges().is_empty(): return
+ set_notification_count("friends",int(unread_counts.get("friends",0))+1)
+
+func receive_mail_notification(message_id: String) -> void:
+ if message_id.strip_edges().is_empty(): return
+ set_notification_count("mail",int(unread_counts.get("mail",0))+1)
+
+func acknowledge_notifications(key: String) -> void:
+ set_notification_count(key,0)
+
+func _make_notification_badge(button: Control,key: String) -> void:
+ var badge:=Label.new()
+ badge.name="DynamicNotification"
+ badge.mouse_filter=Control.MOUSE_FILTER_IGNORE
+ badge.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+ badge.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+ badge.add_theme_font_size_override("font_size",11)
+ badge.add_theme_color_override("font_color",Color.WHITE)
+ var circle:=StyleBoxFlat.new()
+ circle.bg_color=Color("#e1172b")
+ circle.border_color=Color("#ffe5a0")
+ circle.set_border_width_all(2)
+ circle.set_corner_radius_all(16)
+ badge.add_theme_stylebox_override("normal",circle)
+ button.add_child(badge)
+ badge.visible=false
+ notification_badges[key]=badge
+
+func set_target(target: Node3D) -> void:
+ if is_instance_valid(top_status): top_status.call("set_target",target)
+
+func clear_target() -> void:
+ if is_instance_valid(top_status): top_status.call("clear_target")
 
 func _label_for(id: String) -> String:
  return str(EN_LABELS.get(id,id)) if inventory.get("locale")=="en" else str(MENU_LABELS.get(id,id))
@@ -121,17 +187,36 @@ func _dress(button: Button, active: bool = false) -> void:
 func _build_buttons() -> void:
  controls["bag"]=bag_button
  bag_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+ # The original bag control stays functional; only its art changes to its
+ # OWN native PNG, never extracted from a combined screenshot.
+ bag_button.texture_normal=load(PREMIUM_ROOT+"bag.png") as Texture2D
+ bag_button.texture_hover=bag_button.texture_normal
+ bag_button.texture_pressed=bag_button.texture_normal
+ bag_button.ignore_texture_size=true
+ var bag_caption:=Label.new()
+ bag_caption.name="Caption"
+ bag_caption.text=_label_for("bag")
+ bag_caption.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+ bag_caption.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+ bag_caption.mouse_filter=Control.MOUSE_FILTER_IGNORE
+ bag_caption.add_theme_color_override("font_color",Color("#ffe6b3"))
+ if _font()!=null: bag_caption.add_theme_font_override("font",_font())
+ bag_button.add_child(bag_caption)
+ _make_notification_badge(bag_button,"bag")
  for key in MENU_IDS:
   var icon_button:=Button.new()
   icon_button.name="HUD_"+key
   icon_button.mouse_filter=Control.MOUSE_FILTER_STOP
   icon_button.tooltip_text=str(MENU_LABELS[key])
   _dress(icon_button)
+  # The premium PNG includes its own gold frame. No double frame/sprite crop.
+  for mode in ["normal","hover","pressed","disabled"]:
+   icon_button.add_theme_stylebox_override(mode,StyleBoxEmpty.new())
   add_child(icon_button)
   controls[key]=icon_button
   var icon:=TextureRect.new()
   icon.name="Glyph"
-  var icon_path: String=ICON_ROOT+key+".svg"
+  var icon_path: String=PREMIUM_ROOT+key+".png"
   if ResourceLoader.exists(icon_path): icon.texture=load(icon_path) as Texture2D
   icon.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
   icon.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -148,6 +233,7 @@ func _build_buttons() -> void:
   caption.add_theme_constant_override("shadow_offset_y",1)
   if _font()!=null: caption.add_theme_font_override("font",_font())
   icon_button.add_child(caption)
+  _make_notification_badge(icon_button,key)
   icon_button.pressed.connect(_open_page.bind(key))
  var joystick: Control=StickScript.new()
  joystick.name="MobileJoystick"
@@ -183,14 +269,42 @@ func _build_buttons() -> void:
     button.button_down.connect(func(): if not edit_mode: run_pressed=true)
     button.button_up.connect(func(): run_pressed=false)
 
+func _row_metrics() -> Dictionary:
+ var w:float=maxf(320.0,size.x)
+ var item_size:float=54.0
+ var gap:float=7.0
+ var y:float=21.0
+ var left_reserve:float=282.0
+ var right_reserve:float=165.0
+ if w<600.0:
+  # Ten icons remain ONE row on a narrow phone. The player and minimap
+  # occupy the first row above; captions hide, full labels remain tooltips.
+  item_size=clampf((w-16.0-27.0)/10.0,27.0,37.0)
+  gap=3.0
+  y=104.0
+  left_reserve=7.0
+  right_reserve=7.0
+ elif w<1100.0:
+  item_size=clampf((w-60.0)/16.0,42.0,49.0)
+  gap=5.0
+  y=119.0
+  left_reserve=8.0
+  right_reserve=8.0
+ else:
+  item_size=clampf(w*0.037,48.0,57.0)
+  gap=7.0
+ var total:float=float(MENU_ORDER.size())*item_size+float(MENU_ORDER.size()-1)*gap
+ var usable:float=maxf(total,w-left_reserve-right_reserve)
+ var start_x:float=left_reserve+(usable-total)*0.5
+ return {"size":item_size,"gap":gap,"y":y,"start":start_x,"total":total}
+
 func _default_positions() -> Dictionary:
  var w:float=maxf(320.0,size.x)
  var h:float=maxf(320.0,size.y)
- var result: Dictionary={"bag":Vector2(w-72.0,16.0)}
- for i in range(MENU_IDS.size()):
-  var col:int=i%3
-  var row:int=int(i/3)
-  result[MENU_IDS[i]]=Vector2(w-218.0+float(col)*66.0,88.0+float(row)*69.0)
+ var metrics:Dictionary=_row_metrics()
+ var result: Dictionary={}
+ for i in range(MENU_ORDER.size()):
+  result[MENU_ORDER[i]]=Vector2(float(metrics["start"])+float(i)*(float(metrics["size"])+float(metrics["gap"])),float(metrics["y"]))
  result["joystick"]=Vector2(22.0,h-160.0)
  result["run"]=Vector2(w-209.0,h-118.0)
  result["pickup"]=Vector2(w-140.0,h-118.0)
@@ -199,7 +313,7 @@ func _default_positions() -> Dictionary:
 
 func _default_size(id: String) -> float:
  if id=="joystick": return 132.0
- if id=="bag": return 56.0
+ if MENU_ORDER.has(id): return float(_row_metrics()["size"])
  if ["jump","pickup","run"].has(id): return 58.0
  return 59.0
 
@@ -207,7 +321,11 @@ func _max_size(id: String) -> float:
  return 195.0 if id=="joystick" else 100.0
 
 func _min_size(id: String) -> float:
- return 90.0 if id=="joystick" else 42.0
+ if id=="joystick": return 90.0
+ # Responsive small PNGs must be allowed below 42px to keep all ten
+ # icons in one row on a 320-390px phone with zero overlap.
+ if MENU_ORDER.has(id) and size.x<600.0: return 27.0
+ return 42.0
 
 func _size_of(id: String) -> float:
  var setting: Variant=layout_state.get(id,{})
@@ -223,24 +341,44 @@ func _reflow() -> void:
   if not is_instance_valid(control): continue
   var wh:float=_size_of(id)
   control.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-  control.size=Vector2(wh,wh)
+  # The old Inventory TextureButton starts with a 56px custom minimum.
+  # Clear it BEFORE resizing or Godot keeps the 56px hitbox on phones,
+  # overlapping the next icon and the centered target panel.
   control.custom_minimum_size=Vector2.ZERO
+  control.size=Vector2(wh,wh)
   var coordinates:Vector2=defaults.get(id,Vector2.ZERO)
   var entry:Variant=layout_state.get(id,{})
   if entry is Dictionary and entry.has("x") and entry.has("y"):
    coordinates=Vector2(clampf(float(entry.get("x",0.0)),0.0,1.0)*maxf(0.0,size.x-wh),clampf(float(entry.get("y",0.0)),0.0,1.0)*maxf(0.0,size.y-wh))
   control.position=Vector2(clampf(coordinates.x,5.0,maxf(5.0,size.x-wh-5.0)),clampf(coordinates.y,5.0,maxf(5.0,size.y-wh-5.0)))
-  if id!="bag" and id!="joystick":
-   var icon:TextureRect=control.get_node("Glyph") as TextureRect
+  if MENU_ORDER.has(id):
    var caption:Label=control.get_node("Caption") as Label
-   icon.position=Vector2(wh*0.19,wh*0.08)
-   icon.size=Vector2(wh*0.62,wh*0.60)
-   caption.position=Vector2(1.0,wh*0.66)
-   caption.size=Vector2(wh-2.0,wh*0.28)
-   caption.add_theme_font_size_override("font_size",clampi(int(wh*0.16),9,14))
-   caption.visible=display_names
+   caption.text=_label_for(id)
+   if id!="bag":
+    var icon:TextureRect=control.get_node("Glyph") as TextureRect
+    icon.position=Vector2(wh*0.075,-wh*0.04)
+    icon.size=Vector2(wh*0.85,wh*0.88)
+   caption.position=Vector2(-4.0,wh*0.76)
+   caption.size=Vector2(wh+8.0,wh*0.22)
+   caption.add_theme_font_size_override("font_size",clampi(int(wh*0.18),8,11))
+   caption.visible=display_names and size.x>=700.0
+   if notification_badges.has(id):
+    var badge:Label=notification_badges[id]
+    var badge_size:float=clampf(wh*0.34,12.0,19.0)
+    badge.position=Vector2(wh-badge_size*0.82,-badge_size*0.08)
+    badge.size=Vector2(badge_size,badge_size)
+  elif id!="joystick":
+   var glyph:TextureRect=control.get_node("Glyph") as TextureRect
+   var caption_touch:Label=control.get_node("Caption") as Label
+   glyph.position=Vector2(wh*0.19,wh*0.08)
+   glyph.size=Vector2(wh*0.62,wh*0.60)
+   caption_touch.position=Vector2(1.0,wh*0.66)
+   caption_touch.size=Vector2(wh-2.0,wh*0.28)
+   caption_touch.add_theme_font_size_override("font_size",clampi(int(wh*0.16),9,14))
+   caption_touch.visible=display_names
   if id=="joystick": control.queue_redraw()
   control.tooltip_text=_label_for(id)
+ if is_instance_valid(top_status): top_status.call("_layout")
  _refresh_touch_visibility()
  _place_popup()
  _place_toolbar()
@@ -251,6 +389,7 @@ func _refresh_touch_visibility() -> void:
   controls[id].visible=show_touch and not inventory.visible
  for key in MENU_IDS: controls[key].visible=not inventory.visible
  if is_instance_valid(bag_button): bag_button.visible=not inventory.visible
+ if is_instance_valid(top_status): top_status.visible=not inventory.visible
 
 func _on_inventory_visibility() -> void:
  if inventory.visible:
@@ -829,6 +968,7 @@ func _input(event:InputEvent) -> void:
 
 func _save_local() -> void:
  var data:Dictionary={
+  "hud_layout_version":LAYOUT_VERSION,
   "layout":layout_state,
   "friends":friends_list,
   "guild_draft":guild_draft,
@@ -861,6 +1001,10 @@ func _load_local() -> void:
  if not (data is Dictionary):return
  var from_layout:Variant=data.get("layout",{})
  if from_layout is Dictionary:layout_state=from_layout.duplicate(true)
+ # Upgrading from the old 3x3 HUD should show the new 10-item row immediately
+ # even if an old per-button layout was stored. Retain custom touch gameplay.
+ if int(data.get("hud_layout_version",1))<LAYOUT_VERSION:
+  for old_menu_id in MENU_ORDER: layout_state.erase(old_menu_id)
  var names:Variant=data.get("friends",[])
  if names is Array:
   for n in names:
