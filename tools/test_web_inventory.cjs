@@ -190,7 +190,7 @@ async function swipe(dx,dy){
   await clickRect((await state()).storage_money_all_vault);
   await until(()=>window.__leoQA.storage_money_value==='123'&&!window.__leoQA.storage_money_withdraw_disabled);
   await clickRect((await state()).storage_money_withdraw);
-  await until(()=>window.__leoQA.currency.gold===walletBeforeBank&&window.__leoQA.storage_currency.gold==='0');
+  await page.waitForFunction(expected=>window.__leoQA.currency.gold===expected&&window.__leoQA.storage_currency.gold==='0',walletBeforeBank,{timeout:15000});
   const restoredCash=await page.evaluate(()=>JSON.parse(localStorage.getItem('leoonline_save_v1')));
   check(restoredCash.currency.gold===walletBeforeBank&&restoredCash.storage_currency.gold==='0','Withdrawing vault money restores wallet without duplication and persists');
   await snap('web-storage-money-withdrawn');
