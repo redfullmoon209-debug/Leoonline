@@ -289,7 +289,7 @@ func _build() -> void:
  for i in range(4):
   var x: float = [776.0,856.0,1170.0,1250.0][i]
   var button := _hitbox(bag_panel,x,634,60,44,_page_button.bind([0,1,3,4][i]))
-  button.text = ["≪","‹","›","≫"][i]
+  button.text = ["<<","<",">",">>"][i]
   _style_text_button(button,30)
   page_buttons.append(button)
  page_text = _label("",bag_panel,934,634,220,44,20)
