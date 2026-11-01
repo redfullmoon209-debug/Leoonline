@@ -1,0 +1,107 @@
+{
+  "hp_potion_large.png": {
+    "width": 96,
+    "height": 96,
+    "sha256": "8d1a63959a4290e6defb974d24464f8e0c889419243dcfeb5e35bf16e86622bb"
+  },
+  "hp_potion_medium.png": {
+    "width": 96,
+    "height": 96,
+    "sha256": "6e0cdcbe7964df0f6a90d35da51ec91e7b2bd27dd5636e504de06f829c14fb36"
+  },
+  "hp_potion_small.png": {
+    "width": 96,
+    "height": 96,
+    "sha256": "8e5741e8a2729edf6c8315c0eeac4e9ce167523d0cfd4dc1c980512e5a71f812"
+  },
+  "sp_potion_large.png": {
+    "width": 96,
+    "height": 96,
+    "sha256": "b244fc3fd04bf8542fcc53a1dcc89090e7b633e3decb2e65fa411f75b564e51b"
+  },
+  "sp_potion_medium.png": {
+    "width": 96,
+    "height": 96,
+    "sha256": "f229ac676aee618e0e8b7482c7ff70af1a8f45af34c67b481677b557fe35e923"
+  },
+  "sp_potion_small.png": {
+    "width": 96,
+    "height": 96,
+    "sha256": "ee92499880e947f55c67a2cd1ba4caf0323f34f67034e1aa2c07d866695db004"
+  },
+  "upgrade_stone_1.png": {
+    "width": 96,
+    "height": 96,
+    "sha256": "cded20446b8afea524e0cdd8b58d13f41baad3f0499ee6e1c9d9ef07b280c71f"
+  },
+  "upgrade_stone_10.png": {
+    "width": 96,
+    "height": 96,
+    "sha256": "5e46d22904440c54c7a29b3a1999af833fbaef3a3831baa1b20cac3163589a18"
+  },
+  "upgrade_stone_11.png": {
+    "width": 96,
+    "height": 96,
+    "sha256": "3d6098d4c5cb945089c712cd8413770e2cd42af890c33886bc524c4da0fc18ed"
+  },
+  "upgrade_stone_12.png": {
+    "width": 96,
+    "height": 96,
+    "sha256": "fa7c4b4438249dd88ea8d27d65936bcca528bef5e677174779f935eded9089d9"
+  },
+  "upgrade_stone_13.png": {
+    "width": 96,
+    "height": 96,
+    "sha256": "965c65d2841db5bbf35c13d70fb863c404656cc7f50a6944859e022321f2ab73"
+  },
+  "upgrade_stone_14.png": {
+    "width": 96,
+    "height": 96,
+    "sha256": "cb3aaa8d2a8f4320f2480a111028e31f74782285f22c94405a7297c3268f503b"
+  },
+  "upgrade_stone_15.png": {
+    "width": 96,
+    "height": 96,
+    "sha256": "dfc84a579593227e7dafa41d85be01510a3da17cd7882bb0793d2dc8b4be49a3"
+  },
+  "upgrade_stone_2.png": {
+    "width": 96,
+    "height": 96,
+    "sha256": "5005e3a2c6619d172aa0aafbbcc1b9df7324448760c0326abdffcef18601a61d"
+  },
+  "upgrade_stone_3.png": {
+    "width": 96,
+    "height": 96,
+    "sha256": "ac6a19f2d5aa6c48e0cf3f00f1c885d370ca822fd663574049aafb36f32c3341"
+  },
+  "upgrade_stone_4.png": {
+    "width": 96,
+    "height": 96,
+    "sha256": "360771663e44340b7e4176a8d21d49d5c56740b3c7035a31d99fb4b7a1b45a6b"
+  },
+  "upgrade_stone_5.png": {
+    "width": 96,
+    "height": 96,
+    "sha256": "315ccd10d20e07afd0639142aa1ff6fabfc281dac5004fd613ce662666a5c489"
+  },
+  "upgrade_stone_6.png": {
+    "width": 96,
+    "height": 96,
+    "sha256": "cdd39cd189ce38792d93680652d5d635765ee54d0c36262b0c149406d2f06a19"
+  },
+  "upgrade_stone_7.png": {
+    "width": 96,
+    "height": 96,
+    "sha256": "eaee896a0f659fa924d60bc4c3e1d7bd8c0fb64db662c9c4b50209913fe780b0"
+  },
+  "upgrade_stone_8.png": {
+    "width": 96,
+    "height": 96,
+    "sha256": "86e6dab5295f4418e2653f969a742e2f889d68b3bcf21b94d76ba2f8bcfc698d"
+  },
+  "upgrade_stone_9.png": {
+    "width": 96,
+    "height": 96,
+    "sha256": "19c2011e25972414722c7850a140502a61be7a2d4bda2b872ccc4ed3ccdc5d1e"
+  }
+}
