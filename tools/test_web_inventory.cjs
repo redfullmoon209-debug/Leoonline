@@ -144,7 +144,7 @@ async function swipe(dx,dy){
   await clickRect(q.opener);
   await until(()=>window.__leoQA.open);
   q=await state();
-  check(q.storage_icon_visible&&q.storage_icon_in_bag&&q.storage_icon_tooltip==='Storage','Storage icon belongs to right-hand bag header');
+  check(q.storage_icon_visible&&q.storage_icon_in_bag&&q.storage_icon_tooltip===(q.locale==='th'?'คลังเก็บของ':'Storage'),'Storage icon belongs to right-hand bag header');
   await clickRect(q.storage_icon);
   await until(()=>window.__leoQA.storage_mode&&window.__leoQA.storage_visible);
   q=await state();
