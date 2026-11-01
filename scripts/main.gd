@@ -17,6 +17,7 @@ var open := false
 var pitch := -0.2
 var loot: Array[Area3D] = []
 var trash_dialog: ConfirmationDialog
+var hud_menu: Control
 
 func _ready() -> void:
  _register_keys()
@@ -183,9 +184,15 @@ func _make_ui() -> void:
  inventory.visibility_changed.connect(func():
   bag_button.visible = not inventory.visible
  )
+ # Keep existing Inventory texture untouched; all other HUD icon assets are
+ # freshly-authored SVGs. A single HUD manager owns saved drag/resize geometry.
+ hud_menu = load("res://scripts/hud_menu.gd").new() as Control
+ hud_menu.name = "WorldHUDMenu"
+ hud.add_child(hud_menu)
+ hud_menu.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ hud_menu.call("initialize",self,store,inventory,bag_button)
  get_viewport().size_changed.connect(func():
-  var width: float = get_viewport().get_visible_rect().size.x
-  bag_button.position = Vector2(width-72,16)
+  if is_instance_valid(hud_menu): hud_menu.call("_reflow")
  )
 
 func _starter() -> void:
@@ -202,51 +209,71 @@ func _refresh() -> void:
   inventory.call("refresh")
 
 func _toggle() -> void:
+ if is_instance_valid(hud_menu) and hud_menu.edit_mode: return
+ if is_instance_valid(hud_menu) and hud_menu.popup.visible: hud_menu.call("_hide_popup")
  open = not open
  if open:
   inventory.call("_switch_tab",0)
  inventory.visible = open
  Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if open or OS.has_feature("web") or DisplayServer.is_touchscreen_available() else Input.MOUSE_MODE_CAPTURED
 
+func _collect_nearest() -> void:
+ if open or (is_instance_valid(hud_menu) and hud_menu.is_gameplay_blocked()): return
+ var nearest: Area3D
+ var distance: float=3.0
+ for item in loot:
+  if is_instance_valid(item) and item.global_position.distance_to(character.global_position)<distance:
+   nearest=item
+   distance=item.global_position.distance_to(character.global_position)
+ if nearest != null:
+  var item_id: String=str(nearest.get_meta("id"))
+  if store.add_item(item_id):
+   loot.erase(nearest)
+   nearest.queue_free()
+   if is_instance_valid(hud_menu): hud_menu.call("record_pickup",item_id)
+
 func _physics_process(delta: float) -> void:
- var vel := character.velocity
+ var blocked: bool=open or (is_instance_valid(hud_menu) and hud_menu.is_gameplay_blocked())
+ var touch_jump: bool=false
+ if is_instance_valid(hud_menu): touch_jump=bool(hud_menu.call("consume_jump"))
+ var vel: Vector3=character.velocity
  if not character.is_on_floor():
-  vel.y -= 19.6*delta
- elif Input.is_action_just_pressed("jump") and not open:
-  vel.y = 7.5
- var v := Vector2.ZERO if open else Input.get_vector("left","right","forward","back")
- var dir := camera_arm.global_basis.x*v.x+camera_arm.global_basis.z*v.y
- dir.y = 0
- dir = dir.normalized()
- var speed := 8.0 if Input.is_action_pressed("run") else 5.0
- vel.x = dir.x*speed
- vel.z = dir.z*speed
- character.velocity = vel
+  vel.y-=19.6*delta
+ elif (Input.is_action_just_pressed("jump") or touch_jump) and not blocked:
+  vel.y=7.5
+ var v: Vector2=Vector2.ZERO if blocked else Input.get_vector("left","right","forward","back")
+ if not blocked and is_instance_valid(hud_menu):
+  var touch_move: Vector2=hud_menu.call("get_movement_vector")
+  if touch_move.length()>0.08: v=touch_move
+ var dir: Vector3=camera_arm.global_basis.x*v.x+camera_arm.global_basis.z*v.y
+ dir.y=0
+ dir=dir.normalized()
+ var sprinting: bool=Input.is_action_pressed("run") or (is_instance_valid(hud_menu) and hud_menu.run_pressed)
+ var speed: float=8.0 if sprinting else 5.0
+ vel.x=dir.x*speed
+ vel.z=dir.z*speed
+ character.velocity=vel
  character.move_and_slide()
- camera_arm.global_position = character.global_position+Vector3(0,0.5,0)
+ camera_arm.global_position=character.global_position+Vector3(0,0.5,0)
 
 func _unhandled_input(event: InputEvent) -> void:
  if event.is_action_pressed("bag") and not event.is_echo():
-  _toggle()
+  if not is_instance_valid(hud_menu) or not hud_menu.edit_mode: _toggle()
   get_viewport().set_input_as_handled()
  elif event.is_action_pressed("pickup") and not open and not event.is_echo():
-  var nearest: Area3D
-  var distance := 3.0
-  for item in loot:
-   if is_instance_valid(item) and item.global_position.distance_to(character.global_position)<distance:
-    nearest = item
-    distance = item.global_position.distance_to(character.global_position)
-  if nearest != null and store.add_item(str(nearest.get_meta("id"))):
-   loot.erase(nearest)
-   nearest.queue_free()
+  _collect_nearest()
  elif event is InputEventMouseButton and event.pressed and not open and not DisplayServer.is_touchscreen_available():
-  Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+  if not is_instance_valid(hud_menu) or not hud_menu.is_gameplay_blocked():
+   Input.mouse_mode=Input.MOUSE_MODE_CAPTURED
  elif event is InputEventMouseMotion and not open and Input.mouse_mode==Input.MOUSE_MODE_CAPTURED:
-  camera_arm.rotation.y -= event.relative.x*0.003
-  pitch = clampf(pitch-event.relative.y*0.003,-0.7,0.5)
-  camera.rotation.x = pitch
+  if not is_instance_valid(hud_menu) or not hud_menu.is_gameplay_blocked():
+   var sensitivity: float=hud_menu.camera_sensitivity if is_instance_valid(hud_menu) else 0.003
+   camera_arm.rotation.y-=event.relative.x*sensitivity
+   pitch=clampf(pitch-event.relative.y*sensitivity,-0.7,0.5)
+   camera.rotation.x=pitch
  elif event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE:
-  if open:
-   _toggle()
-  else:
-   Input.mouse_mode=Input.MOUSE_MODE_VISIBLE
+  if open: _toggle()
+  elif is_instance_valid(hud_menu) and hud_menu.is_gameplay_blocked():
+   if hud_menu.edit_mode: hud_menu.call("_finish_edit",false)
+   else: hud_menu.call("_hide_popup")
+  else: Input.mouse_mode=Input.MOUSE_MODE_VISIBLE
