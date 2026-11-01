@@ -62,11 +62,11 @@ func validate() -> void:
  for node in ui.currency_panel.get_children():
   if node is NinePatchRect: money_border+=1
  check(money_border==0,"Currency section has no decorative box or row frames")
- var luminous := ui.tab_buttons[0].get_theme_stylebox("normal")
+ var luminous: StyleBox = ui.tab_buttons[0].get_theme_stylebox("normal")
  check(luminous is StyleBoxTexture,"Selected tab uses separate luminous PNG state")
  if luminous is StyleBoxTexture:
   check(luminous.texture.resource_path.ends_with("/tab_lit.png"),"Selected tab is vivid ruby red")
- var pressed := ui.footer_buttons[1].get_theme_stylebox("pressed")
+ var pressed: StyleBox = ui.footer_buttons[1].get_theme_stylebox("pressed")
  check(pressed is StyleBoxTexture,"Action button has pressed PNG state")
  if pressed is StyleBoxTexture:
   check(pressed.texture.resource_path.ends_with("/button_pressed.png"),"Bright red and white pressed feedback has a separate PNG")
