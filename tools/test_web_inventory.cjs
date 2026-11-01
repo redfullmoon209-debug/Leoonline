@@ -361,6 +361,16 @@ async function swipe(dx,dy){
     check(touchHud.hud_profile_bounds[0]+touchHud.hud_profile_bounds[2]<touchHud.hud_minimap_bounds[0],'Phone portrait and minimap remain in separate top corners');
     check(touchHud.hud_target_bounds[1]>touchHud.hud_row[0][1]+touchHud.hud_row[0][3],'Target info is below the menu row on phone');
     check(Object.values(touchHud.hud_notification_badges).every(v=>v===false),'Phone Mail and all other icons start without fake red dots');
+    check(touchHud.hud_touch_target_visible&&touchHud.hud_touch_target[2]>=42,'Portrait phone has a real standalone TARGET touch button');
+    const targetButton=touchHud.hud_touch_target;
+    const jumpButton=touchHud.hud_touch_jump;
+    check(targetButton[1]+targetButton[3]<jumpButton[1],'TARGET is above Jump without hiding other phone controls');
+    await clickRect(targetButton,true);
+    await until(()=>window.__leoQA.hud_target_name==='อสูรหินฝึก');
+    check((await state()).hud_target_health_visible,'Portrait phone TARGET button selects the actual training monster');
+    await clickRect((await state()).hud_touch_target,true);
+    await until(()=>window.__leoQA.hud_target_name.includes('ยังไม่ได้เลือก'));
+    check(!(await state()).hud_target_health_visible,'Second portrait TARGET touch clears actual target data');
     await snap('web-premium-mobile-ten-icons');
     await clickRect(touchHud.hud_settings_button,true);
     await until(()=>window.__leoQA.hud_panel_key==='settings');

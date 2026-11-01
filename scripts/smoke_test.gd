@@ -678,7 +678,16 @@ func validate() -> void:
  await process_frame
  hud_menu.display_mobile_controls=true
  hud_menu._refresh_touch_visibility()
- check(hud_menu.controls["joystick"].visible and hud_menu.controls["jump"].visible and hud_menu.controls["pickup"].visible and hud_menu.controls["run"].visible,"Mobile movement, jump, pickup and run controls can be shown and edited on PC")
+ check(hud_menu.controls["joystick"].visible and hud_menu.controls["jump"].visible and hud_menu.controls["pickup"].visible and hud_menu.controls["run"].visible and hud_menu.controls["target"].visible,"Mobile movement, jump, pickup, run and target controls can be shown and edited on PC")
+ var mobile_target_button:Button=hud_menu.controls["target"] as Button
+ check(ResourceLoader.exists("res://assets/ui/hud/target.svg") and (mobile_target_button.get_node("Glyph") as TextureRect).texture!=null,"Target mobile control has its own original SVG, not a cropped menu PNG")
+ var target_button_rect:Rect2=mobile_target_button.get_global_rect()
+ var jump_button_rect:Rect2=hud_menu.controls["jump"].get_global_rect()
+ check(target_button_rect.end.y+4.0<=jump_button_rect.position.y and target_button_rect.position.x>=0.0,"Target control sits above Jump without blocking the other mobile buttons")
+ mobile_target_button.pressed.emit()
+ check(top.current_target==game.training_target and top.target_bar.visible and top.target_portrait.visible,"Touch TARGET selects a real physical enemy and fills centered target HUD")
+ mobile_target_button.pressed.emit()
+ check(top.current_target==null and not top.target_bar.visible,"Pressing TARGET again clears target, including HP and portrait")
  var stick:Control=hud_menu.controls["joystick"]
  stick._point_to_vector(stick.size*0.8)
  check(hud_menu.get_movement_vector().length()>0.05,"Virtual mobile joystick drives real movement vector")

@@ -62,9 +62,16 @@ not a fake online world map.
 ## Mobile gameplay controls
 
 On touchscreen devices the HUD also shows an interactive vector joystick
-connected to real character movement and separate Jump, Pick Up, and Run
-buttons. They are absent on desktop by default but may be shown in Settings
-for layout editing. Keyboard WASD/arrows, Space, Shift, E and B remain.
+connected to real character movement and separate Jump, Pick Up, Run and
+**TARGET** buttons. TARGET is a separately authored SVG touch control above
+Jump, not an eleventh top-row menu PNG and never cropped from artwork. Tap
+TARGET once to lock the real training golem and show its live HP/MP in the
+top-center card; tap it again to clear the lock and hide those bars. Touching
+other real test monsters/players directly in the 3D world also selects their
+individual portraits and live values. All five mobile gameplay controls can
+be moved and resized in Settings. They are absent on desktop by default but
+may be shown for layout editing. Keyboard WASD/arrows, Space, Shift, E, B
+and T (target toggle) remain.
 
 ## Drag, resize and save all HUD buttons
 
@@ -72,7 +79,7 @@ for layout editing. Keyboard WASD/arrows, Space, Shift, E and B remain.
 2. Tap/click a HUD icon, the original Inventory icon, the movement joystick,
    or a mobile gameplay button to select it.
 3. Drag that control with your finger or mouse.
-4. Adjust its size with the slider. Icons support 42–100px; joystick 90–195px.
+4. Adjust its size with the slider. Top menu icons support a responsive minimum of 27px on narrow phones (30px in landscape) up to 100px; mobile action buttons support 42–100px and the joystick 90–195px.
 5. Tap the editor's ย้ายแถบเครื่องมือขึ้น / ลง button to move the toolbar
    between the top and bottom edges, exposing controls underneath it.
 6. Press บันทึก to save, ยกเลิก to cancel the session, or ค่าเดิม to reset it.

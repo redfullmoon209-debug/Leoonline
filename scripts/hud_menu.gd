@@ -8,18 +8,18 @@ const MENU_ORDER: Array[String] = ["bag","world","party","friends","ranking","se
 const LAYOUT_VERSION: int = 3
 const PREMIUM_ROOT: String = "res://assets/ui/hud/premium/"
 const TopStatusScript = preload("res://scripts/hud_top_status.gd")
-const ALL_IDS: Array[String] = ["bag","world","party","friends","ranking","settings","guild","quest","mail","events","joystick","jump","pickup","run"]
+const ALL_IDS: Array[String] = ["bag","world","party","friends","ranking","settings","guild","quest","mail","events","joystick","jump","pickup","run","target"]
 const MENU_LABELS: Dictionary = {
  "bag":"กระเป๋า","world":"แผนที่โลก","party":"ปาร์ตี้","friends":"เพื่อน",
  "ranking":"อันดับผู้เล่น","settings":"ตั้งค่าเกม","guild":"กิลด์",
  "quest":"เควสต์","mail":"จดหมาย","events":"กิจกรรม",
- "joystick":"จอยเคลื่อนที่","jump":"กระโดด","pickup":"เก็บของ","run":"วิ่ง"
+ "joystick":"จอยเคลื่อนที่","jump":"กระโดด","pickup":"เก็บของ","run":"วิ่ง","target":"ล็อกเป้า"
 }
 const EN_LABELS: Dictionary = {
  "bag":"Inventory","world":"World Map","party":"Party","friends":"Friends",
  "ranking":"Rankings","settings":"Settings","guild":"Guild",
  "quest":"Quests","mail":"Mail","events":"Events",
- "joystick":"Move","jump":"Jump","pickup":"Pick Up","run":"Run"
+ "joystick":"Move","jump":"Jump","pickup":"Pick Up","run":"Run","target":"Target"
 }
 const HUD_FILE: String = "user://leoonline_hud.json"
 const WEB_KEY: String = "leoonline_hud_v1"
@@ -246,7 +246,7 @@ func _build_buttons() -> void:
  joystick.name="MobileJoystick"
  add_child(joystick)
  controls["joystick"]=joystick
- for key in ["jump","pickup","run"]:
+ for key in ["jump","pickup","run","target"]:
   var button:=Button.new()
   button.name="Touch_"+key
   button.mouse_filter=Control.MOUSE_FILTER_STOP
@@ -275,6 +275,7 @@ func _build_buttons() -> void:
    "run":
     button.button_down.connect(func(): if not edit_mode: run_pressed=true)
     button.button_up.connect(func(): run_pressed=false)
+   "target": button.pressed.connect(func(): if not edit_mode: game.call("_toggle_target_lock"))
 
 func _row_metrics() -> Dictionary:
  var w:float=maxf(320.0,size.x)
@@ -315,12 +316,14 @@ func _default_positions() -> Dictionary:
  result["run"]=Vector2(w-209.0,h-118.0)
  result["pickup"]=Vector2(w-140.0,h-118.0)
  result["jump"]=Vector2(w-71.0,h-118.0)
+ # Separate mobile target lock above Jump, clear of the compact menu/minimap.
+ result["target"]=Vector2(w-71.0,h-188.0)
  return result
 
 func _default_size(id: String) -> float:
  if id=="joystick": return 132.0
  if MENU_ORDER.has(id): return float(_row_metrics()["size"])
- if ["jump","pickup","run"].has(id): return 58.0
+ if ["jump","pickup","run","target"].has(id): return 58.0
  return 59.0
 
 func _max_size(id: String) -> float:
@@ -402,7 +405,7 @@ func _refresh_touch_visibility() -> void:
  # joystick and buttons as fingers on a physical phone.
  var portrait_web:bool=OS.has_feature("web") and size.x<=600.0
  var show_touch:bool=DisplayServer.is_touchscreen_available() or display_mobile_controls or edit_mode or portrait_web or force_touch_preview
- for id in ["joystick","jump","pickup","run"]:
+ for id in ["joystick","jump","pickup","run","target"]:
   controls[id].visible=show_touch and not inventory.visible
  for key in MENU_IDS: controls[key].visible=not inventory.visible
  if is_instance_valid(bag_button): bag_button.visible=not inventory.visible
