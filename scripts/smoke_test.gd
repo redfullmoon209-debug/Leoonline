@@ -41,6 +41,11 @@ func validate() -> void:
  check(ui.visible,"Bag opens")
  check(store.slots.size()==200,"200 storage entries")
  check(ui.bag_grid.columns==10 and ui.bag_grid.get_child_count()==50,"10 by 5 grid")
+ check(ui.stage.scale.x*1448.0 <= root.size.x*0.75+2.0,"Landscape inventory uses at most 75 percent of screen width")
+ for sprite in ["outer_panel","inner_panel","tab_active","tab_idle","action_button","close_button","pager_button","slot_empty","slot_locked","slot_selected","currency_row"]:
+  check(ResourceLoader.exists("res://assets/ui/red_matte/"+sprite+".png"),"Standalone red matte PNG exists: "+sprite)
+ check(ui._red_texture("slot_empty") != null,"Matte red slot texture loaded")
+ check(ui.tab_buttons[0].get_child_count() >= 1,"Menu buttons keep independent PNG icon layers")
  for row in [ui.main_equip_list,ui.extra_equip_list,ui.fashion_weapon_row,ui.fashion_side_row,ui.accessory_row,ui.fashion_row]:
   for button in row.get_children():
    check(button is TextureButton,"Equipment uses PNG button")
