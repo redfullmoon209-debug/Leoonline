@@ -544,6 +544,144 @@ func _build() -> void:
  )
 
 
+func _make_shop_panel() -> void:
+ # The current 200-slot Player Inventory is reused at the left in Shop mode.
+ # The right side is an independent NPC stock grid with 500 reserved positions.
+ # No screenshot crop and no new player inventory implementation.
+ shop_panel = Control.new()
+ shop_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+ stage.add_child(shop_panel)
+ _rect(shop_panel,0,0,W,H)
+ _red_panel(shop_panel,696,205,678,561,"inner_panel")
+ _white_red_glint(shop_panel,863,212,355,2)
+ _label("Shop Items",shop_panel,742,216,267,35,21)
+ shop_stock_label = _label("",shop_panel,1051,216,278,35,17)
+ shop_grid = GridContainer.new()
+ shop_grid.name = "ShopGoodsGrid"
+ shop_grid.mouse_filter = Control.MOUSE_FILTER_PASS
+ shop_grid.columns = 10
+ shop_grid.add_theme_constant_override("h_separation",6)
+ shop_grid.add_theme_constant_override("v_separation",5)
+ shop_panel.add_child(shop_grid)
+ _rect(shop_grid,737,257,600,296)
+ for i in range(4):
+  var x: float = [779.0,850.0,1170.0,1242.0][i]
+  var action: int = [0,1,3,4][i]
+  var b := _hitbox(shop_panel,x,564,57,43,_change_shop_page.bind(action))
+  b.text = ["<<","<",">",">>"][i]
+  _style_text_button(b,22)
+  _red_button(b,"pager_button",true)
+  shop_page_buttons.append(b)
+ shop_page_label = _label("",shop_panel,930,567,212,37,19)
+ shop_product_label = _label("Select a product",shop_panel,740,631,591,33,19,HORIZONTAL_ALIGNMENT_CENTER)
+ shop_price_label = _label("",shop_panel,743,668,584,31,18,HORIZONTAL_ALIGNMENT_CENTER)
+ shop_buy_button = _hitbox(shop_panel,900,711,181,47,_buy_shop_item)
+ shop_buy_button.text = _tr("Buy")
+ shop_buy_button.set_meta("l10n","Buy")
+ _style_text_button(shop_buy_button,19)
+ _red_button(shop_buy_button,"action_button")
+ shop_sell_button = _hitbox(shop_panel,1114,711,181,47,_request_shop_sell)
+ shop_sell_button.text = _tr("Sell")
+ shop_sell_button.set_meta("l10n","Sell")
+ _style_text_button(shop_sell_button,19)
+ _red_button(shop_sell_button,"action_button")
+ shop_status_label = _label("",shop_panel,751,762,564,26,14)
+
+func _on_shop_notice(message: String) -> void:
+ set_notice(message)
+ if is_instance_valid(shop_status_label):
+  shop_status_label.text = _tr(message)
+
+func _refresh_shop() -> void:
+ if not is_instance_valid(shop_grid): return
+ _clear_container(shop_grid)
+ var offers: Array = ShopCatalog.OFFERS
+ for i in range(ShopCatalog.PAGE_SIZE):
+  var index: int = shop_page*ShopCatalog.PAGE_SIZE+i
+  var entry: Dictionary = offers[index] if index<offers.size() else {}
+  var id: String = str(entry.get("id",""))
+  var state: String = "selected" if id!="" and id==shop_selected_id else "normal"
+  var slot := _image_button(shop_grid,0,0,54,id,state)
+  slot.disabled = id==""
+  slot.set_meta("product_id",id)
+  if id!="":
+   slot.pressed.connect(_select_shop_item.bind(id))
+ shop_stock_label.text = str(offers.size())+" / "+str(ShopCatalog.MAX_ITEMS)
+ shop_page_label.text = ("หน้า " if locale=="th" else "PAGE ")+str(shop_page+1)+" / "+str(ShopCatalog.PAGE_COUNT)
+ for i in range(shop_page_buttons.size()):
+  shop_page_buttons[i].disabled = shop_page==0 if i<2 else shop_page==ShopCatalog.PAGE_COUNT-1
+ _refresh_shop_selection()
+
+func _refresh_shop_selection() -> void:
+ if not is_instance_valid(shop_grid): return
+ var offer: Dictionary = ShopCatalog.get_offer(shop_selected_id)
+ if offer.is_empty():
+  shop_product_label.text = _tr("Select a product")
+  shop_price_label.text = _tr("Shop Stock")+": "+str(ShopCatalog.MAX_ITEMS)+" · "+_tr("Select a bag item to sell")
+ else:
+  var name: String = str(StoreScript.DATA.get(shop_selected_id,{}).get("name",shop_selected_id))
+  shop_product_label.text = _tr(name)
+  shop_price_label.text = _tr("Price")+": "+str(game_store.call("pretty",str(offer.get("price","0"))))+" "+_tr(str(offer.get("currency","gold")).capitalize())
+ shop_buy_button.disabled = offer.is_empty()
+ var selected: int = int(game_store.get("selected"))
+ var items: Array = game_store.get("slots")
+ var sellable: bool = selected>=0 and selected<int(game_store.get("unlocked")) and selected<items.size() and str(items[selected])!="" and ShopCatalog.get_sell_price(str(items[selected]))!="0"
+ shop_sell_button.disabled = not sellable
+
+func _select_shop_item(item_id: String) -> void:
+ shop_selected_id = item_id
+ _hide_details()
+ _refresh_shop()
+
+func _change_shop_page(index: int) -> void:
+ match index:
+  0: shop_page=0
+  1: shop_page=maxi(0,shop_page-1)
+  3: shop_page=mini(ShopCatalog.PAGE_COUNT-1,shop_page+1)
+  4: shop_page=ShopCatalog.PAGE_COUNT-1
+ _refresh_shop()
+
+func _buy_shop_item() -> void:
+ if shop_selected_id=="":
+  _on_shop_notice("Select a product")
+  return
+ _hide_details()
+ shop_service.buy(shop_selected_id)
+ _refresh_shop_selection()
+
+func _request_shop_sell() -> void:
+ var selected: int = int(game_store.get("selected"))
+ var items: Array = game_store.get("slots")
+ if selected<0 or selected>=int(game_store.get("unlocked")) or selected>=items.size():
+  _on_shop_notice("Select a bag item to sell")
+  return
+ var item_id: String = str(items[selected])
+ var price: String = ShopCatalog.get_sell_price(item_id)
+ if item_id=="" or price=="0":
+  _on_shop_notice("This item cannot be sold")
+  return
+ pending_shop_sell_index=selected
+ pending_shop_sell_id=item_id
+ shop_sell_dialog.title=_tr("Sell item?")
+ shop_sell_dialog.dialog_text=_tr(str(StoreScript.DATA.get(item_id,{}).get("name",item_id)))+" · "+_tr("Sell price")+": "+str(game_store.call("pretty",price))+" "+_tr("Gold")+"?"
+ shop_sell_dialog.get_ok_button().text = _tr("Sell")
+ shop_sell_dialog.get_cancel_button().text = _tr("Cancel")
+ _hide_details()
+ shop_sell_dialog.popup_centered(Vector2i(445,185))
+
+func _confirm_shop_sell() -> void:
+ var index: int = pending_shop_sell_index
+ var item_id: String = pending_shop_sell_id
+ pending_shop_sell_index=-1
+ pending_shop_sell_id=""
+ if index<0 or index>=int(game_store.get("unlocked")):
+  return
+ if str(game_store.slots[index])!=item_id:
+  _on_shop_notice("Select a bag item to sell")
+  return
+ shop_service.sell_slot(index)
+ _refresh_shop_selection()
+
 func _style_text_button(button: Button, font_size: int) -> void:
  if ui_font != null: button.add_theme_font_override("font",ui_font)
  button.add_theme_font_size_override("font_size",font_size)
