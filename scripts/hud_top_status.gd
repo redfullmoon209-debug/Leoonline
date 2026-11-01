@@ -468,10 +468,11 @@ func _layout() -> void:
   _set_target_rect(target_portrait_placeholder,Vector2(img_center_x-17.0,inner_h*0.5-20.0),Vector2(34.0,40.0))
   target_portrait_placeholder.add_theme_font_size_override("font_size",24)
   var text_start:float=50.0 if inner_w>140.0 else 42.0
-  var lvl_width:float=31.0
-  _set_target_rect(target_label,Vector2(text_start,8.0),Vector2(maxf(37.0,inner_w-text_start-lvl_width-4.0),23.0))
+  # Full target name gets its own line: do not cram it beside Lv.
+  _set_target_rect(target_label,Vector2(text_start,6.0),Vector2(maxf(55.0,inner_w-text_start-4.0),22.0))
   target_label.add_theme_font_size_override("font_size",10)
-  _set_target_rect(target_level_label,Vector2(inner_w-lvl_width-2.0,9.0),Vector2(lvl_width,22.0))
+  _set_target_rect(target_level_label,Vector2(text_start,27.0),Vector2(44.0,15.0))
+  target_level_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT
   target_level_label.add_theme_font_size_override("font_size",9)
   _set_target_rect(target_type_label,Vector2(inner_w-59.0,9.0),Vector2(55.0,18.0))
   var bar_left:float=text_start+15.0
