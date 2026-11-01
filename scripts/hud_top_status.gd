@@ -51,25 +51,27 @@ func initialize(p_game: Node3D,p_store: Node) -> void:
  _layout()
  resized.connect(_layout)
 
-func _frame() -> StyleBoxTexture:
- var box:=StyleBoxTexture.new()
- box.texture=load(ROOT_UI+"outer_panel.png") as Texture2D
- box.texture_margin_left=29.0
- box.texture_margin_right=29.0
- box.texture_margin_top=29.0
- box.texture_margin_bottom=29.0
- box.content_margin_left=8.0
- box.content_margin_top=7.0
- box.content_margin_right=8.0
- box.content_margin_bottom=7.0
- return box
+func _frame() -> StyleBoxFlat:
+ # A quiet single outer border; the old texture painted distracting rules
+ # directly across character data, so there is no inner frame image.
+ var frame:=StyleBoxFlat.new()
+ frame.bg_color=Color("#280c19")
+ frame.border_color=Color("#efbb68")
+ frame.set_border_width_all(2)
+ frame.set_corner_radius_all(13)
+ frame.set_content_margin_all(5)
+ frame.shadow_color=Color(0.0,0.0,0.0,0.42)
+ frame.shadow_size=4
+ return frame
 
 func _label(parent: Node,name: String,text_value: String,font_size: int) -> Label:
  var control:=Label.new()
  control.name=name
  control.text=text_value
  control.mouse_filter=Control.MOUSE_FILTER_IGNORE
- control.add_theme_color_override("font_color",Color("#fbe2aa"))
+ control.add_theme_color_override("font_color",Color("#fff3d9"))
+ control.add_theme_color_override("font_outline_color",Color("#150912"))
+ control.add_theme_constant_override("outline_size",1)
  control.add_theme_color_override("font_shadow_color",Color(0,0,0,0.82))
  control.add_theme_constant_override("shadow_offset_y",1)
  control.add_theme_font_size_override("font_size",font_size)
@@ -96,6 +98,7 @@ func _make_player() -> void:
  portrait.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
  layout.add_child(portrait)
  player_name=_label(layout,"NameAndLevel","",16)
+ player_name.add_theme_color_override("font_color",Color.WHITE)
  player_class=_label(layout,"Class","",12)
  player_exp=_label(layout,"Exp","",11)
  exp_bar=ProgressBar.new()
@@ -215,6 +218,7 @@ func _make_target() -> void:
  target_portrait_placeholder.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
  target_portrait_placeholder.add_theme_color_override("font_color",Color("#b5cfda"))
  target_label=_label(target_body,"TargetName","เป้าหมาย: ยังไม่ได้เลือก",16)
+ target_label.add_theme_color_override("font_color",Color("#fff8e6"))
  target_label.clip_text=true
  target_label.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
  target_level_label=_label(target_body,"TargetLevel","",12)
@@ -245,15 +249,26 @@ func _set_target_rect(control: Control,p: Vector2,wh: Vector2) -> void:
  control.size=wh
 
 func _refresh_player() -> void:
- if not is_instance_valid(player_name) or game_store==null: return
- var data: Dictionary=game_store.get("profile")
- var level: int=int(data.get("level",1))
- var name: String=str(data.get("name","Adventurer"))
- player_name.text="Lv.%d  %s" % [level,name]
- player_class.text=str(data.get("job","Novice"))+"  |  Class "+str(data.get("class_tier",0))
- var exp: int=int(data.get("experience",0))
- var required: int=int(game_store.call("experience_required",level))
- player_exp.text="EXP "+str(exp)+" / "+str(required)
+ if not is_instance_valid(player_name) or game_store==null:return
+ var data:Dictionary=game_store.get("profile")
+ var level:int=int(data.get("level",1))
+ var name:String=str(data.get("name","Adventurer"))
+ var job:String=str(data.get("job","Novice"))
+ var tier:int=int(data.get("class_tier",0))
+ var exp:int=int(data.get("experience",0))
+ var required:int=int(game_store.call("experience_required",level))
+ var narrow:bool=size.y>size.x and size.x<620.0
+ if narrow:
+  # A compressed THREE-column portrait layout still exposes name, level,
+  # class and EXP with readable type instead of clipping two long rows.
+  player_name.text=name
+  player_class.text="Lv.%d  C%d" % [level,tier]
+  player_exp.text="EXP %d/%d" % [exp,required]
+ else:
+  player_name.text="Lv.%d  %s" % [level,name]
+  player_class.text=job+"  |  Class "+str(tier)
+  player_exp.text="EXP "+str(exp)+" / "+str(required)
+ player_panel.tooltip_text="Lv.%d %s | %s Class %d | EXP %d/%d" % [level,name,job,tier,exp,required]
  exp_bar.value=100.0*float(exp)/maxf(float(required),1.0)
 
 func set_target(target: Node3D) -> void:
@@ -282,6 +297,7 @@ func _refresh_target() -> void:
  if not is_instance_valid(current_target):
   current_target=null
   target_label.text="เป้าหมาย: ยังไม่ได้เลือก"
+  target_hint.text="แตะ / TARGET" if size.y>size.x and size.x<620.0 else "แตะเป้าหมาย หรือกด T"
   target_portrait.texture=null
   target_portrait.visible=false
   target_portrait_placeholder.visible=true
@@ -304,7 +320,7 @@ func _refresh_target() -> void:
  target_level_label.visible=level>0
  var category:String=str(current_target.get_meta("target_type","")).strip_edges()
  target_type_label.text=category
- target_type_label.visible=not category.is_empty()
+ target_type_label.visible=not category.is_empty() and not (size.y>size.x and size.x<620.0)
  target_hint.visible=false
  var portrait_image:Texture2D=_target_portrait_texture()
  if target_portrait.texture!=portrait_image:
@@ -321,7 +337,7 @@ func _refresh_target() -> void:
  if has_hp:
   var health_ratio:float=clampf(hp/max_hp,0.0,1.0)
   target_bar.value=health_ratio*100.0
-  target_health_value.text="%.0f / %.0f  (%.0f%%)" % [hp,max_hp,health_ratio*100.0]
+  target_health_value.text=("%.0f/%.0f" % [hp,max_hp]) if size.y>size.x and size.x<620.0 else ("%.0f / %.0f  (%.0f%%)" % [hp,max_hp,health_ratio*100.0])
  var max_mp:float=float(current_target.get_meta("max_mp",-1.0))
  var mp:float=float(current_target.get_meta("mp",-1.0))
  var has_mp:bool=max_mp>0.0 and mp>=0.0
@@ -331,59 +347,104 @@ func _refresh_target() -> void:
  if has_mp:
   var mana_ratio:float=clampf(mp/max_mp,0.0,1.0)
   target_mana_bar.value=mana_ratio*100.0
-  target_mana_value.text="%.0f / %.0f  (%.0f%%)" % [mp,max_mp,mana_ratio*100.0]
+  target_mana_value.text=("%.0f/%.0f" % [mp,max_mp]) if size.y>size.x and size.x<620.0 else ("%.0f / %.0f  (%.0f%%)" % [mp,max_mp,mana_ratio*100.0])
 
 func _layout() -> void:
- if not is_instance_valid(player_panel): return
- var width: float=maxf(320.0,size.x)
- var phone: bool=width<600.0
- var tablet: bool=width>=600.0 and width<1100.0
- var profile_w: float=165.0 if phone else (214.0 if tablet else 265.0)
- var profile_h: float=80.0 if phone else (84.0 if tablet else 103.0)
- var map_w: float=88.0 if phone else (118.0 if tablet else 151.0)
- var map_x: float=width-map_w-9.0
- player_panel.position=Vector2(7.0,6.0)
+ if not is_instance_valid(player_panel):return
+ var w:float=maxf(320.0,size.x)
+ var portrait_mode:bool=size.y>size.x
+ var compact:bool=portrait_mode and w<620.0
+ var tablet:bool=w>=600.0 and w<1100.0
+ var profile_w:float=165.0 if w<600.0 else (214.0 if tablet else 265.0)
+ var profile_h:float=80.0 if w<600.0 else (84.0 if tablet else 103.0)
+ var map_w:float=88.0 if w<600.0 else (118.0 if tablet else 151.0)
+ var player_x:float=7.0
+ var player_y:float=6.0
+ var map_x:float=w-map_w-9.0
+ var map_y:float=6.0
+ var target_w:float=minf(w-22.0,367.0)
+ var target_h:float=108.0
+ var target_x:float=(w-target_w)*0.5
+ var target_y:float=71.0
+ var metrics:Dictionary={}
+ if get_parent()!=null:metrics=get_parent().call("_row_metrics")
+ var bottom_icons:float=float(metrics.get("y",9.0))+float(metrics.get("size",37.0))
+ var label_row_end:float=bottom_icons+19.0
+ if portrait_mode:
+  # The one-row top menu is followed by exactly three side-by-side panels:
+  # player LEFT, selected target CENTER and the live minimap RIGHT.
+  profile_w=clampf(w*0.285,89.0,198.0)
+  profile_h=100.0 if compact else 107.0
+  map_w=clampf(w*0.205,68.0,146.0)
+  player_x=7.0
+  player_y=label_row_end+9.0
+  map_x=w-map_w-7.0
+  map_y=player_y
+  var available:float=w-26.0-profile_w-map_w
+  target_w=minf(430.0,maxf(125.0,available))
+  target_h=104.0 if compact else 110.0
+  target_x=player_x+profile_w+6.0
+  if target_w<available:target_x=(w-target_w)*0.5
+  target_y=player_y
+ else:
+  target_y=label_row_end+8.0
+  target_x=maxf(target_x,player_x+profile_w+8.0)
+  target_x=minf(target_x,map_x-8.0-target_w)
+ player_panel.position=Vector2(player_x,player_y)
  player_panel.size=Vector2(profile_w,profile_h)
- var body: Control=player_panel.get_node("PortraitContent") as Control
+ var body:Control=player_panel.get_node("PortraitContent") as Control
  body.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  body.position=Vector2.ZERO
- body.size=player_panel.size-Vector2(16.0,14.0)
- var portrait_w:float=49.0 if phone else (57.0 if tablet else 75.0)
- portrait.position=Vector2(7.0,4.0)
- portrait.size=Vector2(portrait_w,profile_h-15.0)
- var text_x:float=portrait_w+11.0
- var text_w:float=profile_w-text_x-12.0
- player_name.position=Vector2(text_x,2.0)
- player_name.size=Vector2(text_w,23.0)
- player_name.add_theme_font_size_override("font_size",10 if phone else (14 if tablet else 16))
- player_name.clip_text=true
- player_name.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
- player_class.position=Vector2(text_x,26.0 if not phone else 23.0)
- player_class.size=Vector2(text_w,18.0)
- player_class.add_theme_font_size_override("font_size",10 if phone else 12)
- player_exp.position=Vector2(text_x,45.0 if not phone else 42.0)
- player_exp.size=Vector2(text_w,18.0)
- player_exp.add_theme_font_size_override("font_size",9 if phone else 11)
- exp_bar.position=Vector2(text_x,63.0 if not phone else 57.0)
- exp_bar.size=Vector2(text_w,9.0 if not phone else 7.0)
- minimap_button.position=Vector2(map_x,6.0)
+ body.size=player_panel.size-Vector2(10.0,10.0)
+ if compact:
+  # Text no longer sits behind drawn lines or an oversized avatar.
+  portrait.position=Vector2(4.0,5.0)
+  portrait.size=Vector2(31.0,49.0)
+  player_name.position=Vector2(39.0,5.0)
+  player_name.size=Vector2(maxf(35.0,profile_w-46.0),17.0)
+  player_name.add_theme_font_size_override("font_size",10)
+  player_class.position=Vector2(39.0,27.0)
+  player_class.size=Vector2(maxf(35.0,profile_w-46.0),17.0)
+  player_class.add_theme_font_size_override("font_size",9)
+  player_exp.position=Vector2(7.0,67.0)
+  player_exp.size=Vector2(profile_w-14.0,15.0)
+  player_exp.add_theme_font_size_override("font_size",9)
+  exp_bar.position=Vector2(7.0,84.0)
+  exp_bar.size=Vector2(profile_w-14.0,8.0)
+ else:
+  var portrait_w:float=57.0 if tablet or portrait_mode else 75.0
+  if portrait_mode:portrait_w=minf(63.0,profile_w*0.32)
+  portrait.position=Vector2(6.0,5.0)
+  portrait.size=Vector2(portrait_w,profile_h-16.0)
+  var txt_x:float=portrait_w+11.0
+  var txt_w:float=profile_w-txt_x-11.0
+  player_name.position=Vector2(txt_x,4.0)
+  player_name.size=Vector2(txt_w,24.0)
+  player_name.add_theme_font_size_override("font_size",13 if tablet or portrait_mode else 16)
+  player_class.position=Vector2(txt_x,30.0)
+  player_class.size=Vector2(txt_w,20.0)
+  player_class.add_theme_font_size_override("font_size",11 if tablet or portrait_mode else 12)
+  player_exp.position=Vector2(txt_x,55.0)
+  player_exp.size=Vector2(txt_w,18.0)
+  player_exp.add_theme_font_size_override("font_size",11)
+  exp_bar.position=Vector2(txt_x,77.0 if profile_h>=100.0 else 70.0)
+  exp_bar.size=Vector2(txt_w,8.0)
+ for t in [player_name,player_class,player_exp]:
+  t.clip_text=true
+  t.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
+ minimap_button.position=Vector2(map_x,map_y)
  minimap_button.size=Vector2(map_w,map_w)
  minimap.position=Vector2.ZERO
  minimap.size=Vector2(map_w,map_w)
  north.position=Vector2(map_w*0.37,-3.0)
  north.size=Vector2(map_w*0.26,20.0)
- north.add_theme_font_size_override("font_size",10 if phone else 13)
- var zoom_size:float=18.0 if phone else 25.0
+ north.add_theme_font_size_override("font_size",10 if compact else 13)
+ var zoom_size:float=18.0 if compact else 25.0
  zoom_in.position=Vector2(map_w-zoom_size-3.0,map_w*0.30)
  zoom_out.position=Vector2(map_w-zoom_size-3.0,map_w*0.56)
  zoom_in.size=Vector2(zoom_size,zoom_size)
  zoom_out.size=Vector2(zoom_size,zoom_size)
- # Keep the card at the very top center on landscape. On portrait phones
- # the 10-item menu occupies the second line; the target sits below it.
- var target_w:float=minf(width-22.0,330.0 if phone else 367.0)
- var target_h:float=98.0 if phone else 108.0
- var target_y:float=151.0 if width<760.0 else 58.0
- target_panel.position=Vector2((width-target_w)*0.5,target_y)
+ target_panel.position=Vector2(target_x,target_y)
  target_panel.size=Vector2(target_w,target_h)
  var inner_w:float=target_w-14.0
  var inner_h:float=target_h-12.0
@@ -391,29 +452,57 @@ func _layout() -> void:
  target_body.size=Vector2(inner_w,inner_h)
  _set_target_rect(target_decor,Vector2.ZERO,Vector2(inner_w,inner_h))
  target_decor.queue_redraw()
- var portrait_size:float=58.0 if phone else 68.0
- _set_target_rect(target_portrait,Vector2(46.0-portrait_size*0.5,inner_h*0.5-portrait_size*0.5),Vector2(portrait_size,portrait_size))
- _set_target_rect(target_portrait_placeholder,Vector2(17.0,inner_h*0.5-26.0),Vector2(58.0,52.0))
- var text_start:float=99.0
- var text_right:float=inner_w-8.0
- _set_target_rect(target_label,Vector2(text_start,5.0),Vector2(maxf(55.0,inner_w-text_start-104.0),26.0))
- target_label.add_theme_font_size_override("font_size",13 if phone else 15)
- _set_target_rect(target_level_label,Vector2(inner_w-106.0,7.0),Vector2(46.0,22.0))
- _set_target_rect(target_type_label,Vector2(inner_w-64.0,7.0),Vector2(56.0,22.0))
- target_type_label.add_theme_font_size_override("font_size",10)
- var bar_left:float=text_start+43.0
- var bar_width:float=maxf(72.0,text_right-bar_left-5.0)
- var bar_height:float=19.0 if phone else 20.0
- var hp_y:float=32.0
- var mp_y:float=57.0
- _set_target_rect(target_health_label,Vector2(text_start,hp_y),Vector2(39.0,bar_height))
- _set_target_rect(target_bar,Vector2(bar_left,hp_y),Vector2(bar_width,bar_height))
- _set_target_rect(target_health_value,Vector2(bar_left,hp_y),Vector2(bar_width,bar_height))
- _set_target_rect(target_mana_label,Vector2(text_start,mp_y),Vector2(39.0,bar_height))
- _set_target_rect(target_mana_bar,Vector2(bar_left,mp_y),Vector2(bar_width,bar_height))
- _set_target_rect(target_mana_value,Vector2(bar_left,mp_y),Vector2(bar_width,bar_height))
- _set_target_rect(target_hint,Vector2(text_start,41.0),Vector2(maxf(0.0,inner_w-text_start-10.0),30.0))
- target_hint.add_theme_font_size_override("font_size",11 if phone else 13)
+ if compact:
+  var image_size:float=38.0 if inner_w>140.0 else 31.0
+  var img_center_x:float=26.0 if inner_w>140.0 else 23.0
+  _set_target_rect(target_portrait,Vector2(img_center_x-image_size*0.5,inner_h*0.5-image_size*0.5),Vector2(image_size,image_size))
+  _set_target_rect(target_portrait_placeholder,Vector2(img_center_x-17.0,inner_h*0.5-20.0),Vector2(34.0,40.0))
+  target_portrait_placeholder.add_theme_font_size_override("font_size",24)
+  var text_start:float=50.0 if inner_w>140.0 else 42.0
+  var lvl_width:float=31.0
+  _set_target_rect(target_label,Vector2(text_start,8.0),Vector2(maxf(37.0,inner_w-text_start-lvl_width-4.0),23.0))
+  target_label.add_theme_font_size_override("font_size",10)
+  _set_target_rect(target_level_label,Vector2(inner_w-lvl_width-2.0,9.0),Vector2(lvl_width,22.0))
+  target_level_label.add_theme_font_size_override("font_size",9)
+  _set_target_rect(target_type_label,Vector2(inner_w-59.0,9.0),Vector2(55.0,18.0))
+  var bar_left:float=text_start+15.0
+  var bar_width:float=maxf(45.0,inner_w-bar_left-4.0)
+  _set_target_rect(target_health_label,Vector2(text_start,41.0),Vector2(15.0,18.0))
+  _set_target_rect(target_bar,Vector2(bar_left,41.0),Vector2(bar_width,18.0))
+  _set_target_rect(target_health_value,Vector2(bar_left,41.0),Vector2(bar_width,18.0))
+  _set_target_rect(target_mana_label,Vector2(text_start,68.0),Vector2(15.0,18.0))
+  _set_target_rect(target_mana_bar,Vector2(bar_left,68.0),Vector2(bar_width,18.0))
+  _set_target_rect(target_mana_value,Vector2(bar_left,68.0),Vector2(bar_width,18.0))
+  for t in [target_health_label,target_mana_label,target_health_value,target_mana_value]:
+   t.add_theme_font_size_override("font_size",9)
+  _set_target_rect(target_hint,Vector2(text_start,39.0),Vector2(maxf(44.0,inner_w-text_start-3.0),29.0))
+  target_hint.add_theme_font_size_override("font_size",10)
+ else:
+  var portrait_size:float=68.0
+  _set_target_rect(target_portrait,Vector2(46.0-portrait_size*0.5,inner_h*0.5-portrait_size*0.5),Vector2(portrait_size,portrait_size))
+  _set_target_rect(target_portrait_placeholder,Vector2(17.0,inner_h*0.5-26.0),Vector2(58.0,52.0))
+  target_portrait_placeholder.add_theme_font_size_override("font_size",29)
+  var text_start:float=99.0
+  var text_right:float=inner_w-8.0
+  _set_target_rect(target_label,Vector2(text_start,6.0),Vector2(maxf(55.0,inner_w-text_start-104.0),26.0))
+  target_label.add_theme_font_size_override("font_size",15)
+  _set_target_rect(target_level_label,Vector2(inner_w-106.0,8.0),Vector2(46.0,22.0))
+  target_level_label.add_theme_font_size_override("font_size",12)
+  _set_target_rect(target_type_label,Vector2(inner_w-64.0,8.0),Vector2(56.0,22.0))
+  target_type_label.add_theme_font_size_override("font_size",10)
+  var bar_left:float=text_start+43.0
+  var bar_width:float=maxf(72.0,text_right-bar_left-5.0)
+  _set_target_rect(target_health_label,Vector2(text_start,36.0),Vector2(39.0,20.0))
+  _set_target_rect(target_bar,Vector2(bar_left,36.0),Vector2(bar_width,20.0))
+  _set_target_rect(target_health_value,Vector2(bar_left,36.0),Vector2(bar_width,20.0))
+  _set_target_rect(target_mana_label,Vector2(text_start,67.0),Vector2(39.0,20.0))
+  _set_target_rect(target_mana_bar,Vector2(bar_left,67.0),Vector2(bar_width,20.0))
+  _set_target_rect(target_mana_value,Vector2(bar_left,67.0),Vector2(bar_width,20.0))
+  for t in [target_health_label,target_mana_label,target_health_value,target_mana_value]:
+   t.add_theme_font_size_override("font_size",12)
+  _set_target_rect(target_hint,Vector2(text_start,44.0),Vector2(maxf(0.0,inner_w-text_start-10.0),30.0))
+  target_hint.add_theme_font_size_override("font_size",13)
+ _refresh_player()
  _refresh_target()
 
 func _process(delta: float) -> void:
