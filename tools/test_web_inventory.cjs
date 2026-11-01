@@ -60,7 +60,25 @@ async function swipe(dx,dy){
   // Nine independent HUD icons must open actual interactive pages without
   // replacing the existing bag HUD. Use only real browser clicks.
   let hud=await state();
-  check(hud.hud_icon_count===9&&Object.keys(hud.hud_icons).length===9,'Nine separate visible HUD menu icons');
+  check(hud.hud_icon_count===9&&Object.keys(hud.hud_icons).length===9,'Nine separate functional menu pages remain available');
+  // Original and current approved art is rebuilt as ten native, independent
+  // PNG files. The order, one-row geometry and hidden notification dots must
+  // be visible in the REAL game viewport, not a screenshot mockup.
+  const approved=['bag','world','party','friends','ranking','settings','guild','quest','mail','events'];
+  check(JSON.stringify(hud.hud_row_order)===JSON.stringify(approved)&&hud.hud_row.length===10,'Exactly ten icons in requested left-to-right order, Inventory first');
+  check(hud.hud_png_paths.every((p,i)=>p.endsWith('/premium/'+approved[i]+'.png')),'All ten buttons use their own actual PNG asset; none crops from a combined image');
+  check(Object.values(hud.hud_notification_badges).every(v=>v===false),'All real notification layers start hidden, especially Mail');
+  check(hud.hud_profile_label.includes('Lv.')&&hud.hud_profile_experience.includes('EXP'),'Top-left profile uses saved character level and experience');
+  check(hud.hud_minimap_bounds[2]>120&&hud.hud_minimap_items>=0,'Top-right circular minimap is actually connected to the playable world');
+  check(hud.hud_target_name.includes('ยังไม่ได้เลือก')&&!hud.hud_target_health_visible,'Target HUD is in the center and never invents enemy HP when no target exists');
+  for(let i=0;i<hud.hud_row.length;i++){
+   const rect=hud.hud_row[i];
+   check(rect[2]>=42&&Math.abs(rect[1]-hud.hud_row[0][1])<=1,'All ten compact desktop buttons share one horizontal row');
+   if(i>0)check(rect[0]>=hud.hud_row[i-1][0]+hud.hud_row[i-1][2]+1,'Ten buttons do not overlap on desktop');
+  }
+  check(hud.hud_row[0][0]>hud.hud_profile_bounds[0]+hud.hud_profile_bounds[2],'Desktop icon row leaves room for character portrait');
+  check(hud.hud_row[9][0]+hud.hud_row[9][2]<hud.hud_minimap_bounds[0],'Desktop icon row leaves room for the minimap');
+  await snap('web-premium-ten-icon-row');
   for(const name of ['world','party','friends','ranking','guild','quest','mail','events']){
    check(hud.hud_icons[name][2]>=42,'HUD icon has a touch-friendly viewport hit target: '+name);
    await clickRect(hud.hud_icons[name]);
@@ -311,6 +329,16 @@ async function swipe(dx,dy){
    if(viewport.width===390){
     let touchHud=await state();
     check(touchHud.hud_icon_count===9&&touchHud.hud_joystick[2]>=90,'Portrait mobile renders nine independent menus and the touch joystick');
+    check(touchHud.hud_row.length===10&&touchHud.hud_png_paths.every(p=>p.endsWith('.png')),'Portrait phone uses all ten separate original PNG icons');
+    for(let i=0;i<touchHud.hud_row.length;i++){
+     const rect=touchHud.hud_row[i];
+     check(rect[0]>=0&&rect[0]+rect[2]<=viewport.width+1,'Every compact phone icon fits in the viewport');
+     check(Math.abs(rect[1]-touchHud.hud_row[0][1])<=1,'Every phone icon stays on a single horizontal row');
+    }
+    check(touchHud.hud_profile_bounds[0]+touchHud.hud_profile_bounds[2]<touchHud.hud_minimap_bounds[0],'Phone portrait and minimap remain in separate top corners');
+    check(touchHud.hud_target_bounds[1]>touchHud.hud_row[0][1]+touchHud.hud_row[0][3],'Target info is below the menu row on phone');
+    check(Object.values(touchHud.hud_notification_badges).every(v=>v===false),'Phone Mail and all other icons start without fake red dots');
+    await snap('web-premium-mobile-ten-icons');
     await clickRect(touchHud.hud_settings_button,true);
     await until(()=>window.__leoQA.hud_panel_key==='settings');
     await clickRect((await state()).hud_start_editor,true);
