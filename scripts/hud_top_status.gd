@@ -149,7 +149,18 @@ func _make_target() -> void:
  target_panel=PanelContainer.new()
  target_panel.name="LiveTargetHUD"
  target_panel.mouse_filter=Control.MOUSE_FILTER_IGNORE
- target_panel.add_theme_stylebox_override("panel",_frame())
+ # A slim frame for a slim target bar: reusing the thick 29px outer frame
+ # at 40px height makes its borders collide with the target text.
+ var slim:=StyleBoxFlat.new()
+ slim.bg_color=Color("#240912")
+ slim.border_color=Color("#e1ad61")
+ slim.set_border_width_all(2)
+ slim.set_corner_radius_all(13)
+ slim.content_margin_left=8
+ slim.content_margin_right=8
+ slim.content_margin_top=5
+ slim.content_margin_bottom=5
+ target_panel.add_theme_stylebox_override("panel",slim)
  add_child(target_panel)
  var body:=Control.new()
  body.name="TargetContent"
@@ -201,6 +212,7 @@ func _refresh_target() -> void:
  if not is_instance_valid(current_target):
   current_target=null
   target_label.text="เป้าหมาย: ยังไม่ได้เลือก"
+  target_label.position.y=10.0 if target_panel.size.y<=50.0 else 17.0
   target_health_label.text=""
   target_bar.visible=false
   return
@@ -208,6 +220,7 @@ func _refresh_target() -> void:
  if display_name.strip_edges().is_empty(): display_name="เป้าหมาย"
  var level: int=int(current_target.get_meta("level",0))
  target_label.text=display_name+("  Lv."+str(level) if level>0 else "")
+ target_label.position.y=2.0
  var max_hp: float=float(current_target.get_meta("max_hp",-1.0))
  var hp: float=float(current_target.get_meta("hp",-1.0))
  if max_hp<=0.0 or hp<0.0:
@@ -240,7 +253,9 @@ func _layout() -> void:
  var text_w:float=profile_w-text_x-12.0
  player_name.position=Vector2(text_x,2.0)
  player_name.size=Vector2(text_w,23.0)
- player_name.add_theme_font_size_override("font_size",12 if phone else (14 if tablet else 16))
+ player_name.add_theme_font_size_override("font_size",10 if phone else (14 if tablet else 16))
+ player_name.clip_text=true
+ player_name.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
  player_class.position=Vector2(text_x,26.0 if not phone else 23.0)
  player_class.size=Vector2(text_w,18.0)
  player_class.add_theme_font_size_override("font_size",10 if phone else 12)
@@ -262,20 +277,21 @@ func _layout() -> void:
  zoom_in.size=Vector2(zoom_size,zoom_size)
  zoom_out.size=Vector2(zoom_size,zoom_size)
  var target_w:float=minf(width-24.0,260.0 if phone else 300.0)
- var target_h:float=40.0 if phone else 48.0
- target_panel.position=Vector2((width-target_w)*0.5,155.0 if phone else (184.0 if tablet else 112.0))
+ var target_h:float=50.0 if phone else (56.0 if tablet else 59.0)
+ target_panel.position=Vector2((width-target_w)*0.5,156.0 if phone else (188.0 if tablet else 109.0))
  target_panel.size=Vector2(target_w,target_h)
  var target_body: Control=target_panel.get_node("TargetContent") as Control
  target_body.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  target_body.size=Vector2(target_w-16.0,target_h-14.0)
- target_label.position=Vector2.ZERO
- target_label.size=Vector2(target_w-16.0,22.0)
+ target_label.position=Vector2(1.0,2.0)
+ target_label.size=Vector2(target_w-18.0,24.0)
  target_label.add_theme_font_size_override("font_size",12 if phone else 14)
- target_health_label.position=Vector2(0,22)
- target_health_label.size=Vector2(target_w-16.0,17.0)
+ target_health_label.position=Vector2(1.0,25.0)
+ target_health_label.size=Vector2(target_w-18.0,15.0)
  target_health_label.add_theme_font_size_override("font_size",10 if phone else 11)
- target_bar.position=Vector2(4.0,target_h-20.0)
- target_bar.size=Vector2(target_w-24.0,7.0)
+ target_bar.position=Vector2(5.0,target_h-12.0)
+ target_bar.size=Vector2(target_w-26.0,6.0)
+ _refresh_target()
 
 func _process(delta: float) -> void:
  last_world_update+=delta
