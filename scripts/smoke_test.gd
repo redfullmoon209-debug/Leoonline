@@ -147,8 +147,51 @@ func validate() -> void:
  ui._switch_tab(2)
  check(ui.waiting_panel.visible and ui.waiting_text.text.contains("ยังไม่"),"Skill unavailable truthfully")
  ui._switch_tab(3)
- check(ui.waiting_panel.visible and not ui.bag_panel.visible,"Shop unavailable truthfully")
+ check(ui.shop_panel.visible and ui.bag_panel.visible and not ui.equipment_panel.visible,"Shop shows player bag on the LEFT and shop stock on the RIGHT")
+ check(not ui.waiting_panel.visible,"Shop is usable, not a placeholder")
+ check(ui.bag_panel.position==Vector2(-655,0),"Existing 200-slot bag is reused on the left in Shop")
+ check(ui.shop_grid.columns==10 and ui.shop_grid.get_child_count()==50,"Shop has 10x5 sellable stock slots")
+ check(ui.shop_stock_label.text=="21 / 500","Shop catalog reserves 500 future item slots")
+ check(ui.shop_sell_button.disabled,"Cannot sell without selecting a bag item")
+ for item in ["hp_potion_small","hp_potion_medium","hp_potion_large","sp_potion_small","sp_potion_medium","sp_potion_large","upgrade_stone_1","upgrade_stone_15"]:
+  check(ResourceLoader.exists("res://assets/ui/shop/"+item+".png"),"Original transparent shop PNG exists: "+item)
+ check(store.subtract_decimal("1000","299")=="701","Exact decimal subtraction")
+ check(store.subtract_decimal("1000","1000")=="0","Exact decimal zero")
+ check(store.subtract_decimal("1000","1001")=="","Subtract cannot make negative currency")
+ var original_gold: String = str(store.currency.gold)
+ var original_slots: Array = store.slots.duplicate()
+ store.currency.gold = "1200"
+ ui._select_shop_item("hp_potion_small")
+ check(ui.shop_selected_id=="hp_potion_small" and not ui.shop_buy_button.disabled,"Shop product selection")
+ check(ui.shop_service.buy("hp_potion_small"),"Buy HP potion with gold")
+ check(store.currency.gold=="1150" and store.slots.has("hp_potion_small"),"Purchase debits exact amount and delivers potion")
+ var purchased_index: int = store.slots.find("hp_potion_small")
+ store.currency.gold="0"
+ var original_item_count: int = store.slots.count("hp_potion_small")
+ check(not ui.shop_service.buy("hp_potion_small"),"Cannot buy without sufficient gold")
+ check(store.currency.gold=="0" and store.slots.count("hp_potion_small")==original_item_count,"Failed buy leaves wallet and inventory unchanged")
+ store.currency.gold="1150"
+ ui._pick_item(purchased_index)
+ check(not ui.shop_sell_button.disabled,"Selecting a bag item allows selling")
+ ui._request_shop_sell()
+ check(ui.shop_sell_dialog.visible,"Selling always asks for confirmation")
+ ui.shop_sell_dialog.confirmed.emit()
+ ui.shop_sell_dialog.hide()
+ check(not store.slots.has("hp_potion_small") and store.currency.gold=="1175","Confirmed sale removes the item and credits exact resale value")
+ store.currency.gold=store.MAX_MONEY
+ var sword_index: int = store.slots.find("sword")
+ if sword_index>=0:
+  check(not ui.shop_service.sell_slot(sword_index),"Sale cannot overflow the 21-digit currency limit")
+  check(store.slots[sword_index]=="sword" and store.currency.gold==store.MAX_MONEY,"Overflow leaves item and money intact")
+ ui._change_shop_page(4)
+ check(ui.shop_page==9 and ui.shop_grid.get_child_count()==50 and ui.shop_grid.get_child(0).disabled,"Page ten reserves 50 shop slots for future content")
+ ui._change_shop_page(0)
+ store.slots=original_slots
+ store.currency.gold=original_gold
+ store.selected=-1
+ ui.refresh()
  ui._switch_tab(0)
+ check(ui.bag_panel.position==Vector2.ZERO and not ui.shop_panel.visible,"Inventory tab restores normal bag position and hides Shop")
  ui._show_details("sword")
  for viewport_size in [Vector2i(390,844),Vector2i(844,390)]:
   root.size = viewport_size

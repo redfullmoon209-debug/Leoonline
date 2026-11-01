@@ -42,10 +42,23 @@ func _process(delta: float) -> void:
   "footer":buttons(ui.footer_buttons),"tabs":buttons(ui.tab_buttons),
   "pages":buttons(ui.page_buttons),"language":bounds(ui.language_button),
   "opener":bounds(host.get("hud").get_node("OpenInventory")),
-  "waiting":ui.waiting_text.text,"trash_visible":ui.trash_dialog.visible
+  "waiting":ui.waiting_text.text,"trash_visible":ui.trash_dialog.visible,
+  "shop_visible":ui.shop_panel.visible,"shop_left_inventory":ui.bag_panel.visible,
+  "shop_left_shift":ui.bag_panel.position.x,"shop_page":ui.shop_page,
+  "shop_cells":ui.shop_grid.get_child_count(),"shop_stock_label":ui.shop_stock_label.text,
+  "shop_selected_id":ui.shop_selected_id,"shop_info":ui.shop_product_label.text,
+  "shop_price":ui.shop_price_label.text,"shop_status":ui.shop_status_label.text,
+  "shop_slots":buttons(ui.shop_grid.get_children()),
+  "shop_buy":bounds(ui.shop_buy_button),"shop_sell":bounds(ui.shop_sell_button),
+  "shop_pages":buttons(ui.shop_page_buttons),"shop_sell_visible":ui.shop_sell_dialog.visible,
+  "shop_buy_disabled":ui.shop_buy_button.disabled,"shop_sell_disabled":ui.shop_sell_button.disabled
  }
  if ui.trash_dialog.visible:
   var offset := Vector2(ui.trash_dialog.position)
   state["trash_ok"]=bounds(ui.trash_dialog.get_ok_button(),offset)
   state["trash_cancel"]=bounds(ui.trash_dialog.get_cancel_button(),offset)
+ if ui.shop_sell_dialog.visible:
+  var shop_offset := Vector2(ui.shop_sell_dialog.position)
+  state["shop_sell_ok"]=bounds(ui.shop_sell_dialog.get_ok_button(),shop_offset)
+  state["shop_sell_cancel"]=bounds(ui.shop_sell_dialog.get_cancel_button(),shop_offset)
  JavaScriptBridge.eval("window.__leoQA="+JSON.stringify(state),true)
