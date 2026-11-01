@@ -29,7 +29,7 @@ func _ready() -> void:
  _make_ui()
  var ui911: Node = load("res://scripts/ui911.gd").new()
  add_child(ui911)
- Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+ Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if OS.has_feature("web") else Input.MOUSE_MODE_CAPTURED
  if OS.has_feature("web") and "--inventory-qa" in OS.get_cmdline_user_args():
   add_child(load("res://scripts/web_ui_probe.gd").new())
 
@@ -199,7 +199,7 @@ func _refresh() -> void:
 func _toggle() -> void:
  open = not open
  inventory.visible = open
- Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if open else Input.MOUSE_MODE_CAPTURED
+ Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if open or DisplayServer.is_touchscreen_available() else Input.MOUSE_MODE_CAPTURED
 
 func _physics_process(delta: float) -> void:
  var vel := character.velocity
@@ -232,6 +232,8 @@ func _unhandled_input(event: InputEvent) -> void:
   if nearest != null and store.add_item(str(nearest.get_meta("id"))):
    loot.erase(nearest)
    nearest.queue_free()
+ elif event is InputEventMouseButton and event.pressed and not open and not DisplayServer.is_touchscreen_available():
+  Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
  elif event is InputEventMouseMotion and not open and Input.mouse_mode==Input.MOUSE_MODE_CAPTURED:
   camera_arm.rotation.y -= event.relative.x*0.003
   pitch = clampf(pitch-event.relative.y*0.003,-0.7,0.5)

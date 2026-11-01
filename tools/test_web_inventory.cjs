@@ -1,6 +1,7 @@
 // Real browser input against the release Web export; observations are read-only.
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const fs = require('fs');
+const crypto = require('crypto');
 const path = require('path');
 const out = process.env.QA_OUTPUT || 'build/web/qa';
 fs.mkdirSync(out,{recursive:true});
@@ -121,9 +122,12 @@ async function pan(dx,dy){
   check(errors.length===0,'No game JavaScript or GDScript runtime errors');
  }catch(error){
   errors.push(error.stack||String(error));
+  if(page&&!page.isClosed()) console.log('FAILURE_STATE',JSON.stringify(await state().catch(()=>null)));
+
   if(page&&!page.isClosed()){await snap('web-failure').catch(()=>{});fs.writeFileSync(path.join(out,'failure-state.json'),JSON.stringify(await state().catch(()=>null),null,2));}
  }finally{
-  const report={passed:errors.length===0,checks,errors,engine:'Godot 4.4.1',browser:'Chromium with SwiftShader WebGL2',commit:process.env.GITHUB_SHA||null};
+  const digest=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+  const report={package_sha256:digest('build/web/index.pck'),wasm_sha256:digest('build/web/index.wasm'),passed:errors.length===0,checks,errors,engine:'Godot 4.4.1',browser:'Chromium with SwiftShader WebGL2',commit:process.env.GITHUB_SHA||null};
   fs.writeFileSync(path.join(out,'report.json'),JSON.stringify(report,null,2));
   console.log(JSON.stringify(report,null,2));
   if(browser)await browser.close();
