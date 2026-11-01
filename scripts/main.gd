@@ -253,12 +253,14 @@ func _build_test_entity(
   body.position.y=-0.17
  body.material_override=_mat(body_color)
  target.add_child(body)
- var head:=MeshInstance3D.new()
- head.name="Head"
- var head_shape:=SphereMesh.new()
- head_shape.radius=0.30 if kind=="player" else (0.27 if kind=="wolf" else 0.0)
- head_shape.height=0.59 if kind=="player" else 0.50
+ # Do not allocate an unattached MeshInstance3D for slime. An orphaned
+ # rendering RID would leak at Godot shutdown even if its mesh is unused.
  if kind!="slime":
+  var head:=MeshInstance3D.new()
+  head.name="Head"
+  var head_shape:=SphereMesh.new()
+  head_shape.radius=0.30 if kind=="player" else 0.27
+  head_shape.height=0.59 if kind=="player" else 0.50
   head.mesh=head_shape
   head.position.y=0.72 if kind=="player" else 0.44
   head.material_override=_mat(Color("#f2cba8") if kind=="player" else Color("#c0bfce"))
