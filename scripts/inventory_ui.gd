@@ -189,6 +189,7 @@ var storage_page: int = 0
 var locale: String = "th"
 var ui_font: Font
 var language_button: Button
+var storage_menu_button: Button
 var tab_buttons: Array[Button] = []
 var text_nodes: Dictionary = {}
 var character_panel: Control
@@ -558,6 +559,16 @@ func _build() -> void:
  _make_shop_panel()
  _make_character_panel()
  _make_storage_panel()
+ # Storage is a submenu of Inventory, directly below its existing top tab.
+ # Reuse the original chest PNG; do not add a fifth tab or standalone HUD icon.
+ storage_menu_button = _hitbox(stage,101,157,278,54,open_storage)
+ storage_menu_button.name = "StorageMenuButton"
+ storage_menu_button.text = _tr("Storage")
+ storage_menu_button.set_meta("l10n","Storage")
+ storage_menu_button.tooltip_text = _tr("Storage")
+ _style_text_button(storage_menu_button,19)
+ _red_button(storage_menu_button,"tab_idle")
+ _art("icon_storage",storage_menu_button,16,10,34,34,false)
  # Footer buttons float directly over the crimson surface with no enclosing frame.
  _red_aura(stage,115,780,1214,102,0.12)
  var foot_names := ["Demo Items","Save","Auto Sort","Trash","Equip","Close"]
@@ -1137,6 +1148,9 @@ func _adapt_layout() -> void:
  scroll_content.custom_minimum_size = Vector2(W,H)*ratio
  stage.position = Vector2(maxf(0.0,(size.x-W*ratio)*0.5),maxf(0.0,(size.y-H*ratio)*0.5))
  equipment_panel.visible = current_tab in [0,1] and not storage_mode
+ storage_menu_button.visible = current_tab==0
+ storage_menu_button.tooltip_text = _tr("Storage")
+ _red_button(storage_menu_button,"tab_active" if storage_mode else "tab_idle")
  storage_panel.visible = storage_mode and current_tab==0
  character_panel.visible = current_tab==1
  bag_panel.position = Vector2(-655.0,0.0) if current_tab==3 else Vector2.ZERO
