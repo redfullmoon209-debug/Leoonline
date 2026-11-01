@@ -32,12 +32,15 @@ func _process(delta: float) -> void:
  var close_hud: Control=menu.popup.find_child("CloseHUDPanel",true,false) as Control
  var save_hud: Control=menu.toolbar.find_child("SaveHUDLayout",true,false) as Control
  var cancel_hud: Control=menu.toolbar.find_child("CancelHUDLayout",true,false) as Control
+ var swap_hud: Control=menu.toolbar.find_child("SwapHUDToolbar",true,false) as Control
  var restore_hud: Control=menu.page_body.find_child("ResetHUDLayout",true,false) as Control
  var start_hud: Control=menu.page_body.find_child("EditHUDLayout",true,false) as Control
  var state := {
   "hud_close_button":bounds(close_hud) if close_hud!=null else [],
   "hud_save_button":bounds(save_hud) if save_hud!=null else [],
   "hud_cancel_button":bounds(cancel_hud) if cancel_hud!=null else [],
+  "hud_swap_toolbar":bounds(swap_hud) if swap_hud!=null else [],
+  "hud_toolbar_on_top":menu.toolbar_on_top,
   "hud_reset_button":bounds(restore_hud) if restore_hud!=null else [],
   "hud_start_editor":bounds(start_hud) if start_hud!=null else [],
   "hud_icons":hud_icons,

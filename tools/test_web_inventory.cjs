@@ -323,9 +323,20 @@ async function swipe(dx,dy){
     touchHud=await state();
     check(touchHud.hud_world_button[0]<original[0]-25,'Real finger drag changes HUD icon position on mobile');
     await snap('web-hud-touch-edit');
+    await clickRect(touchHud.hud_swap_toolbar,true);
+    await until(()=>window.__leoQA.hud_toolbar_on_top);
+    touchHud=await state();
+    check(touchHud.hud_toolbar[1]<20,'Editor toolbar moves to the top so lower mobile controls are reachable');
+    const stickBefore=touchHud.hud_joystick;
+    await dragHudTouch(stickBefore[0]+stickBefore[2]/2,stickBefore[1]+stickBefore[3]/2,
+      stickBefore[0]+stickBefore[2]/2+25,stickBefore[1]+stickBefore[3]/2-80);
+    await until(()=>!!window.__leoQA.hud_layout.joystick);
+    touchHud=await state();
+    check(touchHud.hud_joystick[1]<stickBefore[1]-30,'Finger can reposition the actual lower-left movement joystick');
+    await snap('web-hud-touch-bottom-controls');
     await clickRect(touchHud.hud_cancel_button,true);
     await until(()=>!window.__leoQA.hud_editing);
-    check(Object.keys((await state()).hud_layout).length===0,'Cancel restores previous HUD layout after touchscreen drag');
+    check(Object.keys((await state()).hud_layout).length===0,'Cancel restores previous HUD layout after touchscreen drags');
    }
    await clickRect((await state()).opener,true);
    await until(()=>window.__leoQA.open);

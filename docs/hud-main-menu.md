@@ -36,8 +36,10 @@ for layout editing. Keyboard WASD/arrows, Space, Shift, E and B remain.
    or a mobile gameplay button to select it.
 3. Drag that control with your finger or mouse.
 4. Adjust its size with the slider. Icons support 42–100px; joystick 90–195px.
-5. Press บันทึก to save, ยกเลิก to cancel the session, or ค่าเดิม to reset it.
-6. Settings also includes the restore-defaults action outside the editor.
+5. Tap the editor's ย้ายแถบเครื่องมือขึ้น / ลง button to move the toolbar
+   between the top and bottom edges, exposing controls underneath it.
+6. Press บันทึก to save, ยกเลิก to cancel the session, or ค่าเดิม to reset it.
+7. Settings also includes the restore-defaults action outside the editor.
 
 Positions are saved in normalized screen coordinates, clamped on resize so
 controls do not become inaccessible. User preferences are separate from the

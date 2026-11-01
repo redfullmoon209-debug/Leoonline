@@ -63,6 +63,8 @@ var toolbar: PanelContainer
 var select_name: Label
 var size_slider: HSlider
 var toolbar_hint: Label
+var toolbar_swap_button: Button
+var toolbar_on_top: bool = false
 var message_toast: Label
 
 func initialize(p_game: Node3D, p_store: Node, p_inventory: Control, p_bag: TextureButton) -> void:
@@ -686,16 +688,29 @@ func _build_toolbar() -> void:
  cancel_btn.name="CancelHUDLayout"
  var defaults_btn:=_action_button(buttons,"ค่าเดิม",_reset_edit_layout)
  defaults_btn.name="DefaultHUDLayout"
+ for entry in [save_btn,cancel_btn,defaults_btn]:
+  entry.custom_minimum_size.x=70.0
+ toolbar_swap_button=_action_button(col,"ย้ายแถบเครื่องมือขึ้น",_toggle_toolbar_position)
+ toolbar_swap_button.name="SwapHUDToolbar"
+ toolbar_swap_button.custom_minimum_size=Vector2(0,34)
+ toolbar_swap_button.add_theme_font_size_override("font_size",14)
  toolbar.visible=false
  _place_toolbar()
 
 func _place_toolbar() -> void:
  if not is_instance_valid(toolbar): return
  var w:float=minf(540.0,maxf(304.0,size.x-12.0))
- toolbar.position=Vector2(maxf(2.0,(size.x-w)*0.5),maxf(8.0,size.y-187.0))
- toolbar.size=Vector2(w,180.0)
+ toolbar.position=Vector2(maxf(2.0,(size.x-w)*0.5),9.0 if toolbar_on_top else maxf(8.0,size.y-220.0))
+ toolbar.size=Vector2(w,210.0)
+
+func _toggle_toolbar_position() -> void:
+ toolbar_on_top=not toolbar_on_top
+ toolbar_swap_button.text="ย้ายแถบเครื่องมือลง" if toolbar_on_top else "ย้ายแถบเครื่องมือขึ้น"
+ _place_toolbar()
 
 func _begin_edit() -> void:
+ toolbar_on_top=false
+ if is_instance_valid(toolbar_swap_button): toolbar_swap_button.text="ย้ายแถบเครื่องมือขึ้น"
  _hide_popup()
  edit_snapshot=layout_state.duplicate(true)
  edit_mode=true

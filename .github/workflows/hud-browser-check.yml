@@ -1,12 +1,5 @@
 name: Validate HUD interactions in desktop and mobile browsers
 on:
-  push:
-    branches: [feature/hud-icons-custom-layout-20261101]
-    paths:
-      - 'scripts/**'
-      - 'assets/ui/hud/**'
-      - 'tools/test_web_inventory.cjs'
-      - '.github/workflows/hud-browser-check.yml'
   pull_request:
     paths:
       - 'scripts/**'
