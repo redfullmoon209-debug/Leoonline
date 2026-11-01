@@ -2,6 +2,7 @@ extends Control
 ## Lightweight responsive overlays for the player, real-world minimap and target.
 ## Values come only from the current save, live game or an explicit target node.
 const MiniMapScript = preload("res://scripts/hud_minimap.gd")
+const TargetDecorationScript = preload("res://scripts/hud_target_decoration.gd")
 const ROOT_UI: String = "res://assets/ui/red_matte/"
 const CHAR_ICON: String = "res://assets/ui/inventory/icon_character.png"
 
@@ -20,9 +21,21 @@ var zoom_out: Button
 var north: Label
 var target_panel: PanelContainer
 var target_label: Label
+var target_level_label: Label
+var target_type_label: Label
 var target_health_label: Label
+var target_health_value: Label
 var target_bar: ProgressBar
+var target_mana_label: Label
+var target_mana_value: Label
+var target_mana_bar: ProgressBar
+var target_portrait: TextureRect
+var target_portrait_placeholder: Label
+var target_hint: Label
+var target_decor: Control
+var target_body: Control
 var current_target: Node3D
+var previous_portrait: Variant = null
 var last_world_update: float = 0.0
 
 func initialize(p_game: Node3D,p_store: Node) -> void:
@@ -145,47 +158,91 @@ func _change_zoom(amount: float) -> void:
  minimap.zoom=clampf(minimap.zoom+amount,0.65,1.7)
  minimap.queue_redraw()
 
+func _target_progress(parent: Node,name: String,fill_color: Color) -> ProgressBar:
+ var bar:=ProgressBar.new()
+ bar.name=name
+ bar.min_value=0
+ bar.max_value=100
+ bar.show_percentage=false
+ bar.mouse_filter=Control.MOUSE_FILTER_IGNORE
+ var backdrop:=StyleBoxFlat.new()
+ backdrop.bg_color=Color("#15060c")
+ backdrop.border_color=Color("#bd8242")
+ backdrop.set_border_width_all(1)
+ backdrop.set_corner_radius_all(8)
+ var fill:=StyleBoxFlat.new()
+ fill.bg_color=fill_color
+ fill.set_corner_radius_all(7)
+ bar.add_theme_stylebox_override("background",backdrop)
+ bar.add_theme_stylebox_override("fill",fill)
+ parent.add_child(bar)
+ return bar
+
 func _make_target() -> void:
+ # All UI pieces are independent Godot controls, with a hand-drawn ornament
+ # layer behind the portrait and real HP/MP bars. No reference-image crop.
  target_panel=PanelContainer.new()
  target_panel.name="LiveTargetHUD"
  target_panel.mouse_filter=Control.MOUSE_FILTER_IGNORE
- # A slim frame for a slim target bar: reusing the thick 29px outer frame
- # at 40px height makes its borders collide with the target text.
- var slim:=StyleBoxFlat.new()
- slim.bg_color=Color("#240912")
- slim.border_color=Color("#e1ad61")
- slim.set_border_width_all(2)
- slim.set_corner_radius_all(13)
- slim.content_margin_left=8
- slim.content_margin_right=8
- slim.content_margin_top=5
- slim.content_margin_bottom=5
- target_panel.add_theme_stylebox_override("panel",slim)
+ var frame:=StyleBoxFlat.new()
+ frame.bg_color=Color("#2b0913")
+ frame.border_color=Color("#f0b765")
+ frame.set_border_width_all(2)
+ frame.set_corner_radius_all(16)
+ frame.content_margin_left=7.0
+ frame.content_margin_right=7.0
+ frame.content_margin_top=6.0
+ frame.content_margin_bottom=6.0
+ frame.shadow_color=Color(0.0,0.0,0.0,0.4)
+ frame.shadow_size=4
+ target_panel.add_theme_stylebox_override("panel",frame)
  add_child(target_panel)
- var body:=Control.new()
- body.name="TargetContent"
- body.mouse_filter=Control.MOUSE_FILTER_IGNORE
- target_panel.add_child(body)
- target_label=_label(body,"TargetName","เป้าหมาย: ยังไม่ได้เลือก",14)
- target_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
- target_health_label=_label(body,"TargetHP","",11)
+ target_body=Control.new()
+ target_body.name="TargetContent"
+ target_body.mouse_filter=Control.MOUSE_FILTER_IGNORE
+ target_panel.add_child(target_body)
+ target_decor=TargetDecorationScript.new() as Control
+ target_decor.name="HandDrawnOrnament"
+ target_body.add_child(target_decor)
+ target_portrait=TextureRect.new()
+ target_portrait.name="LiveTargetPortrait"
+ target_portrait.mouse_filter=Control.MOUSE_FILTER_IGNORE
+ target_portrait.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
+ target_portrait.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+ target_body.add_child(target_portrait)
+ target_portrait_placeholder=_label(target_body,"UnselectedPortrait","?",29)
+ target_portrait_placeholder.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+ target_portrait_placeholder.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+ target_portrait_placeholder.add_theme_color_override("font_color",Color("#b5cfda"))
+ target_label=_label(target_body,"TargetName","เป้าหมาย: ยังไม่ได้เลือก",16)
+ target_label.clip_text=true
+ target_label.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
+ target_level_label=_label(target_body,"TargetLevel","",12)
+ target_level_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+ target_type_label=_label(target_body,"TargetType","",11)
+ target_type_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
+ target_health_label=_label(target_body,"TargetHPLabel","HP",13)
  target_health_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
- target_bar=ProgressBar.new()
- target_bar.name="TargetHealth"
- target_bar.show_percentage=false
- target_bar.min_value=0
- target_bar.max_value=100
- target_bar.mouse_filter=Control.MOUSE_FILTER_IGNORE
- var bg:=StyleBoxFlat.new()
- bg.bg_color=Color("#24080a")
- bg.border_color=Color("#bb713c")
- bg.set_border_width_all(1)
- var fill:=StyleBoxFlat.new()
- fill.bg_color=Color("#d14151")
- target_bar.add_theme_stylebox_override("background",bg)
- target_bar.add_theme_stylebox_override("fill",fill)
- body.add_child(target_bar)
+ target_bar=_target_progress(target_body,"TargetHealth",Color("#d53647"))
+ target_health_value=_label(target_body,"TargetHPValue","",12)
+ target_health_value.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+ target_health_value.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+ target_health_value.add_theme_color_override("font_color",Color.WHITE)
+ target_mana_label=_label(target_body,"TargetMPLabel","MP",13)
+ target_mana_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+ target_mana_bar=_target_progress(target_body,"TargetMana",Color("#1984cf"))
+ target_mana_value=_label(target_body,"TargetMPValue","",12)
+ target_mana_value.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+ target_mana_value.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+ target_mana_value.add_theme_color_override("font_color",Color.WHITE)
+ target_hint=_label(target_body,"TargetHint","แตะเป้าหมาย หรือกด T",13)
+ target_hint.add_theme_color_override("font_color",Color("#c8af87"))
  _refresh_target()
+
+func _set_target_rect(control: Control,p: Vector2,wh: Vector2) -> void:
+ control.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+ control.position=p
+ control.size=wh
 
 func _refresh_player() -> void:
  if not is_instance_valid(player_name) or game_store==null: return
@@ -207,29 +264,73 @@ func clear_target() -> void:
  current_target=null
  _refresh_target()
 
+func _target_portrait_texture() -> Texture2D:
+ if not is_instance_valid(current_target): return null
+ var image: Variant=current_target.get_meta("target_portrait",null)
+ if image is Texture2D: return image as Texture2D
+ if image is String:
+  var file_path:String=str(image)
+  # The asset must be an existing local standalone image, not a screenshot
+  # or a portion cropped out of the approved design reference.
+  if file_path.begins_with("res://assets/ui/hud/") and ResourceLoader.exists(file_path):
+   return load(file_path) as Texture2D
+ return null
+
 func _refresh_target() -> void:
  if not is_instance_valid(target_label): return
  if not is_instance_valid(current_target):
   current_target=null
   target_label.text="เป้าหมาย: ยังไม่ได้เลือก"
-  target_label.position.y=10.0 if target_panel.size.y<=50.0 else 17.0
-  target_health_label.text=""
+  target_portrait.texture=null
+  target_portrait.visible=false
+  target_portrait_placeholder.visible=true
+  target_level_label.visible=false
+  target_type_label.visible=false
+  target_health_label.visible=false
+  target_health_value.visible=false
   target_bar.visible=false
+  target_mana_label.visible=false
+  target_mana_value.visible=false
+  target_mana_bar.visible=false
+  target_hint.visible=true
+  previous_portrait=null
   return
- var display_name: String=str(current_target.get_meta("target_name",current_target.name))
+ var display_name:String=str(current_target.get_meta("target_name",current_target.name))
  if display_name.strip_edges().is_empty(): display_name="เป้าหมาย"
- var level: int=int(current_target.get_meta("level",0))
- target_label.text=display_name+("  Lv."+str(level) if level>0 else "")
- target_label.position.y=2.0
- var max_hp: float=float(current_target.get_meta("max_hp",-1.0))
- var hp: float=float(current_target.get_meta("hp",-1.0))
- if max_hp<=0.0 or hp<0.0:
-  target_health_label.text="HP: ไม่มีข้อมูล"
-  target_bar.visible=false
- else:
-  target_bar.visible=true
-  target_bar.value=100.0*clampf(hp/max_hp,0.0,1.0)
-  target_health_label.text="HP: %.0f / %.0f" % [hp,max_hp]
+ target_label.text=display_name
+ var level:int=int(current_target.get_meta("level",0))
+ target_level_label.text="Lv."+str(level) if level>0 else ""
+ target_level_label.visible=level>0
+ var category:String=str(current_target.get_meta("target_type","")).strip_edges()
+ target_type_label.text=category
+ target_type_label.visible=not category.is_empty()
+ target_hint.visible=false
+ var portrait_image:Texture2D=_target_portrait_texture()
+ if target_portrait.texture!=portrait_image:
+  target_portrait.texture=portrait_image
+ target_portrait.visible=portrait_image!=null
+ target_portrait_placeholder.visible=portrait_image==null
+ target_portrait_placeholder.text="?" if portrait_image==null else ""
+ var max_hp:float=float(current_target.get_meta("max_hp",-1.0))
+ var hp:float=float(current_target.get_meta("hp",-1.0))
+ var has_hp:bool=max_hp>0.0 and hp>=0.0
+ target_health_label.visible=has_hp
+ target_bar.visible=has_hp
+ target_health_value.visible=has_hp
+ if has_hp:
+  var health_ratio:float=clampf(hp/max_hp,0.0,1.0)
+  target_bar.value=health_ratio*100.0
+  target_health_value.text="%.0f / %.0f  (%.0f%%)" % [hp,max_hp,health_ratio*100.0]
+ var max_mp:float=float(current_target.get_meta("max_mp",-1.0))
+ var mp:float=float(current_target.get_meta("mp",-1.0))
+ var has_mp:bool=max_mp>0.0 and mp>=0.0
+ target_mana_label.visible=has_mp
+ target_mana_bar.visible=has_mp
+ target_mana_value.visible=has_mp
+ if has_mp:
+  var mana_ratio:float=clampf(mp/max_mp,0.0,1.0)
+  target_mana_bar.value=mana_ratio*100.0
+  target_mana_value.text="%.0f / %.0f  (%.0f%%)" % [mp,max_mp,mana_ratio*100.0]
 
 func _layout() -> void:
  if not is_instance_valid(player_panel): return
@@ -276,21 +377,42 @@ func _layout() -> void:
  zoom_out.position=Vector2(map_w-zoom_size-3.0,map_w*0.56)
  zoom_in.size=Vector2(zoom_size,zoom_size)
  zoom_out.size=Vector2(zoom_size,zoom_size)
- var target_w:float=minf(width-24.0,260.0 if phone else 300.0)
- var target_h:float=50.0 if phone else (56.0 if tablet else 59.0)
- target_panel.position=Vector2((width-target_w)*0.5,156.0 if phone else (188.0 if tablet else 109.0))
+ # Keep the card at the very top center on landscape. On portrait phones
+ # the 10-item menu occupies the second line; the target sits below it.
+ var target_w:float=minf(width-22.0,330.0 if phone else 367.0)
+ var target_h:float=98.0 if phone else 108.0
+ var target_y:float=151.0 if width<760.0 else 58.0
+ target_panel.position=Vector2((width-target_w)*0.5,target_y)
  target_panel.size=Vector2(target_w,target_h)
- var target_body: Control=target_panel.get_node("TargetContent") as Control
+ var inner_w:float=target_w-14.0
+ var inner_h:float=target_h-12.0
  target_body.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
- target_body.size=Vector2(target_w-16.0,target_h-14.0)
- target_label.position=Vector2(1.0,2.0)
- target_label.size=Vector2(target_w-18.0,24.0)
- target_label.add_theme_font_size_override("font_size",12 if phone else 14)
- target_health_label.position=Vector2(1.0,25.0)
- target_health_label.size=Vector2(target_w-18.0,15.0)
- target_health_label.add_theme_font_size_override("font_size",10 if phone else 11)
- target_bar.position=Vector2(5.0,target_h-12.0)
- target_bar.size=Vector2(target_w-26.0,6.0)
+ target_body.size=Vector2(inner_w,inner_h)
+ _set_target_rect(target_decor,Vector2.ZERO,Vector2(inner_w,inner_h))
+ target_decor.queue_redraw()
+ var portrait_size:float=58.0 if phone else 68.0
+ _set_target_rect(target_portrait,Vector2(46.0-portrait_size*0.5,inner_h*0.5-portrait_size*0.5),Vector2(portrait_size,portrait_size))
+ _set_target_rect(target_portrait_placeholder,Vector2(17.0,inner_h*0.5-26.0),Vector2(58.0,52.0))
+ var text_start:float=99.0
+ var text_right:float=inner_w-8.0
+ _set_target_rect(target_label,Vector2(text_start,5.0),Vector2(maxf(55.0,inner_w-text_start-104.0),26.0))
+ target_label.add_theme_font_size_override("font_size",13 if phone else 15)
+ _set_target_rect(target_level_label,Vector2(inner_w-106.0,7.0),Vector2(46.0,22.0))
+ _set_target_rect(target_type_label,Vector2(inner_w-64.0,7.0),Vector2(56.0,22.0))
+ target_type_label.add_theme_font_size_override("font_size",10)
+ var bar_left:float=text_start+43.0
+ var bar_width:float=maxf(72.0,text_right-bar_left-5.0)
+ var bar_height:float=19.0 if phone else 20.0
+ var hp_y:float=32.0
+ var mp_y:float=57.0
+ _set_target_rect(target_health_label,Vector2(text_start,hp_y),Vector2(39.0,bar_height))
+ _set_target_rect(target_bar,Vector2(bar_left,hp_y),Vector2(bar_width,bar_height))
+ _set_target_rect(target_health_value,Vector2(bar_left,hp_y),Vector2(bar_width,bar_height))
+ _set_target_rect(target_mana_label,Vector2(text_start,mp_y),Vector2(39.0,bar_height))
+ _set_target_rect(target_mana_bar,Vector2(bar_left,mp_y),Vector2(bar_width,bar_height))
+ _set_target_rect(target_mana_value,Vector2(bar_left,mp_y),Vector2(bar_width,bar_height))
+ _set_target_rect(target_hint,Vector2(text_start,41.0),Vector2(maxf(0.0,inner_w-text_start-10.0),30.0))
+ target_hint.add_theme_font_size_override("font_size",11 if phone else 13)
  _refresh_target()
 
 func _process(delta: float) -> void:
