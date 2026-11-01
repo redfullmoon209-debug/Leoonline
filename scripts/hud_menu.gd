@@ -282,6 +282,7 @@ func _build_popup() -> void:
  if _font()!=null: popup_title.add_theme_font_override("font",_font())
  header.add_child(popup_title)
  var close:=_action_button(header,"✕ ปิด",_hide_popup)
+ close.name="CloseHUDPanel"
  close.custom_minimum_size=Vector2(86,40)
  popup_notice=Label.new()
  popup_notice.add_theme_font_size_override("font_size",13)
