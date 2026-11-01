@@ -5,6 +5,8 @@ on:
       - 'scripts/**'
       - 'assets/ui/hud/**'
       - 'tools/test_web_inventory.cjs'
+      - 'tools/test_phone_shell.cjs'
+      - 'tools/create_mobile_shell.py'
 jobs:
   browser-hud:
     runs-on: ubuntu-latest
@@ -54,6 +56,8 @@ jobs:
           pid=$!
           trap 'kill "$pid"' EXIT
           node tools/test_web_inventory.cjs
+          python3 tools/create_mobile_shell.py --web build/web --game _qa.html --output _phone_qa.html
+          node tools/test_phone_shell.cjs
       - name: Upload HUD screenshots and test results
         uses: actions/upload-artifact@v4
         if: always()

@@ -12,6 +12,8 @@ on:
       - 'project.godot'
       - 'export_presets.cfg'
       - 'tools/test_web_inventory.cjs'
+      - 'tools/test_phone_shell.cjs'
+      - 'tools/create_mobile_shell.py'
 permissions:
   contents: read
   pages: write
@@ -61,7 +63,7 @@ jobs:
           print("Verified cache-independent Godot entrypoint:", name + ".html")
           PYCODE
           printf '{"commit":"%s","entrypoint":"%s.html"}\n' "$GITHUB_SHA" "$game_id" > build/web/build-info.json
-          echo "Open this verified build: https://redfullmoon209-debug.github.io/Leoonline/${game_id}.html" >> "$GITHUB_STEP_SUMMARY"
+          echo "Standalone Godot runtime: https://redfullmoon209-debug.github.io/Leoonline/${game_id}.html" >> "$GITHUB_STEP_SUMMARY"
           mkdir -p build/web/911
           cp 911/index.html 911/manifest.webmanifest 911/icon.svg 911/sw.js build/web/911/
           test -s build/web/911/manifest.webmanifest
@@ -85,8 +87,14 @@ jobs:
           PYCODE
           python3 -m http.server 8000 --directory build/web > /tmp/leo-http.log 2>&1 &
           server_pid=$!
-          trap 'kill "$server_pid"; rm -f build/web/_qa.html' EXIT
+          trap 'kill "$server_pid"; rm -f build/web/_qa.html build/web/_phone_qa.html' EXIT
+          # First execute the entire existing desktop/mobile inventory and HUD
+          # test suite against the unmodified Godot export.
           node tools/test_web_inventory.cjs
+          # Then run the SAME actual game as a real 9:19.5 browser viewport
+          # inside a desktop phone frame and an edge-to-edge mobile frame.
+          python3 tools/create_mobile_shell.py --web build/web --game _qa.html --output _phone_qa.html
+          node tools/test_phone_shell.cjs
       - name: Preserve browser QA evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -94,6 +102,27 @@ jobs:
           name: Leoonline-browser-QA
           path: build/web/qa/
           if-no-files-found: warn
+      - name: Make the portrait phone view the default Leoonline website
+        run: |
+          set -euo pipefail
+          game_id="game-${GITHUB_SHA:0:12}"
+          phone_id="phone-${GITHUB_SHA:0:12}"
+          python3 tools/create_mobile_shell.py --web build/web --game "${game_id}.html" --output "${phone_id}.html" --publish
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          web = Path("build/web")
+          data = json.loads((web/"build-info.json").read_text())
+          assert data["display"]=="mobile-portrait"
+          for name in ("index.html","mobile.html",data["entrypoint"]):
+              content=(web/name).read_text()
+              assert 'id="phone-shell"' in content
+              assert f'src="{data["game_entrypoint"]}"' in content
+              assert "aspect-ratio: 9 / 19.5" in content
+          assert (web/data["game_entrypoint"]).exists()
+          print("Public website now serves a real responsive phone viewport.")
+          PY
+          echo "Open phone portrait: https://redfullmoon209-debug.github.io/Leoonline/${phone_id}.html" >> "$GITHUB_STEP_SUMMARY"
       - name: Upload static site
         uses: actions/upload-pages-artifact@v3
         with:
