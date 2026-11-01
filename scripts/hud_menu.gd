@@ -46,6 +46,9 @@ var mail_claimed: bool = false
 var last_event_date: String = ""
 var display_names: bool = true
 var display_mobile_controls: bool = false
+# Opt-in for a real browser landscape test where desktop mouse acts
+# like a finger; ordinary portrait and fullscreen desktop modes unchanged.
+var force_touch_preview: bool = false
 var camera_sensitivity: float = 0.003
 var jump_requested: bool = false
 var run_pressed: bool = false
@@ -80,6 +83,10 @@ func initialize(p_game: Node3D, p_store: Node, p_inventory: Control, p_bag: Text
  game_store=p_store
  inventory=p_inventory
  bag_button=p_bag
+ if OS.has_feature("web"):
+  force_touch_preview = bool(JavaScriptBridge.eval(
+   "(function(){try{return new URLSearchParams(window.location.search).get('mobile_ui')==='1';}catch(e){return false;}})()",true
+  ))
  mouse_filter=Control.MOUSE_FILTER_IGNORE
  set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  _load_local()
@@ -392,7 +399,7 @@ func _refresh_touch_visibility() -> void:
  # mobile gameplay mode. Its mouse must be able to operate the same
  # joystick and buttons as fingers on a physical phone.
  var portrait_web:bool=OS.has_feature("web") and size.x<=600.0
- var show_touch:bool=DisplayServer.is_touchscreen_available() or display_mobile_controls or edit_mode or portrait_web
+ var show_touch:bool=DisplayServer.is_touchscreen_available() or display_mobile_controls or edit_mode or portrait_web or force_touch_preview
  for id in ["joystick","jump","pickup","run"]:
   controls[id].visible=show_touch and not inventory.visible
  for key in MENU_IDS: controls[key].visible=not inventory.visible

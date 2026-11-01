@@ -14,6 +14,8 @@ on:
       - 'tools/test_web_inventory.cjs'
       - 'tools/test_phone_shell.cjs'
       - 'tools/create_mobile_shell.py'
+      - 'tools/create_landscape_shell.py'
+      - 'tools/test_landscape_shell.cjs'
 permissions:
   contents: read
   pages: write
@@ -87,7 +89,7 @@ jobs:
           PYCODE
           python3 -m http.server 8000 --directory build/web > /tmp/leo-http.log 2>&1 &
           server_pid=$!
-          trap 'kill "$server_pid"; rm -f build/web/_qa.html build/web/_phone_qa.html' EXIT
+          trap 'kill "$server_pid"; rm -f build/web/_qa.html build/web/_phone_qa.html build/web/_landscape_qa.html' EXIT
           # First execute the entire existing desktop/mobile inventory and HUD
           # test suite against the unmodified Godot export.
           node tools/test_web_inventory.cjs
@@ -95,6 +97,10 @@ jobs:
           # inside a desktop phone frame and an edge-to-edge mobile frame.
           python3 tools/create_mobile_shell.py --web build/web --game _qa.html --output _phone_qa.html
           node tools/test_phone_shell.cjs
+          # Landscape is a separate TEST entrypoint. It runs the same game
+          # at a real horizontal aspect ratio, never replacing portrait /.
+          python3 tools/create_landscape_shell.py --web build/web --game _qa.html --output _landscape_qa.html
+          node tools/test_landscape_shell.cjs
       - name: Preserve browser QA evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -123,6 +129,30 @@ jobs:
           print("Public website now serves a real responsive phone viewport.")
           PY
           echo "Open phone portrait: https://redfullmoon209-debug.github.io/Leoonline/${phone_id}.html" >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish separate landscape playtest without changing portrait default
+        run: |
+          set -euo pipefail
+          game_id="game-${GITHUB_SHA:0:12}"
+          landscape_id="landscape-${GITHUB_SHA:0:12}"
+          python3 tools/create_landscape_shell.py --web build/web --game "${game_id}.html" --output "${landscape_id}.html" --publish
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          web=Path("build/web")
+          data=json.loads((web/"build-info.json").read_text())
+          assert data["display"] == "mobile-portrait"
+          assert data["landscape_test_entrypoint"].startswith("landscape-")
+          for filename in ("landscape.html","landscape-test.html",data["landscape_test_entrypoint"]):
+              page=(web/filename).read_text()
+              assert 'id="landscape-shell"' in page
+              assert 'id="game-frame"' in page
+              assert f'src="{data["game_entrypoint"]}?mobile_ui=1"' in page
+              assert 'LANDSCAPE TEST' in page
+          assert 'id="phone-shell"' in (web/"index.html").read_text()
+          assert 'id="phone-shell"' in (web/"mobile.html").read_text()
+          print("Both live playtests published: portrait main and optional landscape.")
+          PY
+          echo "Open separate LANDSCAPE test: https://redfullmoon209-debug.github.io/Leoonline/${landscape_id}.html" >> "$GITHUB_STEP_SUMMARY"
       - name: Upload static site
         uses: actions/upload-pages-artifact@v3
         with:
