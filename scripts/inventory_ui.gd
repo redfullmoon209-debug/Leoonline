@@ -19,6 +19,19 @@ const FASHION_WEAPONS = ["fashion_weapon_right", "fashion_weapon_left"]
 const FASHION_SIDES = ["fashion_mask", "fashion_cape"]
 const MONEY = ["gold", "blue", "purple", "green"]
 const LABELS = {
+ "Storage":"คลังเก็บของ",
+ "Storage & Inventory":"คลังและกระเป๋า",
+ "Storage Capacity":"ช่องคลัง",
+ "Deposit":"ฝากของ",
+ "Withdraw":"ถอนของ",
+ "Select a storage item":"เลือกไอเทมในคลัง",
+ "Select a bag item to deposit":"เลือกไอเทมในกระเป๋าเพื่อฝาก",
+ "Select a storage item to withdraw":"เลือกไอเทมในคลังเพื่อถอน",
+ "Storage full":"คลังเต็ม",
+ "Invalid storage slot":"ช่องคลังไม่ถูกต้อง",
+ "Item deposited":"ฝากไอเทมเข้าคลังสำเร็จ",
+ "Item withdrawn":"ถอนไอเทมจากคลังสำเร็จ",
+ "Select bag item to deposit or storage item to withdraw.":"เลือกของในกระเป๋าเพื่อฝาก หรือของในคลังเพื่อถอน",
  "Unequip":"ถอดอุปกรณ์",
  "Skills are not available yet":"ระบบสกิลยังไม่เปิดให้ใช้งาน",
  "Shop is not available yet":"ระบบร้านค้ายังไม่เปิดให้ใช้งาน",
@@ -171,6 +184,8 @@ var demo_callback: Callable
 var stage: Control
 var current_page: int = 0
 var current_tab: int = 0
+var storage_mode: bool = false
+var storage_page: int = 0
 var locale: String = "th"
 var ui_font: Font
 var language_button: Button
@@ -179,6 +194,14 @@ var text_nodes: Dictionary = {}
 var character_panel: Control
 var character_values: Dictionary = {}
 var character_rank_note: Label
+var storage_panel: Control
+var storage_grid: GridContainer
+var storage_capacity_label: Label
+var storage_page_label: Label
+var storage_info_label: Label
+var storage_page_buttons: Array[Button] = []
+var storage_deposit_button: Button
+var storage_withdraw_button: Button
 var equipment_panel: Control
 var bag_panel: Control
 var waiting_panel: Control
@@ -534,6 +557,7 @@ func _build() -> void:
   _red_button(money_button,"pager_button",true)
  _make_shop_panel()
  _make_character_panel()
+ _make_storage_panel()
  # Footer buttons float directly over the crimson surface with no enclosing frame.
  _red_aura(stage,115,780,1214,102,0.12)
  var foot_names := ["Demo Items","Save","Auto Sort","Trash","Equip","Close"]
@@ -683,6 +707,133 @@ func _refresh_character_panel() -> void:
    var target: Label = character_values["currency_"+kind]
    target.text=str(game_store.call("pretty",str(money.get(kind,"0"))))
    target.tooltip_text=target.text
+
+func _make_storage_panel() -> void:
+ # The player's EXISTING 200-slot bag stays at the right. Storage occupies the
+ # left Equipment area only while the independent chest icon was used.
+ # Original red-gold PNG panels/slots; no screenshot crops or baked item text.
+ storage_panel = Control.new()
+ storage_panel.name = "StoragePanel"
+ storage_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+ stage.add_child(storage_panel)
+ _rect(storage_panel,0,0,W,H)
+ _red_panel(storage_panel,72,200,581,566,"inner_panel")
+ _red_aura(storage_panel,164,274,405,321,0.105)
+ _white_red_glint(storage_panel,191,207,330,2)
+ _label("Storage",storage_panel,116,214,234,33,24,HORIZONTAL_ALIGNMENT_LEFT)
+ storage_capacity_label = _label("",storage_panel,381,216,237,28,17,HORIZONTAL_ALIGNMENT_RIGHT)
+ storage_grid = GridContainer.new()
+ storage_grid.name = "StorageGrid"
+ storage_grid.columns = 10
+ storage_grid.mouse_filter = Control.MOUSE_FILTER_PASS
+ storage_grid.add_theme_constant_override("h_separation",2)
+ storage_grid.add_theme_constant_override("v_separation",5)
+ storage_panel.add_child(storage_grid)
+ _rect(storage_grid,84,258,558,290)
+ for i in range(4):
+  var x: float = [133.0,205.0,467.0,539.0][i]
+  var operation: int = [0,1,3,4][i]
+  var b := _hitbox(storage_panel,x,560,57,44,_change_storage_page.bind(operation))
+  b.text = ["<<","<",">",">>"][i]
+  _style_text_button(b,24)
+  _red_button(b,"pager_button",true)
+  storage_page_buttons.append(b)
+ storage_page_label = _label("",storage_panel,280,564,165,35,18)
+ storage_info_label = _label("Select bag item to deposit or storage item to withdraw.",storage_panel,110,615,508,46,17)
+ storage_info_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+ storage_deposit_button = _hitbox(storage_panel,111,683,224,55,_deposit_into_storage)
+ storage_deposit_button.text = _tr("Deposit")
+ storage_deposit_button.set_meta("l10n","Deposit")
+ _style_text_button(storage_deposit_button,20)
+ _red_button(storage_deposit_button,"action_button")
+ storage_withdraw_button = _hitbox(storage_panel,376,683,225,55,_withdraw_from_storage)
+ storage_withdraw_button.text = _tr("Withdraw")
+ storage_withdraw_button.set_meta("l10n","Withdraw")
+ _style_text_button(storage_withdraw_button,20)
+ _red_button(storage_withdraw_button,"action_button")
+ storage_panel.visible = false
+
+func open_storage() -> void:
+ # No fifth top tab: the separate 3D HUD chest icon opens a storage-specific
+ # layout; all four existing top tabs remain exactly as they were.
+ _hide_details()
+ storage_mode = true
+ current_tab = 0
+ if game_store != null:
+  game_store.set("selected",-1)
+  game_store.set("storage_selected",-1)
+ if is_built:
+  refresh()
+  _adapt_layout()
+
+func _refresh_storage() -> void:
+ if not is_instance_valid(storage_grid) or game_store == null:
+  return
+ _clear_container(storage_grid)
+ var entries: Array = game_store.get("storage_slots")
+ var selected: int = int(game_store.get("storage_selected"))
+ var used: int = 0
+ for item in entries:
+  if str(item) != "": used += 1
+ for i in range(StoreScript.STORAGE_PAGE_SIZE):
+  var index: int = storage_page*StoreScript.STORAGE_PAGE_SIZE+i
+  var item_id: String = str(entries[index])
+  var state: String = "selected" if selected==index else "normal"
+  var cell := _image_button(storage_grid,0,0,54,item_id,state)
+  cell.set_meta("storage_index",index)
+  cell.mouse_entered.connect(func():
+   if not DisplayServer.is_touchscreen_available() and item_id!="":
+    _show_details(item_id,"",false)
+  )
+  cell.mouse_exited.connect(_hide_hover_details)
+  cell.pressed.connect(_pick_storage_item.bind(index))
+ storage_capacity_label.text = str(used)+" / "+str(StoreScript.STORAGE_CAPACITY)
+ storage_page_label.text = ("หน้า " if locale=="th" else "PAGE ")+str(storage_page+1)+" / "+str(StoreScript.STORAGE_CAPACITY / StoreScript.STORAGE_PAGE_SIZE)
+ var last_page: int = int(StoreScript.STORAGE_CAPACITY / StoreScript.STORAGE_PAGE_SIZE)-1
+ for i in range(storage_page_buttons.size()):
+  storage_page_buttons[i].disabled = storage_page==0 if i<2 else storage_page==last_page
+ var bag_selected: int = int(game_store.get("selected"))
+ var unlocked: int = int(game_store.get("unlocked"))
+ var bag: Array = game_store.get("slots")
+ var can_deposit: bool = bag_selected>=0 and bag_selected<unlocked and bag_selected<bag.size() and str(bag[bag_selected])!="" and used<StoreScript.STORAGE_CAPACITY
+ var can_withdraw: bool = selected>=0 and selected<entries.size() and str(entries[selected])!="" and bag.slice(0,unlocked).has("")
+ storage_deposit_button.disabled = not can_deposit
+ storage_withdraw_button.disabled = not can_withdraw
+ if selected>=0 and selected<entries.size() and str(entries[selected])!="":
+  var id: String = str(entries[selected])
+  var info: Dictionary = StoreScript.DATA.get(id,{})
+  storage_info_label.text = _tr(str(info.get("name",id)))
+ elif can_deposit:
+  storage_info_label.text = _tr("Select a bag item to deposit")
+ else:
+  storage_info_label.text = _tr("Select bag item to deposit or storage item to withdraw.")
+
+func _pick_storage_item(index: int) -> void:
+ _hide_details()
+ game_store.call("choose_storage",index)
+ var entries: Array = game_store.get("storage_slots")
+ if str(entries[index]) != "":
+  details_pinned = true
+  _show_details(str(entries[index]),"",false)
+ _reveal_slot(storage_grid.get_child(index%StoreScript.STORAGE_PAGE_SIZE))
+
+func _change_storage_page(operation: int) -> void:
+ _hide_details()
+ var last: int = int(StoreScript.STORAGE_CAPACITY / StoreScript.STORAGE_PAGE_SIZE)-1
+ match operation:
+  0: storage_page=0
+  1: storage_page=maxi(0,storage_page-1)
+  3: storage_page=mini(last,storage_page+1)
+  4: storage_page=last
+ _refresh_storage()
+
+func _deposit_into_storage() -> void:
+ _hide_details()
+ game_store.call("deposit_selected")
+
+func _withdraw_from_storage() -> void:
+ _hide_details()
+ game_store.call("withdraw_selected")
 
 func _make_shop_panel() -> void:
  # The current 200-slot Player Inventory is reused at the left in Shop mode.
@@ -937,6 +1088,8 @@ func _fill_bag() -> void:
 func _pick_item(index: int) -> void:
  # Inspecting a second item must not silently swap two inventory entries.
  selected_equipment = ""
+ if storage_mode:
+  game_store.set("storage_selected",-1)
  game_store.set("selected",-1)
  game_store.call("choose",index)
  details_pinned = true
@@ -966,6 +1119,7 @@ func _change_page(page: int) -> void:
 
 func _switch_tab(index: int) -> void:
  _hide_details()
+ storage_mode=false
  current_tab=clampi(index,0,3)
  if is_built: _adapt_layout()
 
@@ -982,7 +1136,8 @@ func _adapt_layout() -> void:
  stage.scale = Vector2(ratio,ratio)
  scroll_content.custom_minimum_size = Vector2(W,H)*ratio
  stage.position = Vector2(maxf(0.0,(size.x-W*ratio)*0.5),maxf(0.0,(size.y-H*ratio)*0.5))
- equipment_panel.visible = current_tab in [0,1]
+ equipment_panel.visible = current_tab in [0,1] and not storage_mode
+ storage_panel.visible = storage_mode and current_tab==0
  character_panel.visible = current_tab==1
  bag_panel.position = Vector2(-655.0,0.0) if current_tab==3 else Vector2.ZERO
  bag_panel.visible = current_tab==0 or current_tab==3
@@ -991,7 +1146,7 @@ func _adapt_layout() -> void:
  waiting_panel.visible = current_tab==2
  if waiting_panel.visible:
   waiting_text.text = _tr("Skills are not available yet")
- header_label.text = _tr("Inventory & Shop") if current_tab==3 else (_tr("Character Information") if current_tab==1 else "LEOONLINE · INVENTORY")
+ header_label.text = _tr("Storage & Inventory") if storage_mode else (_tr("Inventory & Shop") if current_tab==3 else (_tr("Character Information") if current_tab==1 else "LEOONLINE · INVENTORY"))
  for i in range(tab_buttons.size()):
   tab_buttons[i].add_theme_color_override("font_color",Color.WHITE if i==current_tab else Color("#ffde93"))
   _red_button(tab_buttons[i],"tab_active" if i==current_tab else "tab_idle")
@@ -1008,6 +1163,7 @@ func refresh() -> void:
  _refresh_equipment(accessory_row,JEWELRY,61,17,"h")
  _refresh_equipment(fashion_row,FASHION,61,17,"h")
  _fill_bag()
+ _refresh_storage()
  _refresh_character_panel()
  if is_instance_valid(shop_grid): _refresh_shop()
  footer_buttons[4].text = _tr("Unequip" if selected_equipment != "" else "Equip")
@@ -1105,6 +1261,8 @@ func _show_details(item: String, equipment_key: String = "", locked: bool = fals
    lines.append(_tr("No stats or description in item data."))
   detail_description.text = "\n".join(lines)
   detail_icon.texture = _texture("icon_"+item)
+  if detail_icon.texture == null and ResourceLoader.exists(ShopAssets+item+".png"):
+   detail_icon.texture = load(ShopAssets+item+".png") as Texture2D
  else:
   detail_heading.text = _tr(str(SLOT_NAMES.get(equipment_key,"Empty slot")))
   detail_description.text = _tr("Empty equipment slot" if equipment_key!="" else "Empty slot")
