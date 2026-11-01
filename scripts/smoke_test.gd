@@ -683,6 +683,7 @@ func validate() -> void:
  var portrait_map:Rect2=top.minimap_button.get_global_rect()
  check(portrait_player.position.y>=highest_caption_end+5.0 and absf(portrait_player.position.y-portrait_target.position.y)<2.0 and absf(portrait_target.position.y-portrait_map.position.y)<2.0,"Character, target and minimap share a second row below icon captions")
  check(portrait_player.end.x+3.0<=portrait_target.position.x and portrait_target.end.x+3.0<=portrait_map.position.x,"Portrait left/center/right info panels never overlap")
+ check(top.player_job.visible and top.player_job.text=="Novice" and top.player_name.text=="Adventurer" and top.player_class.text.contains("Lv."),"Compact character HUD keeps actual name, job, level, class and EXP legible")
  check(hud_menu.top_status.minimap_button.get_global_rect().end.x<=390.0,"Mini map remains wholly visible on phone")
  check(hud_menu.top_status.player_panel.get_global_rect().end.x<hud_menu.top_status.minimap_button.get_global_rect().position.x,"Phone profile and minimap occupy separate top corners")
  check(hud_menu.top_status.target_panel.get_global_rect().position.y>phone_row_y,"Target status stays below ten-icon row on phone")

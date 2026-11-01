@@ -87,6 +87,8 @@ func _process(delta: float) -> void:
   "hud_profile_bounds":bounds(menu.top_status.player_panel),
   "hud_profile_label":menu.top_status.player_name.text,
   "hud_profile_experience":menu.top_status.player_exp.text,
+  "hud_profile_job":menu.top_status.player_job.text,
+  "hud_profile_job_visible":menu.top_status.player_job.visible,
   "hud_minimap_bounds":bounds(menu.top_status.minimap_button),
   "hud_minimap_items":menu.top_status.minimap.items.size(),
   "hud_target_bounds":bounds(menu.top_status.target_panel),

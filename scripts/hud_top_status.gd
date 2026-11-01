@@ -12,6 +12,7 @@ var player_panel: PanelContainer
 var portrait: TextureRect
 var player_name: Label
 var player_class: Label
+var player_job: Label
 var player_exp: Label
 var exp_bar: ProgressBar
 var minimap_button: Button
@@ -100,6 +101,7 @@ func _make_player() -> void:
  player_name=_label(layout,"NameAndLevel","",16)
  player_name.add_theme_color_override("font_color",Color.WHITE)
  player_class=_label(layout,"Class","",12)
+ player_job=_label(layout,"Job","",11)
  player_exp=_label(layout,"Exp","",11)
  exp_bar=ProgressBar.new()
  exp_bar.name="CharacterExp"
@@ -254,6 +256,7 @@ func _refresh_player() -> void:
  var level:int=int(data.get("level",1))
  var name:String=str(data.get("name","Adventurer"))
  var job:String=str(data.get("job","Novice"))
+ player_job.text=job
  var tier:int=int(data.get("class_tier",0))
  var exp:int=int(data.get("experience",0))
  var required:int=int(game_store.call("experience_required",level))
@@ -383,8 +386,9 @@ func _layout() -> void:
   var available:float=w-26.0-profile_w-map_w
   target_w=minf(430.0,maxf(125.0,available))
   target_h=104.0 if compact else 110.0
-  target_x=player_x+profile_w+6.0
-  if target_w<available:target_x=(w-target_w)*0.5
+  var min_target_x:float=player_x+profile_w+6.0
+  var max_target_x:float=map_x-6.0-target_w
+  target_x=clampf((w-target_w)*0.5,min_target_x,maxf(min_target_x,max_target_x))
   target_y=player_y
  else:
   target_y=label_row_end+8.0
@@ -406,12 +410,17 @@ func _layout() -> void:
   player_class.position=Vector2(39.0,27.0)
   player_class.size=Vector2(maxf(35.0,profile_w-46.0),17.0)
   player_class.add_theme_font_size_override("font_size",9)
-  player_exp.position=Vector2(7.0,67.0)
+  player_job.position=Vector2(7.0,53.0)
+  player_job.size=Vector2(profile_w-14.0,14.0)
+  player_job.add_theme_font_size_override("font_size",9)
+  player_job.visible=true
+  player_exp.position=Vector2(7.0,68.0)
   player_exp.size=Vector2(profile_w-14.0,15.0)
   player_exp.add_theme_font_size_override("font_size",9)
-  exp_bar.position=Vector2(7.0,84.0)
+  exp_bar.position=Vector2(7.0,85.0)
   exp_bar.size=Vector2(profile_w-14.0,8.0)
  else:
+  player_job.visible=false
   var portrait_w:float=57.0 if tablet or portrait_mode else 75.0
   if portrait_mode:portrait_w=minf(63.0,profile_w*0.32)
   portrait.position=Vector2(6.0,5.0)
@@ -429,7 +438,7 @@ func _layout() -> void:
   player_exp.add_theme_font_size_override("font_size",11)
   exp_bar.position=Vector2(txt_x,77.0 if profile_h>=100.0 else 70.0)
   exp_bar.size=Vector2(txt_w,8.0)
- for t in [player_name,player_class,player_exp]:
+ for t in [player_name,player_class,player_job,player_exp]:
   t.clip_text=true
   t.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
  minimap_button.position=Vector2(map_x,map_y)
