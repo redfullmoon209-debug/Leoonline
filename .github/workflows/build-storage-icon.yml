@@ -1,0 +1,45 @@
+name: Build original Storage chest PNG
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/generate_storage_icon.py'
+      - '.github/workflows/build-storage-icon.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: leo-storage-icon
+  cancel-in-progress: false
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Draw transparent storage chest PNG (original vector geometry, no crops)
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check 'Pillow==11.3.0'
+          python3 tools/generate_storage_icon.py
+          python3 - <<'PY'
+          from PIL import Image
+          from pathlib import Path
+          p=Path("assets/ui/inventory/icon_storage.png")
+          assert p.read_bytes().startswith(b'\x89PNG\r\n\x1a\n')
+          im=Image.open(p)
+          assert im.size==(96,96) and im.mode=='RGBA'
+          print("Validated standalone transparent chest PNG")
+          PY
+      - name: Commit original storage PNG to game
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/ui/inventory/icon_storage.png
+          if ! git diff --cached --quiet; then
+            git commit -m "assets: add original storage chest inventory opener PNG"
+            git fetch origin main
+            git rebase origin/main
+            git push origin HEAD:main
+          fi
