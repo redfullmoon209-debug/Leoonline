@@ -46,6 +46,9 @@ var mail_claimed: bool = false
 var last_event_date: String = ""
 var display_names: bool = true
 var display_mobile_controls: bool = false
+# Opt-in for a real browser landscape test where desktop mouse acts
+# like a finger; ordinary portrait and fullscreen desktop modes unchanged.
+var force_touch_preview: bool = false
 var camera_sensitivity: float = 0.003
 var jump_requested: bool = false
 var run_pressed: bool = false
