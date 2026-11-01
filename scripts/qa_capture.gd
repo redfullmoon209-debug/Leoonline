@@ -39,6 +39,15 @@ func capture() -> void:
  await snap("page-four")
  game.inventory._change_page(0)
  game.inventory.set_language("th")
+ game._toggle()
+ game._open_storage()
+ await snap("desktop-storage-empty")
+ game.store.slots[0]="sword"
+ game.store.storage_slots[0]="hp_potion_small"
+ game.inventory.refresh()
+ await snap("desktop-storage-filled")
+ game._toggle()
+ game._toggle()
  root.size=Vector2i(390,844)
  await snap("mobile-portrait")
  game.inventory.scroller.scroll_horizontal=610

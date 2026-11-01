@@ -39,7 +39,8 @@ func validate() -> void:
  ui.refresh()
  await process_frame
  check(ui.visible,"Bag opens")
- check(store.slots.size()==200,"200 storage entries")
+ check(store.slots.size()==200,"200 bag entries")
+ check(store.storage_slots.size()==200,"200 independent storage entries")
  check(ui.bag_grid.columns==10 and ui.bag_grid.get_child_count()==50,"10 by 5 grid")
  check(ui.stage.scale.x*1448.0 <= root.size.x*0.75+2.0,"Landscape inventory uses at most 75 percent of screen width")
  for sprite in ["outer_panel","inner_panel","tab_active","tab_idle","action_button","close_button","pager_button","slot_empty","slot_locked","slot_selected","currency_row","tab_lit","button_hover","button_pressed"]:
@@ -231,6 +232,90 @@ func validate() -> void:
  ui.refresh()
  ui._switch_tab(0)
  check(ui.bag_panel.position==Vector2.ZERO and not ui.shop_panel.visible and not ui.shop_left_frame.visible,"Inventory restores the original layout and hides Shop-only borders")
+ check(ResourceLoader.exists("res://assets/ui/inventory/icon_storage.png"),"Independent storage chest icon exists as original PNG")
+ check(game.hud.has_node("OpenStorage"),"Storage has its own HUD opener independent of bag")
+ check(game.hud.get_node("OpenStorage").texture_normal!=null,"Storage HUD opens from a real PNG button")
+ check(not ui.storage_panel.visible and not ui.storage_mode,"Storage stays hidden in original Inventory")
+ var bag_before_storage: Array = store.slots.duplicate()
+ var vault_before_storage: Array = store.storage_slots.duplicate()
+ var unlock_before_storage: int = store.unlocked
+ game._toggle()
+ check(not ui.visible,"Closing inventory exposes bag and storage opener buttons")
+ await click(game.hud.get_node("OpenStorage"))
+ check(ui.visible and ui.storage_mode and ui.current_tab==0,"Click storage icon opens Storage mode")
+ check(ui.storage_panel.visible and not ui.equipment_panel.visible and ui.bag_panel.visible,"Storage replaces left Equipment; original bag is RIGHT")
+ check(ui.bag_panel.position==Vector2.ZERO and ui.bag_grid.columns==10,"Storage leaves original 10-column bag in place")
+ check(ui.storage_grid.columns==10 and ui.storage_grid.get_child_count()==50,"Storage grid is 10 columns by 5 rows")
+ check(store.storage_slots.size()==200 and ui.storage_page_buttons.size()==4,"Storage has 200 cells in 4 pages")
+ check(ui.tab_buttons.size()==4 and ui.footer_buttons.size()==6,"Storage leaves original 4 tabs and 6 footer controls untouched")
+ for child in ui.storage_grid.get_children():
+  check(child is TextureButton and child.texture_normal==ui._red_texture("slot_empty"),"Storage slots use the same existing inventory PNG")
+ store.slots.fill("")
+ store.storage_slots.fill("")
+ store.selected=-1
+ store.storage_selected=-1
+ store.unlocked=40
+ store.slots[0]="sword"
+ store.slots[1]="hp_potion_small"
+ store.changed.emit()
+ check(ui.storage_capacity_label.text=="0 / 200","Storage capacity accurately starts empty")
+ ui._pick_item(0)
+ check(not ui.storage_deposit_button.disabled,"Selecting player bag item enables Deposit")
+ await click(ui.storage_deposit_button)
+ check(store.slots[0]=="" and store.storage_slots[0]=="sword","Deposit moves exactly one item from right bag to left vault")
+ check(store.slots.count("sword")+store.storage_slots.count("sword")==1,"Deposit never duplicates an item")
+ var transfer_file := FileAccess.open("user://leoonline.json",FileAccess.READ)
+ var transfer_save: Variant = JSON.parse_string(transfer_file.get_as_text()) if transfer_file!=null else null
+ check(transfer_save is Dictionary and transfer_save.has("storage_slots") and transfer_save["storage_slots"][0]=="sword","Deposit persists vault and bag together in one save")
+ store.slots[0]="wood"
+ store.storage_slots[0]=""
+ store.load_data()
+ check(store.storage_slots[0]=="sword" and store.slots[0]=="","Reload restores deposited item with no ghost copy")
+ ui._pick_storage_item(0)
+ check(not ui.storage_withdraw_button.disabled and store.storage_selected==0,"Selecting stored item enables Withdraw")
+ await click(ui.storage_withdraw_button)
+ check(store.storage_slots[0]=="" and store.slots[0]=="sword","Withdraw moves stored item back to available unlocked bag slot")
+ check(store.slots.count("sword")+store.storage_slots.count("sword")==1,"Withdraw never duplicates an item")
+ store.storage_slots.fill("wood")
+ store.slots[0]="sword"
+ store.selected=0
+ store.storage_selected=-1
+ check(not store.deposit_selected() and store.slots[0]=="sword" and store.storage_slots.count("sword")==0,"Full storage rejects deposit without destroying or duplicating item")
+ store.storage_slots.fill("")
+ store.storage_slots[0]="potion"
+ store.slots.fill("wood")
+ store.unlocked=40
+ store.storage_selected=0
+ check(not store.withdraw_selected() and store.storage_slots[0]=="potion" and store.slots.count("potion")==0,"Full unlocked bag rejects withdrawal, including when locked bag slots exist")
+ store.slots.fill("")
+ store.storage_slots.fill("")
+ store.storage_slots[199]="upgrade_stone_1"
+ store.selected=-1
+ store.storage_selected=-1
+ store.changed.emit()
+ ui._change_storage_page(4)
+ check(ui.storage_page==3 and ui.storage_grid.get_child_count()==50,"Storage last page shows 50 slots")
+ check(ui.storage_grid.get_child(49).get_meta("storage_index")==199,"Storage last page maps to slot 199")
+ check(ui.storage_grid.get_child(49).get_child_count()==1,"Storage shows the original standalone icon for stored item")
+ ui._change_storage_page(0)
+ ui.set_language("en")
+ check(ui.storage_deposit_button.text=="Deposit" and ui.storage_withdraw_button.text=="Withdraw","Storage action labels translate without editing PNG")
+ ui.set_language("th")
+ check(ui.storage_deposit_button.text=="ฝากของ" and ui.storage_withdraw_button.text=="ถอนของ","Thai storage actions are localized")
+ store.slots=bag_before_storage
+ store.storage_slots=vault_before_storage
+ store.selected=-1
+ store.storage_selected=-1
+ store.unlocked=unlock_before_storage
+ store.changed.emit()
+ store.save_data()
+ ui._switch_tab(0)
+ check(not ui.storage_mode and not ui.storage_panel.visible and ui.equipment_panel.visible and ui.bag_panel.visible,"Inventory tab restores original left Equipment and right Bag")
+ ui._switch_tab(1)
+ check(not ui.storage_panel.visible and ui.character_panel.visible,"Character tab does not inherit storage panel")
+ ui._switch_tab(3)
+ check(not ui.storage_panel.visible and ui.shop_panel.visible and ui.bag_panel.position.x==-655,"Shop keeps its original left bag and right shop unchanged")
+ ui._switch_tab(0)
  ui._show_details("sword")
  for viewport_size in [Vector2i(390,844),Vector2i(844,390)]:
   root.size = viewport_size
