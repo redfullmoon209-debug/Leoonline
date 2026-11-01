@@ -83,6 +83,10 @@ func initialize(p_game: Node3D, p_store: Node, p_inventory: Control, p_bag: Text
  game_store=p_store
  inventory=p_inventory
  bag_button=p_bag
+ if OS.has_feature("web"):
+  force_touch_preview = bool(JavaScriptBridge.eval(
+   "(function(){try{return new URLSearchParams(window.location.search).get('mobile_ui')==='1';}catch(e){return false;}})()",true
+  ))
  mouse_filter=Control.MOUSE_FILTER_IGNORE
  set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  _load_local()
