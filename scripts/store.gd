@@ -13,7 +13,28 @@ const DATA = {
  "fashion_blade":{"name":"Moonlight Fashion Sword","kind":"fashion","slot":"fashion_weapon_right"},
  "fashion_dagger":{"name":"Crystal Fashion Dagger","kind":"fashion","slot":"fashion_weapon_left"},
  "fashion_mask":{"name":"Moonlight Mask","kind":"fashion","slot":"fashion_mask"},
- "fashion_cape":{"name":"Azure Cape","kind":"fashion","slot":"fashion_cape"}
+ "fashion_cape":{"name":"Azure Cape","kind":"fashion","slot":"fashion_cape"},
+ "hp_potion_small":{"name":"HP Potion (Small)","kind":"consumable","description":"Shop consumable; HP recovery is reserved for the future combat system."},
+ "hp_potion_medium":{"name":"HP Potion (Medium)","kind":"consumable","description":"Shop consumable; HP recovery is reserved for the future combat system."},
+ "hp_potion_large":{"name":"HP Potion (Large)","kind":"consumable","description":"Shop consumable; HP recovery is reserved for the future combat system."},
+ "sp_potion_small":{"name":"SP Potion (Small)","kind":"consumable","description":"Shop consumable; SP recovery is reserved for the future combat system."},
+ "sp_potion_medium":{"name":"SP Potion (Medium)","kind":"consumable","description":"Shop consumable; SP recovery is reserved for the future combat system."},
+ "sp_potion_large":{"name":"SP Potion (Large)","kind":"consumable","description":"Shop consumable; SP recovery is reserved for the future combat system."},
+ "upgrade_stone_1":{"name":"Upgrade Stone +1","kind":"upgrade","description":"Upgrade material; equipment enhancement is not enabled yet."},
+ "upgrade_stone_2":{"name":"Upgrade Stone +2","kind":"upgrade","description":"Upgrade material; equipment enhancement is not enabled yet."},
+ "upgrade_stone_3":{"name":"Upgrade Stone +3","kind":"upgrade","description":"Upgrade material; equipment enhancement is not enabled yet."},
+ "upgrade_stone_4":{"name":"Upgrade Stone +4","kind":"upgrade","description":"Upgrade material; equipment enhancement is not enabled yet."},
+ "upgrade_stone_5":{"name":"Upgrade Stone +5","kind":"upgrade","description":"Upgrade material; equipment enhancement is not enabled yet."},
+ "upgrade_stone_6":{"name":"Upgrade Stone +6","kind":"upgrade","description":"Upgrade material; equipment enhancement is not enabled yet."},
+ "upgrade_stone_7":{"name":"Upgrade Stone +7","kind":"upgrade","description":"Upgrade material; equipment enhancement is not enabled yet."},
+ "upgrade_stone_8":{"name":"Upgrade Stone +8","kind":"upgrade","description":"Upgrade material; equipment enhancement is not enabled yet."},
+ "upgrade_stone_9":{"name":"Upgrade Stone +9","kind":"upgrade","description":"Upgrade material; equipment enhancement is not enabled yet."},
+ "upgrade_stone_10":{"name":"Upgrade Stone +10","kind":"upgrade","description":"Upgrade material; equipment enhancement is not enabled yet."},
+ "upgrade_stone_11":{"name":"Upgrade Stone +11","kind":"upgrade","description":"Upgrade material; equipment enhancement is not enabled yet."},
+ "upgrade_stone_12":{"name":"Upgrade Stone +12","kind":"upgrade","description":"Upgrade material; equipment enhancement is not enabled yet."},
+ "upgrade_stone_13":{"name":"Upgrade Stone +13","kind":"upgrade","description":"Upgrade material; equipment enhancement is not enabled yet."},
+ "upgrade_stone_14":{"name":"Upgrade Stone +14","kind":"upgrade","description":"Upgrade material; equipment enhancement is not enabled yet."},
+ "upgrade_stone_15":{"name":"Upgrade Stone +15","kind":"upgrade","description":"Upgrade material; equipment enhancement is not enabled yet."}
 }
 const EQUIPMENT = ["hat","shirt","gloves","pants","shoes","weapon_right","weapon_left","bracelet_left","ring_left","necklace","ring_right","bracelet_right","pet","mount","fashion_hat","fashion_shirt","fashion_gloves","fashion_pants","fashion_shoes","fashion_weapon_right","fashion_weapon_left","fashion_mask","fashion_cape"]
 var slots: Array = []
@@ -162,6 +183,25 @@ func add_decimal(a: String,b: String) -> String:
   i -= 1
   j -= 1
  return decimal(result)
+
+func subtract_decimal(a: String,b: String) -> String:
+ # Exact, nonnegative subtraction for amounts up to 21 digits. Empty = insufficient.
+ a=decimal(a)
+ b=decimal(b)
+ if compare(a,b)<0: return ""
+ var out: String = ""
+ var borrow: int = 0
+ for i in range(a.length()-1,-1,-1):
+  var ai: int = a.unicode_at(i)-48-borrow
+  var j: int = i-a.length()+b.length()
+  var bi: int = b.unicode_at(j)-48 if j>=0 else 0
+  if ai<bi:
+   ai+=10
+   borrow=1
+  else:
+   borrow=0
+  out=str(ai-bi)+out
+ return decimal(out)
 
 func add_currency(kind: String,amount: String) -> void:
  if not currency.has(kind):
