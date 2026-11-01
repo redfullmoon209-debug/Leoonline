@@ -29,6 +29,16 @@ func _process(delta: float) -> void:
  var hud_icons: Dictionary={}
  for id in ["world","party","friends","ranking","settings","guild","quest","mail","events"]:
   hud_icons[id]=bounds(menu.controls[id])
+ var ten_ids: Array[String]=["bag","world","party","friends","ranking","settings","guild","quest","mail","events"]
+ var ten_bounds: Array=[]
+ var ten_textures: Array=[]
+ var alert_state: Dictionary={}
+ for id in ten_ids:
+  var control: Control=menu.controls[id] as Control
+  ten_bounds.append(bounds(control))
+  var art: Texture2D=control.texture_normal if id=="bag" else (control.get_node("Glyph") as TextureRect).texture
+  ten_textures.append(art.resource_path if art!=null else "")
+  alert_state[id]=menu.notification_badges[id].visible
  var close_hud: Control=menu.popup.find_child("CloseHUDPanel",true,false) as Control
  var save_hud: Control=menu.toolbar.find_child("SaveHUDLayout",true,false) as Control
  var cancel_hud: Control=menu.toolbar.find_child("CancelHUDLayout",true,false) as Control
@@ -45,6 +55,18 @@ func _process(delta: float) -> void:
   "hud_start_editor":bounds(start_hud) if start_hud!=null else [],
   "hud_icons":hud_icons,
   "hud_icon_count":hud_icons.size(),
+  "hud_row_order":ten_ids,
+  "hud_row":ten_bounds,
+  "hud_png_paths":ten_textures,
+  "hud_notification_badges":alert_state,
+  "hud_profile_bounds":bounds(menu.top_status.player_panel),
+  "hud_profile_label":menu.top_status.player_name.text,
+  "hud_profile_experience":menu.top_status.player_exp.text,
+  "hud_minimap_bounds":bounds(menu.top_status.minimap_button),
+  "hud_minimap_items":menu.top_status.minimap.items.size(),
+  "hud_target_bounds":bounds(menu.top_status.target_panel),
+  "hud_target_name":menu.top_status.target_label.text,
+  "hud_target_health_visible":menu.top_status.target_bar.visible,
   "hud_panel_open":menu.popup.visible,
   "hud_panel_key":menu.popup_key,
   "hud_panel_bounds":bounds(menu.popup),
