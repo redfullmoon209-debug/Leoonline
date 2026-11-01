@@ -1,7 +1,7 @@
 name: Build individually authored premium HUD PNG icons
 on:
   push:
-    branches: [feature/premium-png-hud-notifications-20261101]
+    branches: [main]
     paths:
       - 'tools/build_premium_hud_png.py'
       - '.github/workflows/render-premium-hud-png.yml'
@@ -18,9 +18,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Render each original vector directly to its own transparent PNG
+      - name: Rebuild ten user-approved ornate gold PNGs from independently authored art
         run: |
-          python -m pip install --quiet 'cairosvg>=2.7,<3'
+          python -m pip install --quiet 'cairosvg>=2.7,<3' 'Pillow>=11,<13'
           python tools/build_premium_hud_png.py
           test "$(find assets/ui/hud/premium -maxdepth 1 -name '*.png' | wc -l)" -eq 10
           python - <<'PY'
@@ -41,7 +41,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "All ten native PNG files already up to date"
           else
-            git commit -m "Render 10 independent 256px HUD icon PNGs (no crops or baked notifications)"
+            git commit -m "Replace 10 placeholder icons with approved ornate fantasy artwork, independently drawn"
             git push
           fi
       - uses: actions/upload-artifact@v4

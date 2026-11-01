@@ -356,11 +356,15 @@ func _reflow() -> void:
    caption.text=_label_for(id)
    if id!="bag":
     var icon:TextureRect=control.get_node("Glyph") as TextureRect
-    icon.position=Vector2(wh*0.075,-wh*0.04)
-    icon.size=Vector2(wh*0.85,wh*0.88)
-   caption.position=Vector2(-4.0,wh*0.76)
-   caption.size=Vector2(wh+8.0,wh*0.22)
-   caption.add_theme_font_size_override("font_size",clampi(int(wh*0.18),8,11))
+    # The approved ornament already includes its OWN frame and nameplate;
+    # show the ENTIRE standalone PNG without clipping, cropping or inset.
+    icon.position=Vector2.ZERO
+    icon.size=Vector2(wh,wh)
+   # Keep each Thai/English caption as live text on the blank nameplate.
+   # No label text is baked into any of the ten transparent PNG files.
+   caption.position=Vector2(-wh*0.07,wh*0.70)
+   caption.size=Vector2(wh*1.14,wh*0.22)
+   caption.add_theme_font_size_override("font_size",clampi(int(wh*0.158),7,10))
    caption.visible=display_names and size.x>=700.0
    if notification_badges.has(id):
     var badge:Label=notification_badges[id]
