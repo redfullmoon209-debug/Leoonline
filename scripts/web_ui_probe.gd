@@ -41,7 +41,7 @@ func _process(delta: float) -> void:
   "hud_reset_button":bounds(restore_hud) if restore_hud!=null else [],
   "hud_start_editor":bounds(start_hud) if start_hud!=null else [],
   "hud_icons":hud_icons,
-  "hud_icon_count":menu.MENU_IDS.size(),
+  "hud_icon_count":hud_icons.size(),
   "hud_panel_open":menu.popup.visible,
   "hud_panel_key":menu.popup_key,
   "hud_panel_bounds":bounds(menu.popup),
