@@ -137,7 +137,7 @@ async function swipe(dx,dy){
   await page.reload();
   await until(()=>!!window.__leoQA);
   check(JSON.stringify((await state()).slots)===JSON.stringify(before),'Web save persists across reload');
-  // Open the single Inventory HUD icon, then the chest inside the bag header.
+  // Open the Inventory HUD icon, then select fifth top-row Storage tab.
   q=await state();
   check(!q.has_storage_hud,'Storage has no standalone HUD opener');
   check(q.storage_slots.length===200&&q.storage_cells===50,'Storage owns a separate 200-slot model and 10x5 rendered grid');
@@ -149,7 +149,7 @@ async function swipe(dx,dy){
   await until(()=>window.__leoQA.storage_mode&&window.__leoQA.storage_visible);
   q=await state();
   check(q.storage_bag_right&&q.storage_equipment_hidden,'Storage grid replaces equipment LEFT, original bag remains RIGHT');
-  check(q.bag.length===50&&q.storage_grid.length===50&&q.footer.length===6&&q.tabs.length===4,'Storage reuses original bag and preserves all menus/buttons');
+  check(q.bag.length===50&&q.storage_grid.length===50&&q.footer.length===6&&q.tabs.length===5,'Storage reuses original bag and preserves five tabs/six footer buttons');
   await snap('web-storage-open-en');
   const movedId='sword';
   const movedIndex=q.slots.indexOf(movedId);
@@ -222,7 +222,7 @@ async function swipe(dx,dy){
    await until(()=>!window.__leoQA.detail_visible);
    await context.close();
   }
-  // Real mobile touch: Inventory HUD icon -> chest inside right-hand bag header.
+  // Real mobile touch: pan to the fifth top-row Storage tab and tap it.
   for(const viewport of [{width:390,height:844},{width:844,height:390}]){
    context=await start(viewport,true);
    let mobileStorage=await state();
@@ -230,7 +230,17 @@ async function swipe(dx,dy){
    await clickRect(mobileStorage.opener,true);
    await until(()=>window.__leoQA.open);
    mobileStorage=await state();
-   check(mobileStorage.storage_tab_visible,'Mobile Storage fifth tab is available');
+   check(mobileStorage.storage_tab_visible&&mobileStorage.tabs.length===5,'Mobile Storage fifth tab is available');
+   // Small screens pan the entire 1448-wide UI instead of shrinking touch targets.
+   // Reach the fifth tab by a real horizontal swipe before tapping it.
+   for(let attempt=0;attempt<5;attempt++){
+    mobileStorage=await state();
+    const rect=mobileStorage.storage_tab;
+    if(rect[0]>=0&&rect[0]+rect[2]<=viewport.width&&rect[1]>=0&&rect[1]+rect[3]<=viewport.height)break;
+    await swipe(500,0);
+   }
+   mobileStorage=await state();
+   check(mobileStorage.storage_tab[2]>=44,'Mobile Storage tab remains a usable touch target');
    await clickRect(mobileStorage.storage_tab,true);
    await until(()=>window.__leoQA.storage_mode&&window.__leoQA.storage_visible);
    mobileStorage=await state();

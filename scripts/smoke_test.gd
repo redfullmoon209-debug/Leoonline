@@ -48,13 +48,19 @@ func validate() -> void:
  check(ui._red_texture("slot_empty") != null,"Matte red slot texture loaded")
  check(ui.tab_buttons[0].get_child_count() >= 1,"Menu buttons keep independent PNG icon layers")
  check(ui.tab_buttons.size()==5 and ui.footer_buttons.size()==6 and ui.page_buttons.size()==4,"Five functional tabs and original footer/pagination buttons preserved")
- check(ui.tab_buttons[0].position==Vector2(74,100) and ui.tab_buttons[4].position==Vector2(1178,100),"Five tabs fit the original top row")
+ check(ui.tab_buttons[0].position==Vector2(70,100) and ui.tab_buttons[4].position==Vector2(1170,100),"Five tabs fit the original top row")
  check(ui.footer_buttons[0].position==Vector2(105,807),"Footer button locations unchanged")
  check(ui.bag_grid.position==Vector2(729,249),"Bag grid location unchanged")
  var source_frames := 0
  for node in ui.stage.get_children():
   if node is NinePatchRect and node.name=="RedMattePanel_inner_panel": source_frames+=1
  check(source_frames==0,"No decorative inner panel frame is drawn on the main stage")
+ for borderless_panel in [ui.equipment_panel,ui.storage_panel,ui.shop_panel,ui.character_panel,ui.waiting_panel]:
+  var decorative_frames := 0
+  for child in borderless_panel.get_children():
+   if child is NinePatchRect: decorative_frames+=1
+  check(decorative_frames==0,"Equipment, Storage, Shop, Character and Skill contain no ornate Panel Borders")
+
  var bag_border := 0
  for node in ui.bag_panel.get_children():
   if node is NinePatchRect: bag_border+=1
@@ -248,10 +254,13 @@ func validate() -> void:
  await click(ui.tab_buttons[4])
  check(ui.visible and ui.storage_mode and ui.current_tab==4,"Click fifth top tab opens Storage mode")
  check(ui.storage_panel.visible and not ui.equipment_panel.visible and ui.bag_panel.visible,"Fifth Storage tab shows left vault and right bag")
+ var fifth_style: StyleBox = ui.tab_buttons[4].get_theme_stylebox("normal")
+ check(fifth_style is StyleBoxTexture and fifth_style.texture.resource_path.ends_with("/tab_lit.png"),"Storage tab highlights red when selected")
+
  check(ui.bag_panel.position==Vector2.ZERO and ui.bag_grid.columns==10,"Storage leaves original 10-column bag in place")
  check(ui.storage_grid.columns==10 and ui.storage_grid.get_child_count()==50,"Storage grid is 10 columns by 5 rows")
  check(store.storage_slots.size()==200 and ui.storage_page_buttons.size()==4,"Storage has 200 cells in 4 pages")
- check(ui.tab_buttons.size()==4 and ui.footer_buttons.size()==6,"Storage leaves original 4 tabs and 6 footer controls untouched")
+ check(ui.tab_buttons.size()==5 and ui.footer_buttons.size()==6,"Storage keeps all five top tabs and six footer controls")
  for child in ui.storage_grid.get_children():
   check(child is TextureButton and child.texture_normal==ui._red_texture("slot_empty"),"Storage slots use the same existing inventory PNG")
  store.slots.fill("")

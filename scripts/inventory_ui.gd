@@ -453,7 +453,7 @@ func _build() -> void:
  _red_aura(stage,170,85,1110,670,0.10)
  _white_red_glint(stage,515,88,422,3)
  _label("LEOONLINE",stage,491,33,466,52,32)
- var tab_x := [74.0,350.0,626.0,902.0,1178.0]
+ var tab_x := [70.0,345.0,620.0,895.0,1170.0]
  var titles := ["Inventory","Character","Skill","Shop","Storage"]
  var tab_icons := ["inventory","character","skill","shop","storage"]
  for idx in range(5):
@@ -575,7 +575,6 @@ func _build() -> void:
  waiting_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
  stage.add_child(waiting_panel)
  _rect(waiting_panel,679,200,693,563)
- _red_panel(waiting_panel,0,0,693,563)
  waiting_text = _label("",waiting_panel,39,115,615,180,24)
  waiting_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
  waiting_panel.visible = false
@@ -1110,8 +1109,11 @@ func _change_page(page: int) -> void:
 
 func _switch_tab(index: int) -> void:
  _hide_details()
- storage_mode=index==4
- current_tab=clampi(index,0,4)
+ if index==4:
+  open_storage()
+  return
+ storage_mode=false
+ current_tab=clampi(index,0,3)
  if is_built: _adapt_layout()
 
 func _adapt_layout() -> void:
@@ -1216,7 +1218,14 @@ func _create_details() -> void:
  detail_content = Control.new()
  var content := detail_content
  detail_panel.add_child(content)
- detail_art = _red_panel(content,0,0,692,160)
+ # Flat detail backdrop without an ornate Panel Border.
+ var flat_detail := ColorRect.new()
+ flat_detail.name = "DetailsBackground"
+ flat_detail.color = Color(0.12,0.025,0.037,0.93)
+ flat_detail.mouse_filter = Control.MOUSE_FILTER_IGNORE
+ content.add_child(flat_detail)
+ _rect(flat_detail,0,0,692,160)
+ detail_art = flat_detail
  detail_icon = _art("",content,108,48,58,58,false)
  detail_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
  detail_heading = _label("",content,184,18,385,30,20,HORIZONTAL_ALIGNMENT_LEFT)
