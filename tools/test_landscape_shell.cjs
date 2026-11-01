@@ -77,6 +77,87 @@ async function runLiveGame(browser,{width,height,mobile}){
   check(Math.abs(dimensions.width-rect.width)<3&&Math.abs(dimensions.height-rect.height)<3,
    'Godot canvas reflows to live landscape size, not stretched/cropped imagery: '+scenario);
   await page.screenshot({path:path.join(out,'web-'+scenario+'-test.jpg'),type:'jpeg',quality:90});
+  check(data.hud_gm_active&&data.hud_gm_visible,'Separate red GM test button appears on landscape-only playtest: '+scenario);
+  check(data.hud_target_entities.length===5,'Three monsters and two distinct player BOT targets spawn into real test world: '+scenario);
+  check(data.hud_target_entities.filter(e=>e.type==='Monster').length===3,
+    'Actual target list has three monsters: '+scenario);
+  check(data.hud_target_entities.filter(e=>e.type==='Player Bot').length===2,
+    'Other players are transparently labeled simulated BOTs: '+scenario);
+  const tapFrame=async(bounds)=>{
+    const x=rect.x+bounds[0]+bounds[2]/2,y=rect.y+bounds[1]+bounds[3]/2;
+    if(mobile)await page.touchscreen.tap(x,y);else await page.mouse.click(x,y);
+  };
+  await tapFrame(data.hud_gm_button_bounds);
+  await page.waitForFunction(()=>{
+    try{return document.getElementById('game-frame')?.contentWindow?.__leoQA?.hud_gm_panel_open===true;}
+    catch(e){return false;}
+  },null,{timeout:12000});
+  data=await state();
+  check(data.hud_gm_target_picker_items===5,'GM test target list includes all original selectable entities: '+scenario);
+  await page.screenshot({path:path.join(out,'web-'+scenario+'-gm-controls.jpg'),type:'jpeg',quality:90});
+  await tapFrame(data.hud_gm_spawn_monster);
+  await page.waitForFunction(()=>{
+    try{return document.getElementById('game-frame')?.contentWindow?.__leoQA?.hud_gm_spawned_count===1;}
+    catch(e){return false;}
+  },null,{timeout:12000});
+  data=await state();
+  check(data.hud_target_name.includes('มอนทดสอบ'),'GM actually spawns and selects a new physical monster: '+scenario);
+  await tapFrame(data.hud_gm_spawn_player);
+  await page.waitForFunction(()=>{
+    try{return document.getElementById('game-frame')?.contentWindow?.__leoQA?.hud_gm_spawned_count===2;}
+    catch(e){return false;}
+  },null,{timeout:12000});
+  data=await state();
+  check(data.hud_target_name.includes('[BOT]'),'GM spawns a simulated player, never claims actual online user: '+scenario);
+  check(data.hud_target_hp_percent===100&&data.hud_target_mp_percent===100,'GM-selected simulated target exposes its own full HP and MP');
+  await tapFrame(data.hud_gm_damage);
+  await page.waitForFunction(()=>{
+    try{return document.getElementById('game-frame')?.contentWindow?.__leoQA?.hud_target_hp_percent===75;}
+    catch(e){return false;}
+  },null,{timeout:12000});
+  data=await state();
+  check(data.hud_target_hp_text.includes('75%'),'GM HP test damages the real selected target and instantly updates HUD');
+  await tapFrame(data.hud_gm_drain_mana);
+  await page.waitForFunction(()=>{
+    try{return document.getElementById('game-frame')?.contentWindow?.__leoQA?.hud_target_mp_percent===75;}
+    catch(e){return false;}
+  },null,{timeout:12000});
+  data=await state();
+  check(data.hud_target_mp_text.includes('75%'),'GM MP drain updates actual target and blue HUD');
+  await tapFrame(data.hud_gm_heal);
+  await page.waitForFunction(()=>{
+    try{return document.getElementById('game-frame')?.contentWindow?.__leoQA?.hud_target_hp_percent===100;}
+    catch(e){return false;}
+  },null,{timeout:12000});
+  await tapFrame((await state()).hud_gm_reset);
+  await page.waitForFunction(()=>{
+    try{
+      const q=document.getElementById('game-frame')?.contentWindow?.__leoQA;
+      return q?.hud_gm_spawned_count===0&&q?.hud_target_entities?.length===5;
+    }catch(e){return false;}
+  },null,{timeout:12000});
+  data=await state();
+  check(data.hud_target_name.includes('ยังไม่ได้เลือก'),'GM reset removes spawned test entities and clears stale target');
+  await tapFrame(data.hud_gm_close);
+  await page.waitForFunction(()=>{
+    try{return document.getElementById('game-frame')?.contentWindow?.__leoQA?.hud_gm_panel_open===false;}
+    catch(e){return false;}
+  },null,{timeout:12000});
+  await page.screenshot({path:path.join(out,'web-'+scenario+'-gm-after-reset.jpg'),type:'jpeg',quality:90});
+  data=await state();
+  const slime=data.hud_target_entities.find(e=>e.name==='สไลม์มรกต');
+  check(!!slime,'Original green slime remains in test world after GM reset');
+  // The monster portrait can be chosen by a real click/touch on its 3D mesh.
+  if(slime.x>50&&slime.x<rect.width-60&&slime.y>175&&slime.y<rect.height-35){
+    if(mobile)await page.touchscreen.tap(rect.x+slime.x,rect.y+slime.y);
+    else await page.mouse.click(rect.x+slime.x,rect.y+slime.y);
+    await page.waitForFunction(()=>{
+      try{return document.getElementById('game-frame')?.contentWindow?.__leoQA?.hud_target_name==='สไลม์มรกต';}
+      catch(e){return false;}
+    },null,{timeout:12000});
+    check((await state()).hud_target_portrait_asset.endsWith('target_slime.svg'),'Real 3D slime touch displays its OWN separate portrait');
+    await page.screenshot({path:path.join(out,'web-'+scenario+'-slime-locked.jpg'),type:'jpeg',quality:90});
+  }
   const [ix,iy,iw,ih]=data.opener;
   if(mobile)await page.touchscreen.tap(rect.x+ix+iw/2,rect.y+iy+ih/2);
   else await canvas.click({position:{x:ix+iw/2,y:iy+ih/2},force:true});
