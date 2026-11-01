@@ -66,3 +66,56 @@ Chromium \`tools/test_web_inventory.cjs\` suite selects the actual golem
 using keyboard T, captures a screenshot with both bars visible, then
 clears the lock while preserving the original menu, inventory, banking,
 portrait browser release and landscape test.
+
+
+## Additional real selection targets
+
+Five physically present selectable 3D entities are in the start scene:
+
+| Entity | Type shown in target HUD | Level | HP / MP |
+| --- | --- | ---: | ---: |
+| อสูรหินฝึก | Monster | 12 | 3240 / 670 |
+| สไลม์มรกต | Monster | 4 | 430 / 80 |
+| หมาป่าทมิฬ | Monster | 9 | 1760 / 260 |
+| Aster [BOT] | Player Bot | 16 | 2400 / 1200 |
+| Luna [BOT] | Player Bot | 24 | 3800 / 2250 |
+
+Every target has a real collider, its own 3D mesh and an individually
+authored SVG portrait. The player entities are **offline, simulated bots**,
+not actual accounts, online presence, or multiplayer connections. The
+portrait, label, level, category, red HP and blue MP change when the
+player clicks/taps a different target in the real 3D view.
+
+## Separate local GM TEST menu
+
+The **GM** button is an independent native-red/gold Godot Button, never
+part of the ten original PNG menu icons. In this prototype it is enabled
+only inside the separate **landscape TEST** page by the local opt-in
+\`gm_test=1\` flag. The production portrait homepage does not show it.
+
+Its real local-scene tools:
+
+- Choose any spawned entity as the current target
+- Spawn a monster (slime / wolf) and automatically select it
+- Spawn a clearly marked simulated Player [BOT] and select it
+- Subtract 25% of max HP from the selected real node
+- Subtract 25% of max MP from the selected real node
+- Restore selected target HP/MP
+- Delete only GM-spawned extras, heal initial test entities, clear target
+
+The total number of GM-spawned extra entities is capped at 12, avoiding
+unbounded browser-memory use. Reset does not alter inventory, game money,
+saved progress or a remote service.
+
+**Security note:** A query parameter and hidden UI are NOT GM account
+authentication. This temporary menu only changes a local demo scene.
+Real GM authorization requires a server-side authenticated owner role and
+server-validated actions before enabling a live multiplayer game. Do not
+reuse this public test control for real privileged online functions.
+
+**QA:** \`scripts/smoke_test.gd\` exercises five target portraits, 3D
+ray selection, the distinct GM icon, spawning a monster and a Player BOT,
+real HP/MP changes and reset, and ensures the control is hidden by default.
+\`tools/test_landscape_shell.cjs\` touches the GM button in real Chromium
+desktop/phone landscape and confirms the same actions operate in the
+released browser runtime.
