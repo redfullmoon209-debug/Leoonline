@@ -559,16 +559,13 @@ func _build() -> void:
  _make_shop_panel()
  _make_character_panel()
  _make_storage_panel()
- # Storage is a submenu of Inventory, directly below its existing top tab.
- # Reuse the original chest PNG; do not add a fifth tab or standalone HUD icon.
- storage_menu_button = _hitbox(stage,101,157,278,54,open_storage)
- storage_menu_button.name = "StorageMenuButton"
- storage_menu_button.text = _tr("Storage")
- storage_menu_button.set_meta("l10n","Storage")
+ # Move the original Storage chest icon INSIDE the existing bag header.
+ # Its own HUD icon and the floating tab-under-Inventory button are gone.
+ # This stays within the right-hand bag panel in both Inventory and Storage.
+ storage_menu_button = _hitbox(bag_panel,972,192,54,54,_toggle_storage_from_bag)
+ storage_menu_button.name = "StorageInsideBag"
  storage_menu_button.tooltip_text = _tr("Storage")
- _style_text_button(storage_menu_button,19)
- _red_button(storage_menu_button,"tab_idle")
- _art("icon_storage",storage_menu_button,16,10,34,34,false)
+ _art("icon_storage",storage_menu_button,0,0,54,54,false)
  # Footer buttons float directly over the crimson surface with no enclosing frame.
  _red_aura(stage,115,780,1214,102,0.12)
  var foot_names := ["Demo Items","Save","Auto Sort","Trash","Equip","Close"]
@@ -764,9 +761,16 @@ func _make_storage_panel() -> void:
  _red_button(storage_withdraw_button,"action_button")
  storage_panel.visible = false
 
+func _toggle_storage_from_bag() -> void:
+ # Keep the same chest icon in the bag header for entering/leaving Storage.
+ if storage_mode:
+  _switch_tab(0)
+ else:
+  open_storage()
+
 func open_storage() -> void:
- # No fifth top tab: the separate 3D HUD chest icon opens a storage-specific
- # layout; all four existing top tabs remain exactly as they were.
+ # No fifth tab or standalone HUD icon: the chest inside the bag
+ # toggles the existing left Storage / right Inventory layout.
  _hide_details()
  storage_mode = true
  current_tab = 0
@@ -1150,7 +1154,6 @@ func _adapt_layout() -> void:
  equipment_panel.visible = current_tab in [0,1] and not storage_mode
  storage_menu_button.visible = current_tab==0
  storage_menu_button.tooltip_text = _tr("Storage")
- _red_button(storage_menu_button,"tab_active" if storage_mode else "tab_idle")
  storage_panel.visible = storage_mode and current_tab==0
  character_panel.visible = current_tab==1
  bag_panel.position = Vector2(-655.0,0.0) if current_tab==3 else Vector2.ZERO
