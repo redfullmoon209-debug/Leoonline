@@ -188,6 +188,7 @@ func _tr(s: String) -> String:
 
 func _hitbox(parent: Node, x: float,y: float,w: float,h: float, click: Callable) -> Button:
  var b := Button.new()
+ b.mouse_filter = Control.MOUSE_FILTER_PASS
  b.flat = true
  b.text = ""
  for state in ["normal","hover","pressed","focus","disabled"]:
@@ -214,7 +215,7 @@ func _build() -> void:
  scroller.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
  viewport_wrapper.add_child(scroller)
  scroll_content = Control.new()
- scroll_content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+ scroll_content.mouse_filter = Control.MOUSE_FILTER_PASS
  scroller.add_child(scroll_content)
  stage = Control.new()
  stage.mouse_filter = Control.MOUSE_FILTER_PASS
@@ -241,27 +242,33 @@ func _build() -> void:
  _label("Equipment",equipment_panel,150,310,350,36,23)
  _art("character_silhouette",equipment_panel,233,360,185,250,false)
  main_equip_list = Control.new()
+ main_equip_list.mouse_filter = Control.MOUSE_FILTER_PASS
  equipment_panel.add_child(main_equip_list)
  _rect(main_equip_list,118,360,64,260)
  extra_equip_list = Control.new()
+ extra_equip_list.mouse_filter = Control.MOUSE_FILTER_PASS
  equipment_panel.add_child(extra_equip_list)
  _rect(extra_equip_list,466,360,64,260)
  _label("Fashion Weapons",equipment_panel,130,621,390,29,19)
  fashion_weapon_row = HBoxContainer.new()
+ fashion_weapon_row.mouse_filter = Control.MOUSE_FILTER_PASS
  fashion_weapon_row.add_theme_constant_override("separation",17)
  equipment_panel.add_child(fashion_weapon_row)
  _rect(fashion_weapon_row,168,652,139,61)
  fashion_side_row = HBoxContainer.new()
+ fashion_side_row.mouse_filter = Control.MOUSE_FILTER_PASS
  fashion_side_row.add_theme_constant_override("separation",17)
  equipment_panel.add_child(fashion_side_row)
  _rect(fashion_side_row,324,652,139,61)
  _label("Accessories",equipment_panel,150,716,350,29,19)
  accessory_row = HBoxContainer.new()
+ accessory_row.mouse_filter = Control.MOUSE_FILTER_PASS
  accessory_row.add_theme_constant_override("separation",17)
  equipment_panel.add_child(accessory_row)
  _rect(accessory_row,128,746,373,61)
  _label("Fashion",equipment_panel,150,800,350,29,19)
  fashion_row = HBoxContainer.new()
+ fashion_row.mouse_filter = Control.MOUSE_FILTER_PASS
  fashion_row.add_theme_constant_override("separation",17)
  equipment_panel.add_child(fashion_row)
  _rect(fashion_row,128,830,373,61)
@@ -273,6 +280,7 @@ func _build() -> void:
  _label("Bag",bag_panel,764,305,230,36,23)
  capacity_text = _label("",bag_panel,1000,305,280,36,18)
  bag_grid = GridContainer.new()
+ bag_grid.mouse_filter = Control.MOUSE_FILTER_PASS
  bag_grid.columns = 10
  bag_grid.add_theme_constant_override("h_separation",2)
  bag_grid.add_theme_constant_override("v_separation",2)
@@ -362,6 +370,7 @@ func _equip_icon(key: String, active: String) -> String:
 
 func _image_button(parent: Node, x: float,y: float,wh: float, key: String, state: String, height: float = -1.0) -> TextureButton:
  var b := TextureButton.new()
+ b.mouse_filter = Control.MOUSE_FILTER_PASS
  b.ignore_texture_size = true
  b.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
  b.focus_mode = Control.FOCUS_ALL
