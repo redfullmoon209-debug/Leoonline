@@ -219,22 +219,42 @@ func pretty(value: String) -> String:
   output += value.substr(i,1)
  return output
 
+const WEB_SAVE_KEY = "leoonline_save_v1"
+
 func save_data() -> bool:
  var data := {"slots":slots,"equipped":equipped,"currency":currency,"unlocked":unlocked,"online":seconds_online,"reward":next_reward}
+ var payload: String = JSON.stringify(data)
+ var file_saved: bool = false
  var file := FileAccess.open("user://leoonline.json",FileAccess.WRITE)
- if file:
-  file.store_string(JSON.stringify(data))
+ if file != null:
+  file.store_string(payload)
   file.flush()
-  return file.get_error() == OK
- return false
+  file_saved = file.get_error() == OK
+  file.close()
+ # Godot Web's virtual filesystem can flush to IndexedDB asynchronously.
+ # Mirror each completed transaction into same-origin localStorage synchronously,
+ # so an immediate reload cannot resurrect previously sold items.
+ var web_saved: bool = false
+ if OS.has_feature("web"):
+  var escaped: String = JSON.stringify(payload)
+  var js: String = "(function(){try{localStorage.setItem('"+WEB_SAVE_KEY+"',"+escaped+");return true;}catch(e){return false;}})()"
+  web_saved = bool(JavaScriptBridge.eval(js,true))
+ return file_saved or web_saved
 
 func load_data() -> void:
- if not FileAccess.file_exists("user://leoonline.json"):
-  return
- var file := FileAccess.open("user://leoonline.json",FileAccess.READ)
- if file == null:
-  return
- var data = JSON.parse_string(file.get_as_text())
+ var data: Variant = null
+ if OS.has_feature("web"):
+  var js: String = "(function(){try{return localStorage.getItem('"+WEB_SAVE_KEY+"')||'';}catch(e){return '';}})()"
+  var raw: Variant = JavaScriptBridge.eval(js,true)
+  if raw is String and not raw.is_empty():
+   data = JSON.parse_string(raw)
+ if not (data is Dictionary):
+  if not FileAccess.file_exists("user://leoonline.json"):
+   return
+  var file := FileAccess.open("user://leoonline.json",FileAccess.READ)
+  if file == null:
+   return
+  data = JSON.parse_string(file.get_as_text())
  if not (data is Dictionary):
   return
  var loaded: Array = data.get("slots",[])

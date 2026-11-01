@@ -112,6 +112,8 @@ async function swipe(dx,dy){
   await clickRect((await state()).shop_sell_ok);
   await until(()=>!window.__leoQA.slots.includes('hp_potion_small'));
   check(Number((await state()).currency.gold)===moneyBeforePurchase-25,'Selling credits correct resale value');
+  const savedTrade=await page.evaluate(()=>{try{const raw=localStorage.getItem('leoonline_save_v1');return raw?JSON.parse(raw):null;}catch{return null;}});
+  check(savedTrade!==null&&savedTrade.currency.gold===String(moneyBeforePurchase-25)&&!savedTrade.slots.includes('hp_potion_small'),'Synchronous browser save preserves sold item and exact gold before reload');
   await clickRect((await state()).shop_pages[3]);
   await until(()=>window.__leoQA.shop_page===9);
   check((await state()).shop_cells===50,'Last catalog page retains 50 future slots');

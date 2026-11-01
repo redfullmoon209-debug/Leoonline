@@ -519,7 +519,7 @@ func _build() -> void:
  waiting_text = _label("",waiting_panel,39,115,615,180,24)
  waiting_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
  waiting_panel.visible = false
- notice_text = _label("",stage,317,750,814,27,16)
+ notice_text = _label("",stage,317,775,814,25,16)
  trash_dialog = ConfirmationDialog.new()
  if ui_font != null:
   var dialog_theme := Theme.new()
