@@ -26,6 +26,17 @@ func _process(delta: float) -> void:
  for button in ui.bag_grid.get_children():
   if button.get_meta("locked",false): locked+=1
  var menu: Control=host.get("hud_menu")
+ var gm:Control=host.get("gm_menu") as Control
+ var target_screens:Array=[]
+ for entity in host.get("test_targets"):
+  if is_instance_valid(entity):
+   var projected:Vector2=host.camera.unproject_position(entity.global_position)
+   target_screens.append({
+    "name":str(entity.get_meta("target_name",entity.name)),
+    "x":projected.x,"y":projected.y,
+    "type":str(entity.get_meta("target_type","")),
+    "level":int(entity.get_meta("level",1))
+   })
  var hud_icons: Dictionary={}
  for id in ["world","party","friends","ranking","settings","guild","quest","mail","events"]:
   hud_icons[id]=bounds(menu.controls[id])
@@ -79,6 +90,21 @@ func _process(delta: float) -> void:
   "hud_target_frame_custom":menu.top_status.target_decor.get_script()!=null,
   "hud_training_target_present":is_instance_valid(host.get("training_target")),
   "hud_training_target_name":str(host.get("training_target").get_meta("target_name","")) if is_instance_valid(host.get("training_target")) else "",
+  "hud_target_entities":target_screens,
+  "hud_gm_active":gm.active,
+  "hud_gm_visible":gm.gm_button.visible,
+  "hud_gm_button_bounds":bounds(gm.gm_button),
+  "hud_gm_panel_open":gm.is_open(),
+  "hud_gm_close":bounds(gm.gm_popup.find_child("GMCloseButton",true,false)),
+  "hud_gm_spawn_monster":bounds(gm.gm_popup.find_child("GMSpawnMonster",true,false)),
+  "hud_gm_spawn_player":bounds(gm.gm_popup.find_child("GMSpawnPlayerBot",true,false)),
+  "hud_gm_damage":bounds(gm.gm_popup.find_child("GMDamageTarget",true,false)),
+  "hud_gm_drain_mana":bounds(gm.gm_popup.find_child("GMDrainMana",true,false)),
+  "hud_gm_heal":bounds(gm.gm_popup.find_child("GMHealTarget",true,false)),
+  "hud_gm_reset":bounds(gm.gm_popup.find_child("GMResetTestTargets",true,false)),
+  "hud_gm_spawned_count":host.additional_test_targets.size(),
+  "hud_gm_target_picker_items":gm.target_picker.item_count,
+  "hud_gm_status":gm.status_label.text,
   "hud_training_target_screen": [
    host.camera.unproject_position(host.get("training_target").global_position).x,
    host.camera.unproject_position(host.get("training_target").global_position).y
