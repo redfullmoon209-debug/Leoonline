@@ -11,6 +11,8 @@ const PROFILE_DEFAULTS: Dictionary = {
  "pve_kills":0,"pvp_wins":0,"pvp_losses":0
 }
 const CAPACITY = 200
+const STORAGE_CAPACITY = 200
+const STORAGE_PAGE_SIZE = 50
 const MAX_MONEY = "999999999999999999999"
 const DATA = {
  "sword": {"name":"Bronze Sword","kind":"weapon","slot":"weapon_right"},
@@ -47,6 +49,8 @@ const DATA = {
 }
 const EQUIPMENT = ["hat","shirt","gloves","pants","shoes","weapon_right","weapon_left","bracelet_left","ring_left","necklace","ring_right","bracelet_right","pet","mount","fashion_hat","fashion_shirt","fashion_gloves","fashion_pants","fashion_shoes","fashion_weapon_right","fashion_weapon_left","fashion_mask","fashion_cape"]
 var slots: Array = []
+var storage_slots: Array = []
+var storage_selected: int = -1
 var equipped: Dictionary = {}
 var currency: Dictionary = {"gold":"0","blue":"0","purple":"0","green":"0"}
 var profile: Dictionary = PROFILE_DEFAULTS.duplicate(true)
@@ -58,6 +62,8 @@ var next_reward := 18000.0
 func _ready() -> void:
  for i in range(CAPACITY):
   slots.append("")
+ for i in range(STORAGE_CAPACITY):
+  storage_slots.append("")
  for k in EQUIPMENT:
   equipped[k] = ""
  load_data()
@@ -67,6 +73,83 @@ func _process(delta: float) -> void:
  if seconds_online >= next_reward and unlocked < CAPACITY:
   unlock_ten()
   next_reward += 18000.0
+
+func choose_storage(index: int) -> void:
+ # One selected item per window; clicking Storage never swaps bag contents.
+ if index < 0 or index >= STORAGE_CAPACITY:
+  notice.emit("Invalid storage slot")
+  return
+ storage_selected = index
+ selected = -1
+ changed.emit()
+
+func deposit_selected() -> bool:
+ # Move an item from an UNLOCKED bag slot to the first empty storage slot.
+ # Both lists are persisted together in one game save (never duplicate items).
+ var from: int = selected
+ if from < 0 or from >= unlocked or from >= slots.size():
+  notice.emit("Select a bag item to deposit")
+  return false
+ var item_id: String = str(slots[from])
+ if item_id == "":
+  notice.emit("Select a bag item to deposit")
+  return false
+ var target: int = storage_slots.find("")
+ if target < 0:
+  notice.emit("Storage full")
+  return false
+ var old_selected: int = selected
+ var old_storage_selected: int = storage_selected
+ slots[from] = ""
+ storage_slots[target] = item_id
+ selected = -1
+ storage_selected = -1
+ if not save_data():
+  slots[from] = item_id
+  storage_slots[target] = ""
+  selected = old_selected
+  storage_selected = old_storage_selected
+  notice.emit("Save failed")
+  return false
+ changed.emit()
+ notice.emit("Item deposited")
+ return true
+
+func withdraw_selected() -> bool:
+ # Withdraw only from the selected occupied storage cell; the locked bag
+ # capacity is enforced, so Storage cannot bypass bag-unlock progression.
+ var from: int = storage_selected
+ if from < 0 or from >= STORAGE_CAPACITY:
+  notice.emit("Select a storage item to withdraw")
+  return false
+ var item_id: String = str(storage_slots[from])
+ if item_id == "":
+  notice.emit("Select a storage item to withdraw")
+  return false
+ var target: int = -1
+ for i in range(unlocked):
+  if str(slots[i]) == "":
+   target = i
+   break
+ if target < 0:
+  notice.emit("Bag full")
+  return false
+ var old_selected: int = selected
+ var old_storage_selected: int = storage_selected
+ storage_slots[from] = ""
+ slots[target] = item_id
+ storage_selected = -1
+ selected = -1
+ if not save_data():
+  storage_slots[from] = item_id
+  slots[target] = ""
+  selected = old_selected
+  storage_selected = old_storage_selected
+  notice.emit("Save failed")
+  return false
+ changed.emit()
+ notice.emit("Item withdrawn")
+ return true
 
 func experience_required(level: int) -> int:
  # Data/UI progression hook only; no experience source is wired yet.
@@ -259,7 +342,7 @@ func pretty(value: String) -> String:
 const WEB_SAVE_KEY = "leoonline_save_v1"
 
 func save_data() -> bool:
- var data := {"slots":slots,"equipped":equipped,"currency":currency,"unlocked":unlocked,"online":seconds_online,"reward":next_reward,"profile":profile}
+ var data := {"slots":slots,"storage_slots":storage_slots,"equipped":equipped,"currency":currency,"unlocked":unlocked,"online":seconds_online,"reward":next_reward,"profile":profile}
  var payload: String = JSON.stringify(data)
  var file_saved: bool = false
  var file := FileAccess.open("user://leoonline.json",FileAccess.WRITE)
@@ -297,6 +380,13 @@ func load_data() -> void:
  var loaded: Array = data.get("slots",[])
  if loaded.size() == CAPACITY:
   slots = loaded
+ # Backwards-compatible: existing Leoonline saves have no storage key.
+ # Do not erase a saved bank during a reload of older inventory-only data.
+ var stored: Variant = data.get("storage_slots",[])
+ if stored is Array and stored.size() == STORAGE_CAPACITY:
+  for i in range(STORAGE_CAPACITY):
+   storage_slots[i] = str(stored[i]) if stored[i] is String else ""
+ storage_selected = -1
  var eq: Dictionary = data.get("equipped",{})
  for key in EQUIPMENT:
   if eq.has(key) and (eq[key] is String):
