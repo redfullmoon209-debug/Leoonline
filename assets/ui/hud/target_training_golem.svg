@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+ <defs>
+  <linearGradient id="steel" x1="0" y1="0" x2="1" y2="1">
+   <stop offset="0" stop-color="#e6eff7"/>
+   <stop offset=".45" stop-color="#708898"/>
+   <stop offset="1" stop-color="#293d4d"/>
+  </linearGradient>
+  <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+   <stop offset="0" stop-color="#fff0ba"/>
+   <stop offset=".55" stop-color="#c48531"/>
+   <stop offset="1" stop-color="#63330a"/>
+  </linearGradient>
+  <radialGradient id="glow"><stop offset="0" stop-color="#f8ffff"/><stop offset=".38" stop-color="#65eafa"/><stop offset="1" stop-color="#0476b2"/></radialGradient>
+ </defs>
+ <!-- Individually authored golem portrait. No screenshot, atlas, or crop. -->
+ <path d="M17 100L30 75 23 48 39 31 46 10 67 24 86 11 92 32 108 48 99 77 111 104 82 117 45 116Z" fill="#142734" stroke="#d8ae61" stroke-width="5" stroke-linejoin="round"/>
+ <path d="M29 51L43 30 60 35 69 25 87 36 101 51 91 88 74 107 49 104 33 82Z" fill="url(#steel)" stroke="#f7dd9c" stroke-width="3"/>
+ <path d="M40 44L59 40 67 56 47 59 35 54Z" fill="#182736" stroke="#a3e1ed" stroke-width="2"/>
+ <path d="M71 56L79 39 99 45 102 55 84 60Z" fill="#182736" stroke="#a3e1ed" stroke-width="2"/>
+ <path d="M40 51L55 47 60 55 48 58Z" fill="url(#glow)"/>
+ <path d="M77 54L85 45 98 51 88 58Z" fill="url(#glow)"/>
+ <path d="M60 56L67 47 76 56 75 79 66 92 57 78Z" fill="url(#steel)" stroke="#334855" stroke-width="3"/>
+ <path d="M50 88L67 94 85 86 76 101 58 100Z" fill="#263540" stroke="url(#gold)" stroke-width="3"/>
+ <path d="M25 56L38 69 34 90 22 82Z" fill="url(#gold)" stroke="#ffdd89" stroke-width="2"/>
+ <path d="M99 61L111 76 103 90 93 73Z" fill="url(#gold)" stroke="#ffdd89" stroke-width="2"/>
+ <path d="M46 30L42 14 55 20 63 30M80 30L87 16 94 36" fill="none" stroke="#ffebbd" stroke-width="5" stroke-linecap="round"/>
+ <path d="M60 25L67 18 75 25 67 35Z" fill="url(#glow)" stroke="#ffdf7d" stroke-width="3"/>
+</svg>
