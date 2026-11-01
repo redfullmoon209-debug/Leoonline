@@ -330,7 +330,10 @@ func _min_size(id: String) -> float:
  if id=="joystick": return 90.0
  # Responsive small PNGs must be allowed below 42px to keep all ten
  # icons in one row on a 320-390px phone with zero overlap.
- if MENU_ORDER.has(id) and size.x<760.0: return 27.0
+ # These independently authored PNGs are intentionally compact in the
+ # approved landscape design; 42px was bigger than the 33-40px row metrics
+ # and made every menu icon overlap its neighbor.
+ if MENU_ORDER.has(id): return 27.0 if size.x<760.0 else 30.0
  return 42.0
 
 func _size_of(id: String) -> float:
