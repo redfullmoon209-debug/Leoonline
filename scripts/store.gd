@@ -1,6 +1,15 @@
 extends Node
 signal changed
 signal notice(message: String)
+# Character profile is a real saved model. Initial base attributes are the first
+# playable Novice values, not a leaderboard calculation or combat claim.
+# PvE/PvP tracking and rankings become authoritative when server systems exist.
+const PROFILE_DEFAULTS: Dictionary = {
+ "name":"Adventurer","level":1,"experience":0,"class_tier":0,
+ "job":"Novice","path":"Unchosen","faction":"None",
+ "attributes":{"strength":10,"vitality":10,"agility":10,"intelligence":10,"dexterity":10,"luck":10},
+ "pve_kills":0,"pvp_wins":0,"pvp_losses":0
+}
 const CAPACITY = 200
 const MAX_MONEY = "999999999999999999999"
 const DATA = {
@@ -40,6 +49,7 @@ const EQUIPMENT = ["hat","shirt","gloves","pants","shoes","weapon_right","weapon
 var slots: Array = []
 var equipped: Dictionary = {}
 var currency: Dictionary = {"gold":"0","blue":"0","purple":"0","green":"0"}
+var profile: Dictionary = PROFILE_DEFAULTS.duplicate(true)
 var unlocked := 40
 var selected := -1
 var seconds_online := 0.0
@@ -57,6 +67,33 @@ func _process(delta: float) -> void:
  if seconds_online >= next_reward and unlocked < CAPACITY:
   unlock_ten()
   next_reward += 18000.0
+
+func experience_required(level: int) -> int:
+ # Data/UI progression hook only; no experience source is wired yet.
+ return 100 + maxi(0,level-1)*50
+
+func grant_experience(amount: int) -> void:
+ if amount <= 0: return
+ var level: int = clampi(int(profile.get("level",1)),1,999)
+ var exp: int = maxi(0,int(profile.get("experience",0))) + amount
+ while level < 999 and exp >= experience_required(level):
+  exp -= experience_required(level)
+  level += 1
+ if level == 999: exp = mini(exp,experience_required(level)-1)
+ profile["level"] = level
+ profile["experience"] = exp
+ changed.emit()
+ save_data()
+
+func character_snapshot() -> Dictionary:
+ # Snapshot only; wealth shows each exact 21-digit currency independently.
+ # Rankings are intentionally NOT fabricated from client-side counters.
+ return {
+  "profile": profile.duplicate(true),
+  "currency": currency.duplicate(true),
+  "experience_required": experience_required(int(profile.get("level",1))),
+  "pve_rank": -1, "pvp_rank": -1, "wealth_rank": -1
+ }
 
 func add_item(id: String) -> bool:
  if not DATA.has(id):
@@ -222,7 +259,7 @@ func pretty(value: String) -> String:
 const WEB_SAVE_KEY = "leoonline_save_v1"
 
 func save_data() -> bool:
- var data := {"slots":slots,"equipped":equipped,"currency":currency,"unlocked":unlocked,"online":seconds_online,"reward":next_reward}
+ var data := {"slots":slots,"equipped":equipped,"currency":currency,"unlocked":unlocked,"online":seconds_online,"reward":next_reward,"profile":profile}
  var payload: String = JSON.stringify(data)
  var file_saved: bool = false
  var file := FileAccess.open("user://leoonline.json",FileAccess.WRITE)
@@ -271,4 +308,22 @@ func load_data() -> void:
  unlocked = clampi(int(data.get("unlocked",40)),40,CAPACITY)
  seconds_online = maxf(0.0,float(data.get("online",0.0)))
  next_reward = maxf(18000.0,float(data.get("reward",18000.0)))
+ var profile_saved: Variant = data.get("profile",{})
+ if profile_saved is Dictionary:
+  var saved_profile: Dictionary = profile_saved
+  profile["name"] = str(saved_profile.get("name","Adventurer")).substr(0,24)
+  if str(profile["name"]).strip_edges()=="":
+   profile["name"]="Adventurer"
+  profile["level"] = clampi(int(saved_profile.get("level",1)),1,999)
+  profile["experience"] = clampi(int(saved_profile.get("experience",0)),0,experience_required(int(profile["level"]))-1)
+  profile["class_tier"] = clampi(int(saved_profile.get("class_tier",0)),0,10)
+  for key in ["job","path","faction"]:
+   profile[key]=str(saved_profile.get(key,PROFILE_DEFAULTS[key])).substr(0,36)
+  var attributes: Dictionary = profile["attributes"]
+  var saved_attributes: Variant = saved_profile.get("attributes",{})
+  if saved_attributes is Dictionary:
+   for key in attributes.keys():
+    attributes[key]=clampi(int(saved_attributes.get(key,10)),0,99999)
+  for key in ["pve_kills","pvp_wins","pvp_losses"]:
+   profile[key]=clampi(int(saved_profile.get(key,0)),0,2147483647)
  changed.emit()
