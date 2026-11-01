@@ -46,7 +46,7 @@ async function runLiveGame(browser,{width,height,mobile}){
    check(await page.locator('a[href="mobile.html"]').first().isVisible(),'Desktop can return to portrait production');
   }
   const src=await game.getAttribute('src');
-  check(src==='_qa.html?mobile_ui=1','Landscape uses the actual test game and explicit mobile controls');
+  check(src==='_qa.html?mobile_ui=1&gm_test=1','Landscape uses actual game with explicit mobile UI and local GM test flags');
   await until(page,()=>{
    try{return window.document.getElementById('game-frame')?.contentWindow?.__leoQA?.hud_row?.length===10;}
    catch(e){return false;}
