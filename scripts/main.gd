@@ -19,6 +19,10 @@ var loot: Array[Area3D] = []
 var trash_dialog: ConfirmationDialog
 var hud_menu: Control
 var training_target: StaticBody3D
+var test_targets: Array[StaticBody3D]=[]
+var additional_test_targets: Array[StaticBody3D]=[]
+var test_spawn_count: int=0
+var gm_menu: Control
 
 func _ready() -> void:
  _register_keys()
@@ -29,6 +33,7 @@ func _ready() -> void:
  _make_world()
  _make_character()
  _make_training_target()
+ _make_demo_targets()
  _make_ui()
  var ui911: Node = load("res://scripts/ui911.gd").new()
  add_child(ui911)
@@ -193,6 +198,158 @@ func _make_training_target() -> void:
  tag.font_size=31
  tag.billboard=BaseMaterial3D.BILLBOARD_ENABLED
  training_target.add_child(tag)
+ test_targets.append(training_target)
+
+func _build_test_entity(
+ key: String,caption: String,kind: String,level: int,
+ health: float,mana: float,location: Vector3,
+ picture_path: String,body_color: Color
+) -> StaticBody3D:
+ var target:=StaticBody3D.new()
+ target.name=key
+ target.position=location
+ target.set_meta("test_target",true)
+ target.set_meta("target_name",caption)
+ target.set_meta("target_type","Player Bot" if kind=="player" else "Monster")
+ target.set_meta("level",level)
+ target.set_meta("hp",health)
+ target.set_meta("max_hp",health)
+ target.set_meta("mp",mana)
+ target.set_meta("max_mp",mana)
+ target.set_meta("target_portrait",picture_path)
+ add_child(target)
+ var collision:=CollisionShape3D.new()
+ collision.name="ClickableTargetCollider"
+ if kind=="slime":
+  var ball:=SphereShape3D.new()
+  ball.radius=0.6
+  collision.shape=ball
+ elif kind=="wolf":
+  var wolf_box:=BoxShape3D.new()
+  wolf_box.size=Vector3(1.2,1.3,0.9)
+  collision.shape=wolf_box
+ else:
+  var capsule:=CapsuleShape3D.new()
+  capsule.radius=0.4
+  capsule.height=2.0
+  collision.shape=capsule
+ target.add_child(collision)
+ var body:=MeshInstance3D.new()
+ body.name="SelectableEntityBody"
+ if kind=="slime":
+  var slime_mesh:=SphereMesh.new()
+  slime_mesh.radius=0.57
+  slime_mesh.height=1.12
+  body.mesh=slime_mesh
+ elif kind=="wolf":
+  var wolf_mesh:=BoxMesh.new()
+  wolf_mesh.size=Vector3(1.15,0.9,0.7)
+  body.mesh=wolf_mesh
+ else:
+  var humanoid:=CapsuleMesh.new()
+  humanoid.radius=0.36
+  humanoid.height=1.35
+  body.mesh=humanoid
+  body.position.y=-0.17
+ body.material_override=_mat(body_color)
+ target.add_child(body)
+ var head:=MeshInstance3D.new()
+ head.name="Head"
+ var head_shape:=SphereMesh.new()
+ head_shape.radius=0.30 if kind=="player" else (0.27 if kind=="wolf" else 0.0)
+ head_shape.height=0.59 if kind=="player" else 0.50
+ if kind!="slime":
+  head.mesh=head_shape
+  head.position.y=0.72 if kind=="player" else 0.44
+  head.material_override=_mat(Color("#f2cba8") if kind=="player" else Color("#c0bfce"))
+  target.add_child(head)
+ if kind=="player":
+  var hair:=MeshInstance3D.new()
+  hair.name="HairOrHelmet"
+  var crown:=SphereMesh.new()
+  crown.radius=0.33
+  crown.height=0.26
+  hair.mesh=crown
+  hair.position.y=1.02
+  hair.material_override=_mat(Color("#393459"))
+  target.add_child(hair)
+ if kind=="wolf":
+  for x in [-0.27,0.27]:
+   var ear:=MeshInstance3D.new()
+   var ear_mesh:=BoxMesh.new()
+   ear_mesh.size=Vector3(0.17,0.34,0.18)
+   ear.mesh=ear_mesh
+   ear.position=Vector3(x,0.81,0.0)
+   ear.material_override=_mat(Color("#76849d"))
+   target.add_child(ear)
+ for x in [-0.15,0.15]:
+  var eye:=MeshInstance3D.new()
+  eye.name="GlowingEye"
+  var eye_mesh:=SphereMesh.new()
+  eye_mesh.radius=0.08
+  eye_mesh.height=0.14
+  eye.mesh=eye_mesh
+  eye.position=Vector3(x,0.30 if kind=="slime" else (0.76 if kind=="player" else 0.45),0.53 if kind=="slime" else (0.26 if kind=="player" else 0.35))
+  eye.material_override=_mat(Color("#95fff4") if kind=="slime" else Color("#ffbd7b"))
+  target.add_child(eye)
+ var title:=Label3D.new()
+ title.name="TargetNameInWorld"
+ title.text=caption+"  Lv."+str(level)
+ title.position.y=1.16 if kind=="slime" else 1.57
+ title.font_size=34
+ title.billboard=BaseMaterial3D.BILLBOARD_ENABLED
+ target.add_child(title)
+ test_targets.append(target)
+ return target
+
+func _make_demo_targets() -> void:
+ _build_test_entity(
+  "TestGreenSlime","สไลม์มรกต","slime",4,430.0,80.0,
+  Vector3(-3.2,1.1,-4.0),"res://assets/ui/hud/target_slime.svg",Color("#35ce91"))
+ _build_test_entity(
+  "TestNightWolf","หมาป่าทมิฬ","wolf",9,1760.0,260.0,
+  Vector3(5.3,1.1,-4.0),"res://assets/ui/hud/target_wolf.svg",Color("#5d688a"))
+ _build_test_entity(
+  "TestPlayerAster","Aster [BOT]","player",16,2400.0,1200.0,
+  Vector3(-5.2,1.1,0.2),"res://assets/ui/hud/target_bot_male.svg",Color("#487cb7"))
+ _build_test_entity(
+  "TestPlayerLuna","Luna [BOT]","player",24,3800.0,2250.0,
+  Vector3(5.3,1.1,0.3),"res://assets/ui/hud/target_bot_female.svg",Color("#9c57ab"))
+
+func _spawn_gm_test_entity(kind: String) -> StaticBody3D:
+ if not is_instance_valid(gm_menu) or not gm_menu.active:return null
+ if additional_test_targets.size()>=12:return null
+ if kind!="player" and kind!="monster":return null
+ test_spawn_count+=1
+ var is_player:bool=kind=="player"
+ var variant:String="player" if is_player else ("slime" if test_spawn_count%2==0 else "wolf")
+ var nickname:String=("ผู้เล่นจำลอง %d [BOT]" if is_player else "มอนทดสอบ %d") % test_spawn_count
+ var image:String="target_bot_male.svg" if is_player else ("target_slime.svg" if variant=="slime" else "target_wolf.svg")
+ var x:float=-5.0+float(test_spawn_count%6)*2.0
+ var z:float=character.global_position.z-7.0-float(test_spawn_count/6)*3.0
+ var entity:StaticBody3D=_build_test_entity(
+  "GMTestTarget"+str(test_spawn_count),nickname,variant,18 if is_player else 6,
+  2100.0 if is_player else 900.0,950.0 if is_player else 150.0,
+  Vector3(x,1.1,z),"res://assets/ui/hud/"+image,
+  Color("#547bd0") if is_player else Color("#6ad0b3"))
+ additional_test_targets.append(entity)
+ return entity
+
+func _set_test_target(entity:StaticBody3D) -> void:
+ if not is_instance_valid(entity) or not test_targets.has(entity):return
+ if is_instance_valid(hud_menu):hud_menu.set_target(entity)
+
+func _reset_gm_test_entities() -> void:
+ if not is_instance_valid(gm_menu) or not gm_menu.active:return
+ if is_instance_valid(hud_menu):hud_menu.clear_target()
+ for target in additional_test_targets:
+  test_targets.erase(target)
+  if is_instance_valid(target):target.queue_free()
+ additional_test_targets.clear()
+ for target in test_targets:
+  if not is_instance_valid(target):continue
+  if target.has_meta("max_hp"):target.set_meta("hp",target.get_meta("max_hp"))
+  if target.has_meta("max_mp"):target.set_meta("mp",target.get_meta("max_mp"))
 
 func _toggle_target_lock() -> void:
  if not is_instance_valid(hud_menu) or not is_instance_valid(training_target):return
@@ -204,14 +361,14 @@ func _toggle_target_lock() -> void:
 
 func _select_target_at(screen_point: Vector2) -> bool:
  if not is_instance_valid(hud_menu) or hud_menu.is_gameplay_blocked():return false
- if not is_instance_valid(training_target):return false
- if character.global_position.distance_to(training_target.global_position)>=30.0:return false
  var ray_from:Vector3=camera.project_ray_origin(screen_point)
  var ray_to:Vector3=ray_from+camera.project_ray_normal(screen_point)*100.0
  var query:=PhysicsRayQueryParameters3D.create(ray_from,ray_to)
  var result:Dictionary=get_world_3d().direct_space_state.intersect_ray(query)
- if result.get("collider",null)!=training_target:return false
- hud_menu.set_target(training_target)
+ var selected:StaticBody3D=result.get("collider",null) as StaticBody3D
+ if not is_instance_valid(selected) or not test_targets.has(selected):return false
+ if character.global_position.distance_to(selected.global_position)>30.0:return false
+ hud_menu.set_target(selected)
  return true
 
 func _style(bg: String,border: String) -> StyleBoxFlat:
@@ -276,6 +433,13 @@ func _make_ui() -> void:
  hud.add_child(hud_menu)
  hud_menu.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  hud_menu.call("initialize",self,store,inventory,bag_button)
+ # GM remains a completely separate button. It exists only when the
+ # opt-in landscape TEST page sets gm_test=1; it is not an online role.
+ gm_menu=load("res://scripts/gm_test_panel.gd").new() as Control
+ gm_menu.name="SeparateGMTestUI"
+ hud.add_child(gm_menu)
+ gm_menu.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ gm_menu.call("initialize",self,hud_menu)
  get_viewport().size_changed.connect(func():
   if is_instance_valid(hud_menu): hud_menu.call("_reflow")
  )
@@ -294,6 +458,7 @@ func _refresh() -> void:
   inventory.call("refresh")
 
 func _toggle() -> void:
+ if is_instance_valid(gm_menu) and gm_menu.is_open():gm_menu._close()
  if is_instance_valid(hud_menu) and hud_menu.edit_mode: return
  if is_instance_valid(hud_menu) and hud_menu.popup.visible: hud_menu.call("_hide_popup")
  open = not open
