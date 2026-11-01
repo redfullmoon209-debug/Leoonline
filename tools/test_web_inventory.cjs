@@ -257,7 +257,11 @@ async function swipe(dx,dy){
   if(page&&!page.isClosed()){await snap('web-failure').catch(()=>{});fs.writeFileSync(path.join(out,'failure-state.json'),JSON.stringify(await state().catch(()=>null),null,2));}
  }finally{
   const digest=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
-  const report={package_sha256:digest('build/web/index.pck'),wasm_sha256:digest('build/web/index.wasm'),passed:errors.length===0,checks,errors,engine:'Godot 4.4.1',browser:'Chromium with SwiftShader WebGL2',commit:process.env.GITHUB_SHA||null};
+  // Both ordinary index.* exports and commit-versioned game-<sha>.* exports
+  // must hash the actual Godot files referenced by the tested HTML.
+  const entryHtml=fs.readFileSync('build/web/index.html','utf8');
+  const executable=entryHtml.match(/"executable":"([^"]+)"/)?.[1]||'index';
+  const report={package_sha256:digest(`build/web/${executable}.pck`),wasm_sha256:digest(`build/web/${executable}.wasm`),asset_basename:executable,passed:errors.length===0,checks,errors,engine:'Godot 4.4.1',browser:'Chromium with SwiftShader WebGL2',commit:process.env.GITHUB_SHA||null};
   fs.writeFileSync(path.join(out,'report.json'),JSON.stringify(report,null,2));
   console.log(JSON.stringify(report,null,2));
   if(browser)await browser.close();
