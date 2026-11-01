@@ -1,12 +1,13 @@
 extends PanelContainer
-## LEOONLINE: lightweight flat borders, no oversized decorative wing/diamond frames.
-## Original approved PNGs remain untouched; only item slots/icons use PNG layers.
-## All text and interaction use native localized Godot Controls.
+## LEOONLINE: standalone original matte crimson-and-gold PNGs, 9-slice layered UI.
+## No screenshot crops, no glow effects, no writing baked into PNG textures.
+## The approved originals are unchanged; game data/inputs/translation preserved.
 const Approved = "res://assets/ui/approved/"
 const Icons = "res://assets/ui/inventory/"
+const RedAssets = "res://assets/ui/red_matte/"
 const StoreScript = preload("res://scripts/store.gd")
 const W := 1448.0
-const H := 1086.0
+const H := 910.0
 const MAIN_EQUIPMENT = ["hat", "shirt", "gloves", "pants", "shoes"]
 const RIGHT_EQUIPMENT = ["weapon_right", "weapon_left", "pet", "mount"]
 const JEWELRY = ["bracelet_left", "ring_left", "necklace", "ring_right", "bracelet_right"]
@@ -168,35 +169,50 @@ func _art(name: String, parent: Node, x: float, y: float, w: float, h: float, ap
  _rect(img,x,y,w,h)
  return img
 
-func _flat_style(background: Color, border_color: Color, radius: int = 9) -> StyleBoxFlat:
- var skin := StyleBoxFlat.new()
- skin.bg_color = background
- skin.border_color = border_color
- skin.set_border_width_all(2)
- skin.set_corner_radius_all(radius)
- return skin
+func _red_texture(name: String) -> Texture2D:
+ var p := RedAssets + name + ".png"
+ return load(p) as Texture2D if ResourceLoader.exists(p) else null
 
-func _flat_panel(parent: Node, x: float, y: float, w: float, h: float) -> Panel:
- var panel := Panel.new()
+func _red_panel(parent: Node, x: float, y: float, w: float, h: float, name: String = "inner_panel") -> NinePatchRect:
+ var panel := NinePatchRect.new()
+ panel.name = "RedMattePanel_" + name
+ panel.texture = _red_texture(name)
+ panel.patch_margin_left = 29
+ panel.patch_margin_right = 29
+ panel.patch_margin_top = 29
+ panel.patch_margin_bottom = 29
  panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
- panel.add_theme_stylebox_override("panel",_flat_style(Color("#071c32"),Color("#2d647f"),12))
  parent.add_child(panel)
  _rect(panel,x,y,w,h)
  return panel
 
-func _flat_button(button: Button, active: bool = false, is_close: bool = false) -> void:
- # No ornamental images. These are lightweight native styles, not new PNGs.
- var outline: Color = Color("#e8be76") if active else Color("#3e748e")
- var base: Color = Color("#17364f") if active else Color("#0b2741")
- if is_close:
-  outline = Color("#ad5860")
-  base = Color("#421d2c")
+func _red_style(asset: String, margin_x: float = 24.0, margin_y: float = 14.0) -> StyleBoxTexture:
+ var st := StyleBoxTexture.new()
+ st.texture = _red_texture(asset)
+ st.texture_margin_left = margin_x
+ st.texture_margin_right = margin_x
+ st.texture_margin_top = margin_y
+ st.texture_margin_bottom = margin_y
+ st.content_margin_left = 6
+ st.content_margin_right = 6
+ st.content_margin_top = 3
+ st.content_margin_bottom = 3
+ return st
+
+func _red_button(button: Button, asset: String = "action_button", pager: bool = false) -> void:
+ var x_margin: float = 10.0 if pager else 24.0
+ var y_margin: float = 9.0 if pager else 14.0
  button.flat = false
- button.add_theme_stylebox_override("normal",_flat_style(base,outline,8))
- button.add_theme_stylebox_override("hover",_flat_style(Color("#23506b") if not is_close else Color("#672b35"),Color("#82dbef"),8))
- button.add_theme_stylebox_override("pressed",_flat_style(Color("#1c4764"),Color("#e8be76"),8))
- button.add_theme_stylebox_override("focus",_flat_style(Color("#102d4b"),Color("#82dbef"),8))
- button.add_theme_stylebox_override("disabled",_flat_style(Color("#091728"),Color("#304254"),8))
+ var normal_name: String = asset
+ var hover_name: String = "tab_active" if asset == "tab_idle" else asset
+ button.add_theme_stylebox_override("normal",_red_style(normal_name,x_margin,y_margin))
+ button.add_theme_stylebox_override("hover",_red_style(hover_name,x_margin,y_margin))
+ button.add_theme_stylebox_override("pressed",_red_style("tab_active",x_margin,y_margin))
+ button.add_theme_stylebox_override("disabled",_red_style(normal_name,x_margin,y_margin))
+ button.add_theme_stylebox_override("focus",StyleBoxEmpty.new())
+ button.add_theme_color_override("font_disabled_color",Color("#8b7162"))
+
+
 
 func _label(s: String, parent: Node, x: float, y: float, w: float, h: float, size: int = 17, align: HorizontalAlignment = HORIZONTAL_ALIGNMENT_CENTER, gold: bool = true) -> Label:
  var l := Label.new()
@@ -231,11 +247,11 @@ func _hitbox(parent: Node, x: float,y: float,w: float,h: float, click: Callable)
  return b
 
 func _build() -> void:
- # Remove decorative corner gems, wings and thick fantasy frames.
- # Keep the original PNG files unchanged on disk and preserve functional item slots.
+ # All visual surfaces are original standalone red-matte PNGs.
+ # Nine-patch preserves corners, while native Buttons/Labels stay interactive and translatable.
  mouse_filter = Control.MOUSE_FILTER_STOP
  var backdrop := StyleBoxFlat.new()
- backdrop.bg_color = Color("#020917")
+ backdrop.bg_color = Color(0,0,0,0.17)
  backdrop.set_content_margin_all(0)
  add_theme_stylebox_override("panel",backdrop)
  viewport_wrapper = Control.new()
@@ -252,100 +268,101 @@ func _build() -> void:
  stage.mouse_filter = Control.MOUSE_FILTER_PASS
  scroll_content.add_child(stage)
  _rect(stage,0,0,W,H)
- _flat_panel(stage,68,48,1312,154)
- _label("LEOONLINE",stage,113,55,590,52,33,HORIZONTAL_ALIGNMENT_LEFT)
- var tab_x := [105.0,432.0,746.0,1065.0]
+ _red_panel(stage,23,10,W-46,H-20,"outer_panel")
+ _label("LEOONLINE",stage,491,33,466,52,32)
+ var tab_x := [101.0,407.0,713.0,1019.0]
  var titles := ["Inventory","Character","Skill","Shop"]
  for idx in range(4):
-  var tab := _hitbox(stage,tab_x[idx],105,276,48,_switch_tab.bind(idx))
+  var tab := _hitbox(stage,tab_x[idx],100,278,57,_switch_tab.bind(idx))
   tab.text = _tr(titles[idx])
   tab.set_meta("l10n",titles[idx])
-  _style_text_button(tab,24)
-  _flat_button(tab,idx==current_tab)
+  _style_text_button(tab,23)
+  _red_button(tab,"tab_active" if idx==current_tab else "tab_idle")
   tab_buttons.append(tab)
- language_button = _hitbox(stage,1180,194,180,38,func(): set_language("th" if locale=="en" else "en"))
+ language_button = _hitbox(stage,1257,41,121,41,func(): set_language("th" if locale=="en" else "en"))
  language_button.text = "ไทย / EN"
- _style_text_button(language_button,20)
- _flat_button(language_button)
- _label("LEOONLINE · INVENTORY",stage,400,214,648,38,25)
+ _style_text_button(language_button,17)
+ _red_button(language_button,"action_button")
+ _label("LEOONLINE · INVENTORY",stage,475,165,499,32,22)
  equipment_panel = Control.new()
  equipment_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
  stage.add_child(equipment_panel)
  _rect(equipment_panel,0,0,W,H)
- _flat_panel(equipment_panel,76,279,506,643)
- _label("Equipment",equipment_panel,150,310,350,36,23)
- _art("character_silhouette",equipment_panel,233,360,185,250,false)
+ _red_panel(equipment_panel,72,200,581,566)
+ _label("Equipment",equipment_panel,195,211,330,29,21)
+ _art("character_silhouette",equipment_panel,262,249,211,247,false)
  main_equip_list = Control.new()
  main_equip_list.mouse_filter = Control.MOUSE_FILTER_PASS
  equipment_panel.add_child(main_equip_list)
- _rect(main_equip_list,118,360,64,260)
+ _rect(main_equip_list,122,247,54,278)
  extra_equip_list = Control.new()
  extra_equip_list.mouse_filter = Control.MOUSE_FILTER_PASS
  equipment_panel.add_child(extra_equip_list)
- _rect(extra_equip_list,466,360,64,260)
- _label("Fashion Weapons",equipment_panel,130,621,390,29,19)
+ _rect(extra_equip_list,548,247,54,224)
+ _label("Fashion Weapons",equipment_panel,177,512,370,27,18)
  fashion_weapon_row = HBoxContainer.new()
  fashion_weapon_row.mouse_filter = Control.MOUSE_FILTER_PASS
- fashion_weapon_row.add_theme_constant_override("separation",17)
+ fashion_weapon_row.add_theme_constant_override("separation",18)
  equipment_panel.add_child(fashion_weapon_row)
- _rect(fashion_weapon_row,168,652,139,61)
+ _rect(fashion_weapon_row,179,541,129,55)
  fashion_side_row = HBoxContainer.new()
  fashion_side_row.mouse_filter = Control.MOUSE_FILTER_PASS
- fashion_side_row.add_theme_constant_override("separation",17)
+ fashion_side_row.add_theme_constant_override("separation",18)
  equipment_panel.add_child(fashion_side_row)
- _rect(fashion_side_row,324,652,139,61)
- _label("Accessories",equipment_panel,150,716,350,29,19)
+ _rect(fashion_side_row,357,541,129,55)
+ _label("Accessories",equipment_panel,195,594,330,27,18)
  accessory_row = HBoxContainer.new()
  accessory_row.mouse_filter = Control.MOUSE_FILTER_PASS
- accessory_row.add_theme_constant_override("separation",17)
+ accessory_row.add_theme_constant_override("separation",23)
  equipment_panel.add_child(accessory_row)
- _rect(accessory_row,128,746,373,61)
- _label("Fashion",equipment_panel,150,800,350,29,19)
+ _rect(accessory_row,139,621,374,55)
+ _label("Fashion",equipment_panel,194,675,330,27,18)
  fashion_row = HBoxContainer.new()
  fashion_row.mouse_filter = Control.MOUSE_FILTER_PASS
- fashion_row.add_theme_constant_override("separation",17)
+ fashion_row.add_theme_constant_override("separation",23)
  equipment_panel.add_child(fashion_row)
- _rect(fashion_row,128,830,373,61)
+ _rect(fashion_row,139,701,374,55)
  bag_panel = Control.new()
  bag_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
  stage.add_child(bag_panel)
  _rect(bag_panel,0,0,W,H)
- _flat_panel(bag_panel,705,288,657,406)
- _label("Bag",bag_panel,764,305,230,36,23)
- capacity_text = _label("",bag_panel,1000,305,280,36,18)
+ _red_panel(bag_panel,677,200,698,397)
+ _label("Bag",bag_panel,733,211,228,30,22)
+ capacity_text = _label("",bag_panel,1031,211,300,30,18)
  bag_grid = GridContainer.new()
  bag_grid.mouse_filter = Control.MOUSE_FILTER_PASS
  bag_grid.columns = 10
- bag_grid.add_theme_constant_override("h_separation",2)
- bag_grid.add_theme_constant_override("v_separation",2)
+ bag_grid.add_theme_constant_override("h_separation",6)
+ bag_grid.add_theme_constant_override("v_separation",5)
  bag_panel.add_child(bag_grid)
- _rect(bag_grid,755,350,558,278)
+ _rect(bag_grid,729,249,600,295)
  for i in range(4):
-  var x: float = [776.0,856.0,1170.0,1250.0][i]
-  var button := _hitbox(bag_panel,x,634,60,44,_page_button.bind([0,1,3,4][i]))
+  var x: float = [780.0,854.0,1169.0,1243.0][i]
+  var button := _hitbox(bag_panel,x,546,57,44,_page_button.bind([0,1,3,4][i]))
   button.text = ["<<","<",">",">>"][i]
-  _style_text_button(button,30)
-  _flat_button(button)
+  _style_text_button(button,25)
+  _red_button(button,"pager_button",true)
   page_buttons.append(button)
- page_text = _label("",bag_panel,934,634,220,44,20)
+ page_text = _label("",bag_panel,931,545,224,45,20)
  currency_panel = Control.new()
  currency_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
  bag_panel.add_child(currency_panel)
  _rect(currency_panel,0,0,W,H)
- _flat_panel(currency_panel,704,751,654,184)
+ _red_panel(currency_panel,677,605,698,160)
  for i in range(4):
   var money: String = MONEY[i]
-  var row_y: float = 778.0 + float(i)*31.5
-  _art("icon_"+money,currency_panel,774,row_y,25,25,false)
-  _label(money.capitalize(),currency_panel,806,row_y,120,25,16,HORIZONTAL_ALIGNMENT_LEFT)
-  money_labels[money] = _label("0",currency_panel,921,row_y,322,25,17,HORIZONTAL_ALIGNMENT_RIGHT,false)
-  var cash_button := _hitbox(currency_panel,1249,row_y,45,28,func(): set_notice("Cash Shop is not available yet"))
-  cash_button.text = "+"
-  _style_text_button(cash_button,20)
-  _flat_button(cash_button)
- _flat_panel(stage,79,981,1285,85)
+  var row_y: float = 620.0 + float(i)*34.0
+  _red_panel(currency_panel,717,row_y,621,34,"currency_row")
+  _art("icon_"+money,currency_panel,741,row_y+5,23,23,false)
+  _label(money.capitalize(),currency_panel,773,row_y,118,33,16,HORIZONTAL_ALIGNMENT_LEFT)
+  money_labels[money] = _label("0",currency_panel,944,row_y,297,33,17,HORIZONTAL_ALIGNMENT_RIGHT,false)
+  var money_button := _hitbox(currency_panel,1270,row_y+1,47,32,func(): set_notice("Cash Shop is not available yet"))
+  money_button.text = "+"
+  _style_text_button(money_button,18)
+  _red_button(money_button,"pager_button",true)
+ _red_panel(stage,74,782,1301,104,"inner_panel")
  var foot_names := ["Demo Items","Save","Auto Sort","Trash","Equip","Close"]
- var foot_x := [110.0,324.0,536.0,746.0,959.0,1169.0]
+ var foot_x := [105.0,315.0,525.0,735.0,945.0,1155.0]
  for i in range(6):
   var action: Callable
   match i:
@@ -355,20 +372,21 @@ func _build() -> void:
    3: action = _request_trash
    4: action = _equip_action
    _: action = func(): _hide_details(); close_callback.call()
-  var button := _hitbox(stage,foot_x[i],1008,181,44,action)
+  var button := _hitbox(stage,foot_x[i],807,185,53,action)
   button.text = _tr(foot_names[i])
   button.set_meta("l10n",foot_names[i])
-  _style_text_button(button,19)
-  _flat_button(button,false,i==5)
+  _style_text_button(button,18)
+  _red_button(button,"close_button" if i==5 else "action_button")
   footer_buttons.append(button)
  waiting_panel = Control.new()
  waiting_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
  stage.add_child(waiting_panel)
- _rect(waiting_panel,725,340,600,320)
- waiting_text = _label("",waiting_panel,40,60,520,200,26)
+ _rect(waiting_panel,679,200,693,563)
+ _red_panel(waiting_panel,0,0,693,563)
+ waiting_text = _label("",waiting_panel,39,115,615,180,24)
  waiting_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
  waiting_panel.visible = false
- notice_text = _label("",stage,225,940,1000,33,18)
+ notice_text = _label("",stage,317,750,814,27,16)
  trash_dialog = ConfirmationDialog.new()
  if ui_font != null:
   var dialog_theme := Theme.new()
@@ -382,6 +400,7 @@ func _build() -> void:
    _hide_details()
    trash_dialog.hide()
  )
+
 
 func _style_text_button(button: Button, font_size: int) -> void:
  if ui_font != null: button.add_theme_font_override("font",ui_font)
@@ -407,16 +426,16 @@ func _equip_icon(key: String, active: String) -> String:
  if key.begins_with("bracelet"): return "bracelet"
  return key
 
-func _image_button(parent: Node, x: float,y: float,wh: float, key: String, state: String, height: float = -1.0) -> TextureButton:
+func _image_button(parent: Node, x: float, y: float, wh: float, key: String, state: String, height: float = -1.0) -> TextureButton:
  var b := TextureButton.new()
  b.mouse_filter = Control.MOUSE_FILTER_PASS
  b.ignore_texture_size = true
  b.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
  b.focus_mode = Control.FOCUS_ALL
- # A state replaces the texture, never layers a second ornate frame on top.
- b.texture_normal = _texture("ornate_neon_locked_inventory_slot" if state == "locked" else "ornate_golden_crystal_inventory_slot",true)
- b.set_meta("locked",state == "locked")
- b.self_modulate = Color(0.55,0.85,1.0) if state == "selected" else Color.WHITE
+ # One separate matte-red PNG per slot state, without baked text.
+ var background: String = "slot_locked" if state == "locked" else ("slot_selected" if state == "selected" else "slot_empty")
+ b.texture_normal = _red_texture(background)
+ b.set_meta("locked",state=="locked")
  parent.add_child(b)
  var hh: float = wh if height < 0.0 else height
  _rect(b,x,y,wh,hh)
@@ -430,7 +449,7 @@ func _image_button(parent: Node, x: float,y: float,wh: float, key: String, state
    icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
    icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
    b.add_child(icon)
-   _rect(icon,wh*0.22,hh*0.22,wh*0.56,hh*0.56)
+   _rect(icon,wh*0.18,hh*0.18,wh*0.64,hh*0.64)
  return b
 
 func _clear_container(container: Node) -> void:
@@ -527,8 +546,14 @@ func _switch_tab(index: int) -> void:
 
 func _adapt_layout() -> void:
  if not is_built: return
- # On small screens pan the same composition instead of shrinking tap targets.
- var ratio: float = maxf(0.82,minf(size.x/W,size.y/H))
+ # Desktop / laptop landscape: inventory floats in the middle, about 75% of width.
+ # On narrow touch screens, preserve at least 44px tap targets and allow panning.
+ var desktop: bool = size.x >= 1050.0 and size.y >= 680.0
+ var ratio: float
+ if desktop:
+  ratio = minf(size.x*0.75/W,size.y*0.84/H)
+ else:
+  ratio = maxf(0.82,minf(size.x/W,size.y/H))
  stage.scale = Vector2(ratio,ratio)
  scroll_content.custom_minimum_size = Vector2(W,H)*ratio
  stage.position = Vector2(maxf(0.0,(size.x-W*ratio)*0.5),maxf(0.0,(size.y-H*ratio)*0.5))
@@ -539,7 +564,7 @@ func _adapt_layout() -> void:
   waiting_text.text = _tr("Skills are not available yet" if current_tab==2 else "Shop is not available yet")
  for i in range(tab_buttons.size()):
   tab_buttons[i].add_theme_color_override("font_color",Color.WHITE if i==current_tab else Color("#ffde93"))
-  _flat_button(tab_buttons[i],i==current_tab)
+  _red_button(tab_buttons[i],"tab_active" if i==current_tab else "tab_idle")
  if current_tab != 0:
   _hide_details()
  _layout_details()
@@ -600,28 +625,28 @@ func _confirm_trash() -> void:
  pending_trash_index = -1
 
 func _create_details() -> void:
- # Reserved lower-right area: details replace currency, never cover any slot.
+ # Details replace the currency area, never overlap the item grid or slots.
  detail_panel = PanelContainer.new()
  detail_panel.add_theme_stylebox_override("panel",StyleBoxEmpty.new())
  detail_panel.mouse_filter = Control.MOUSE_FILTER_STOP
  stage.add_child(detail_panel)
- _rect(detail_panel,710,726,648,210)
+ _rect(detail_panel,680,605,692,160)
  detail_content = Control.new()
  var content := detail_content
  detail_panel.add_child(content)
- detail_art = _flat_panel(content,0,0,648,210)
- detail_icon = _art("",content,105,65,62,62,false)
+ detail_art = _red_panel(content,0,0,692,160)
+ detail_icon = _art("",content,108,48,58,58,false)
  detail_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
- detail_heading = _label("",content,180,42,355,33,20,HORIZONTAL_ALIGNMENT_LEFT)
- detail_description = _label("",content,180,78,355,85,16,HORIZONTAL_ALIGNMENT_LEFT,false)
+ detail_heading = _label("",content,184,18,385,30,20,HORIZONTAL_ALIGNMENT_LEFT)
+ detail_description = _label("",content,184,49,385,90,16,HORIZONTAL_ALIGNMENT_LEFT,false)
  detail_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
  detail_description.vertical_alignment = VERTICAL_ALIGNMENT_TOP
  detail_description.clip_text = true
- var dismiss := _hitbox(content,520,38,48,40,_hide_details)
+ var dismiss := _hitbox(content,620,19,47,43,_hide_details)
  detail_dismiss = dismiss
- dismiss.text = "×"
- _style_text_button(dismiss,26)
- _flat_button(dismiss)
+ dismiss.text = "X"
+ _style_text_button(dismiss,20)
+ _red_button(dismiss,"close_button",true)
  detail_panel.visible = false
 
 func _show_details(item: String, equipment_key: String = "", locked: bool = false) -> void:
@@ -663,31 +688,32 @@ func _hide_details() -> void:
 
 func _layout_details() -> void:
  if not is_instance_valid(detail_panel): return
- var compact: bool = size.x < 1000 or size.y < 700
- var dock_height: float = minf(280.0,size.y*0.6) if compact and detail_panel.visible else 0.0
+ var compact: bool = size.x < 1050.0 or size.y < 680.0
+ var dock_height: float = minf(270.0,size.y*0.6) if compact and detail_panel.visible else 0.0
  _rect(scroller,0,0,size.x,maxf(0.0,size.y-dock_height))
  var target: Node = viewport_wrapper if compact else stage
- if detail_panel.get_parent() != target: detail_panel.reparent(target,false)
+ if detail_panel.get_parent() != target:
+  detail_panel.reparent(target,false)
  if compact:
-  var dw: float = minf(648.0,size.x)
+  var dw: float = minf(692.0,size.x)
   var dh: float = maxf(210.0,dock_height)
   _rect(detail_panel,(size.x-dw)*0.5,size.y-dh,dw,dh)
   _rect(detail_art,0,0,dw,dh)
-  var left: float = dw*0.17
-  var text_x: float = left+57.0
-  var text_width: float = dw*0.83-text_x
-  _rect(detail_icon,left,dh*0.32,48,48)
-  _rect(detail_heading,text_x,dh*0.19,text_width,52)
+  var left: float = dw*0.12
+  var text_x: float = left+58.0
+  var text_width: float = maxf(80.0,dw*0.87-text_x)
+  _rect(detail_icon,left,dh*0.31,48,48)
+  _rect(detail_heading,text_x,dh*0.16,text_width,52)
   detail_heading.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-  _rect(detail_description,text_x,dh*0.19+54,text_width,dh*0.64-54)
-  _rect(detail_dismiss,dw*0.82-22,dh*0.19,44,44)
+  _rect(detail_description,text_x,dh*0.16+57,text_width,dh*0.68-57)
+  _rect(detail_dismiss,dw*0.87,dh*0.11,44,44)
  else:
-  _rect(detail_panel,710,726,648,210)
-  _rect(detail_art,0,0,648,210)
-  _rect(detail_icon,105,65,62,62)
-  _rect(detail_heading,180,42,355,33)
-  _rect(detail_description,180,78,355,85)
-  _rect(detail_dismiss,520,38,48,40)
+  _rect(detail_panel,680,605,692,160)
+  _rect(detail_art,0,0,692,160)
+  _rect(detail_icon,108,48,58,58)
+  _rect(detail_heading,184,18,385,30)
+  _rect(detail_description,184,49,385,90)
+  _rect(detail_dismiss,620,19,47,43)
 
 func _notification(what: int) -> void:
  if what==NOTIFICATION_RESIZED and is_built: _adapt_layout()
