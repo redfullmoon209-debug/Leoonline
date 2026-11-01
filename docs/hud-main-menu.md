@@ -19,20 +19,31 @@ under Inventory:
 
 The original Inventory button is preserved as the first of **ten compact
 icons in exactly one horizontal row** (Inventory, Map, Party, Friends, Ranking,
-Settings, Guild, Quests, Mail, Events). The menu row fits between a **live
-character status panel in the top-left corner** and a **clickable circular
-minimap at top-right** on PC. On a narrow phone, character and minimap occupy
-the first line, the ten smaller icons share a separate second line, and the
-honest target-info panel remains centered just below them. No icon wraps into
-multiple rows or overlaps the minimap.
+Settings, Guild, Quests, Mail, Events). On LANDSCAPE screens the compact icon row sits between the left player panel
+and the right minimap, with the target card directly below the caption line.
+On PORTRAIT screens all ten icons are moved to the VERY TOP as ONE horizontal
+row. Immediately beneath their captions the character is on the LEFT, the
+live target is in the CENTER and the minimap is on the RIGHT, forming a single
+aligned second row. The layout is responsive down to a 320px-wide phone.
 
 The ten **standalone transparent 256x256 PNG files** are in
 assets/ui/hud/premium/. Every PNG is individually rendered from its OWN
-original SVG illustration and an independently authored ornamental frame.
+original SVG illustration and ornamental icon frame. The old gold-red
+text-nameplate base was REMOVED FROM THE VECTOR SOURCE before regenerating
+each PNG: the game never crops an image or hides the plate behind a patch.
+Live localized Thai/English labels are shown BELOW the complete icon and
+drawn in warm white with a black outline, minimum font size 10 on phones.
+Short labels avoid tiny text; the full menu name stays in the tooltip.
 The reproducible authoring source is tools/build_premium_hud_png.py. Nothing
 is cropped from the approved mockup, another PNG, screenshot or a sprite
 sheet. Text labels and number/order belong to Godot controls, not baked
 into the PNGs. The original B keyboard shortcut still opens Inventory.
+
+Both player and target cards now use clean dark-red surfaces with a single
+gold outer border. Decorative internal separator lines are removed, while
+the target's independently rendered portrait medallion remains. On narrow
+portrait screens the HP/MP text shows the exact numeric values in compact
+form to remain readable; the progress bars retain the true percent fills.
 
 The **center target panel** shows "no selected target" until the actual
 targeting system provides a target. When a valid target Node3D is supplied
@@ -83,7 +94,7 @@ and T (target toggle) remain.
 5. Tap the editor's ย้ายแถบเครื่องมือขึ้น / ลง button to move the toolbar
    between the top and bottom edges, exposing controls underneath it.
 6. Press บันทึก to save, ยกเลิก to cancel the session, or ค่าเดิม to reset it.
-7. Settings also includes the restore-defaults action outside the editor.
+7. Settings also includes the restore-defaults action outside the editor. Layout version 4 migrates old icon positions to the new portrait-first layout without discarding custom action-button/joystick placements.
 
 Positions are saved in normalized screen coordinates, clamped on resize so
 controls do not become inaccessible. User preferences are separate from the

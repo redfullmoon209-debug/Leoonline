@@ -1,7 +1,7 @@
 name: Build individually authored premium HUD PNG icons
 on:
   push:
-    branches: [main, feat/mobile-target-button-20261102]
+    branches: [main]
     paths:
       - 'tools/build_premium_hud_png.py'
       - '.github/workflows/render-premium-hud-png.yml'
