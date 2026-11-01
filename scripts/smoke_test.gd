@@ -48,7 +48,12 @@ func validate() -> void:
  check(ui._red_texture("slot_empty") != null,"Matte red slot texture loaded")
  check(ui.tab_buttons[0].get_child_count() >= 1,"Menu buttons keep independent PNG icon layers")
  check(ui.tab_buttons.size()==5 and ui.footer_buttons.size()==6 and ui.page_buttons.size()==4,"Five functional tabs and original footer/pagination buttons preserved")
- check(ui.tab_buttons[0].position==Vector2(70,100) and ui.tab_buttons[4].position==Vector2(1170,100),"Five tabs fit the original top row")
+ check(ui.tab_buttons[0].position==Vector2(104,100) and ui.tab_buttons[4].position==Vector2(1112,100),"Five tabs are centered with equal 104px outer margins")
+ check(is_equal_approx(ui.tab_buttons[0].position.x,1448.0-(ui.tab_buttons[4].position.x+ui.tab_buttons[4].size.x)),"Top navigation has symmetric left/right margins")
+ for i in range(1,5):
+  check(ui.tab_buttons[i].size==ui.tab_buttons[0].size,"All five top buttons have identical sizes")
+  check(is_equal_approx(ui.tab_buttons[i].position.x-ui.tab_buttons[i-1].position.x,252.0),"All five top buttons have identical 20px gaps")
+ check(ui.tab_buttons[4].position.x+ui.tab_buttons[4].size.x<1400.0,"Storage button never touches the golden outer frame")
  check(ui.footer_buttons[0].position==Vector2(105,807),"Footer button locations unchanged")
  check(ui.bag_grid.position==Vector2(729,249),"Bag grid location unchanged")
  var source_frames := 0
@@ -261,6 +266,8 @@ func validate() -> void:
  check(ui.storage_grid.columns==10 and ui.storage_grid.get_child_count()==50,"Storage grid is 10 columns by 5 rows")
  check(store.storage_slots.size()==200 and ui.storage_page_buttons.size()==4,"Storage has 200 cells in 4 pages")
  check(ui.tab_buttons.size()==5 and ui.footer_buttons.size()==6,"Storage keeps all five top tabs and six footer controls")
+ check(ui.storage_item_view_button.visible and ui.storage_money_view_button.visible,"Storage shows both Items and Money subviews without a separate HUD icon")
+ check(ui.storage_money_panel.get_parent()==ui.storage_panel,"Vault money belongs to the existing Storage view")
  for child in ui.storage_grid.get_children():
   check(child is TextureButton and child.texture_normal==ui._red_texture("slot_empty"),"Storage slots use the same existing inventory PNG")
  store.slots.fill("")
@@ -317,6 +324,76 @@ func validate() -> void:
  ui.set_language("th")
  check(ui.tab_buttons[4].text=="คลังเก็บของ","Storage top tab translates to Thai")
  check(ui.storage_deposit_button.text=="ฝากของ" and ui.storage_withdraw_button.text=="ถอนของ","Thai storage actions are localized")
+ # Financial vault is a real second ledger for each of the four 21-digit
+ # money types. Test on Godot itself to avoid JS Number precision errors.
+ var original_wallet: Dictionary = store.currency.duplicate(true)
+ var original_bank: Dictionary = store.storage_currency.duplicate(true)
+ var max_exact: String = store.MAX_MONEY
+ for kind in ["gold","blue","purple","green"]:
+  store.currency[kind] = max_exact
+  store.storage_currency[kind] = "0"
+ store.changed.emit()
+ await click(ui.storage_money_view_button)
+ check(ui.storage_money_mode and ui.storage_money_panel.visible and not ui.storage_grid.visible,"Money subview replaces item slots on the left, never the player bag on the right")
+ check(ui.bag_panel.visible and ui.bag_panel.position==Vector2.ZERO,"The original right-side bag and its four wallet balances stay visible")
+ check(ui.storage_money_currency_buttons.size()==4 and ui.storage_money_wallet_labels.size()==4 and ui.storage_money_vault_labels.size()==4,"Bank supports four independent currencies without PNG crops")
+ check(ui.storage_money_amount_input.max_length==21,"Money input prevents more than 21 typed characters")
+ check(not store.deposit_money("gold","0") and not store.withdraw_money("gold","-1"),"Zero and negative transfers are rejected")
+ for invalid in ["", "0", "-1", "1.2", "1e3", "1,000", "1000000000000000000000"]:
+  check(not store.deposit_money("gold",invalid),"Invalid or over-limit currency input is rejected without changing balances")
+ check(not store.deposit_money("invalid","1"),"Unknown currency identifier is rejected")
+ for kind in ["gold","blue","purple","green"]:
+  ui._choose_storage_money(kind)
+  check(ui.storage_money_kind==kind,"Bank row selects currency "+kind)
+  ui.storage_money_amount_input.text = max_exact
+  ui._refresh_storage_money()
+  check(not ui.storage_money_deposit_button.disabled,"Deposit enabled for exact max "+kind)
+  await click(ui.storage_money_deposit_button)
+  check(store.currency[kind]=="0" and store.storage_currency[kind]==max_exact,"Deposit moves exact 21 digits wallet to vault for "+kind)
+  check(ui.storage_money_vault_labels[kind].text.contains("999,999,999,999,999,999,999"),"Bank UI formats exact 21 digits for "+kind)
+  check(not store.deposit_money(kind,"1"),"Empty wallet cannot deposit more "+kind)
+  ui.storage_money_amount_input.text = max_exact
+  ui._refresh_storage_money()
+  check(not ui.storage_money_withdraw_button.disabled,"Withdraw enabled for exact max "+kind)
+  await click(ui.storage_money_withdraw_button)
+  check(store.currency[kind]==max_exact and store.storage_currency[kind]=="0","Withdrawal returns exact 21 digits without duplication for "+kind)
+  check(not store.withdraw_money(kind,"1"),"Empty vault cannot withdraw more "+kind)
+ # Reject overflow on either destination and preserve both ledgers unchanged.
+ store.currency.gold="1"
+ store.storage_currency.gold=max_exact
+ check(not store.deposit_money("gold","1"),"Full storage wallet transfer rejects vault overflow")
+ check(store.currency.gold=="1" and store.storage_currency.gold==max_exact,"Vault overflow does not destroy wallet or vault money")
+ store.currency.gold=max_exact
+ store.storage_currency.gold="1"
+ check(not store.withdraw_money("gold","1"),"Full wallet transfer rejects destination overflow")
+ check(store.currency.gold==max_exact and store.storage_currency.gold=="1","Wallet overflow leaves both balances intact")
+ store.currency.gold="1234"
+ store.storage_currency.gold="0"
+ store.changed.emit()
+ ui._choose_storage_money("gold")
+ ui._storage_money_fill_all(false)
+ check(ui.storage_money_amount_input.text=="1234","All-wallet button fills exact remaining wallet amount")
+ await click(ui.storage_money_deposit_button)
+ check(store.currency.gold=="0" and store.storage_currency.gold=="1234","All-wallet deposit transfers only the selected currency")
+ var saved_bank_file := FileAccess.open("user://leoonline.json",FileAccess.READ)
+ var saved_bank_data: Variant = JSON.parse_string(saved_bank_file.get_as_text()) if saved_bank_file!=null else null
+ check(saved_bank_data is Dictionary and saved_bank_data.has("storage_currency") and saved_bank_data["storage_currency"]["gold"]=="1234","Storage money and wallet persist together in the existing save")
+ store.currency.gold="7"
+ store.storage_currency.gold="9"
+ store.load_data()
+ check(store.currency.gold=="0" and store.storage_currency.gold=="1234","Loading save recovers both money ledgers exactly")
+ ui._storage_money_fill_all(true)
+ check(ui.storage_money_amount_input.text=="1234","All-vault button fills exact stored amount")
+ await click(ui.storage_money_withdraw_button)
+ check(store.currency.gold=="1234" and store.storage_currency.gold=="0","All-vault withdrawal restores wallet money")
+ ui.set_language("en")
+ check(ui.storage_money_deposit_button.text=="Deposit money" and ui.storage_money_withdraw_button.text=="Withdraw money","Bank actions switch to English without changing PNGs")
+ ui.set_language("th")
+ check(ui.storage_money_deposit_button.text=="ฝากเงิน" and ui.storage_money_withdraw_button.text=="ถอนเงิน","Bank actions switch to Thai without changing PNGs")
+ await click(ui.storage_item_view_button)
+ check(not ui.storage_money_mode and ui.storage_grid.visible and not ui.storage_money_panel.visible,"Item storage view remains usable after banking")
+ store.currency=original_wallet.duplicate(true)
+ store.storage_currency=original_bank.duplicate(true)
  store.slots=bag_before_storage
  store.storage_slots=vault_before_storage
  store.selected=-1

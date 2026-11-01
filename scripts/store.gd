@@ -53,6 +53,8 @@ var storage_slots: Array = []
 var storage_selected: int = -1
 var equipped: Dictionary = {}
 var currency: Dictionary = {"gold":"0","blue":"0","purple":"0","green":"0"}
+# Four independent exact-decimal 21-digit vault balances; never use floats/ints for funds.
+var storage_currency: Dictionary = {"gold":"0","blue":"0","purple":"0","green":"0"}
 var profile: Dictionary = PROFILE_DEFAULTS.duplicate(true)
 var unlocked := 40
 var selected := -1
@@ -331,6 +333,55 @@ func add_currency(kind: String,amount: String) -> void:
  changed.emit()
  save_data()
 
+func normalized_transfer_amount(raw: String) -> String:
+ # Reject non-ASCII digits, zero, fractions, signs and amounts above 21 digits.
+ # Never convert 21-digit balances to an int, float or JavaScript Number.
+ var value: String = raw.strip_edges()
+ if value.is_empty(): return ""
+ for digit in value:
+  if digit < "0" or digit > "9": return ""
+ value = decimal(value)
+ if value == "0" or compare(value,MAX_MONEY) > 0: return ""
+ return value
+
+func deposit_money(kind: String, amount: String) -> bool:
+ return _move_currency_to_storage(kind,amount,false)
+
+func withdraw_money(kind: String, amount: String) -> bool:
+ return _move_currency_to_storage(kind,amount,true)
+
+func _move_currency_to_storage(kind: String, amount_text: String, withdraw: bool) -> bool:
+ # Atomic money transfer between wallet and vault. Both balances are saved
+ # in the existing player save and rolled back together on a failed save.
+ if not currency.has(kind) or not storage_currency.has(kind):
+  notice.emit("Invalid currency")
+  return false
+ var amount: String = normalized_transfer_amount(amount_text)
+ if amount.is_empty():
+  notice.emit("Enter a valid money amount")
+  return false
+ var origin: Dictionary = storage_currency if withdraw else currency
+ var target: Dictionary = currency if withdraw else storage_currency
+ var before_origin: String = str(origin[kind])
+ var before_target: String = str(target[kind])
+ if compare(before_origin,amount) < 0:
+  notice.emit("Not enough stored money" if withdraw else "Not enough wallet money")
+  return false
+ var after_target: String = add_decimal(before_target,amount)
+ if compare(after_target,MAX_MONEY) > 0:
+  notice.emit("Wallet money limit reached" if withdraw else "Storage money limit reached")
+  return false
+ origin[kind] = subtract_decimal(before_origin,amount)
+ target[kind] = after_target
+ if not save_data():
+  origin[kind] = before_origin
+  target[kind] = before_target
+  notice.emit("Save failed")
+  return false
+ changed.emit()
+ notice.emit("Money withdrawn" if withdraw else "Money deposited")
+ return true
+
 func pretty(value: String) -> String:
  var output := ""
  for i in range(value.length()):
@@ -342,7 +393,7 @@ func pretty(value: String) -> String:
 const WEB_SAVE_KEY = "leoonline_save_v1"
 
 func save_data() -> bool:
- var data := {"slots":slots,"storage_slots":storage_slots,"equipped":equipped,"currency":currency,"unlocked":unlocked,"online":seconds_online,"reward":next_reward,"profile":profile}
+ var data := {"slots":slots,"storage_slots":storage_slots,"storage_currency":storage_currency,"equipped":equipped,"currency":currency,"unlocked":unlocked,"online":seconds_online,"reward":next_reward,"profile":profile}
  var payload: String = JSON.stringify(data)
  var file_saved: bool = false
  var file := FileAccess.open("user://leoonline.json",FileAccess.WRITE)
@@ -395,6 +446,22 @@ func load_data() -> void:
  for key in currency.keys():
   var value := decimal(str(saved.get(key,"0")))
   currency[key] = MAX_MONEY if compare(value,MAX_MONEY) > 0 else value
+ # Legacy saves contain no storage_currency; initialize each vault currency to 0.
+ # Ignore malformed entries rather than silently inventing or duplicating money.
+ var bank_saved: Variant = data.get("storage_currency",{})
+ for key in storage_currency.keys():
+  var value: String = "0"
+  if bank_saved is Dictionary:
+   var candidate: Variant = bank_saved.get(key,"0")
+   if candidate is String and not candidate.is_empty():
+    var valid: bool = true
+    for digit in candidate:
+     if digit < "0" or digit > "9":
+      valid = false
+      break
+    if valid:
+     value = decimal(candidate)
+  storage_currency[key] = MAX_MONEY if compare(value,MAX_MONEY) > 0 else value
  unlocked = clampi(int(data.get("unlocked",40)),40,CAPACITY)
  seconds_online = maxf(0.0,float(data.get("online",0.0)))
  next_reward = maxf(18000.0,float(data.get("reward",18000.0)))

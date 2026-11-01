@@ -21,6 +21,26 @@ const MONEY = ["gold", "blue", "purple", "green"]
 const LABELS = {
  "Storage":"คลังเก็บของ",
  "Storage & Inventory":"คลังและกระเป๋า",
+ "Items":"ไอเทม",
+ "Money":"เงิน",
+ "Vault Money":"เงินในคลัง",
+ "Wallet":"กระเป๋า",
+ "Vault":"คลัง",
+ "Amount":"จำนวนเงิน",
+ "Enter amount":"ระบุจำนวนเงิน (ตัวเลขเท่านั้น)",
+ "All wallet":"ทั้งหมดในกระเป๋า",
+ "All vault":"ทั้งหมดในคลัง",
+ "Deposit money":"ฝากเงิน",
+ "Withdraw money":"ถอนเงิน",
+ "Choose a currency and enter amount":"เลือกสกุลเงินและระบุจำนวนที่จะฝากหรือถอน",
+ "Enter a valid money amount":"กรุณาระบุจำนวนเงินที่ถูกต้อง",
+ "Invalid currency":"สกุลเงินไม่ถูกต้อง",
+ "Not enough wallet money":"เงินในกระเป๋าไม่เพียงพอ",
+ "Not enough stored money":"เงินในคลังไม่เพียงพอ",
+ "Wallet money limit reached":"ยอดเงินในกระเป๋าถึงจำนวนสูงสุด",
+ "Storage money limit reached":"ยอดเงินในคลังถึงจำนวนสูงสุด",
+ "Money deposited":"ฝากเงินเข้าคลังสำเร็จ",
+ "Money withdrawn":"ถอนเงินจากคลังสำเร็จ",
  "Storage Capacity":"ช่องคลัง",
  "Deposit":"ฝากของ",
  "Withdraw":"ถอนของ",
@@ -202,6 +222,18 @@ var storage_info_label: Label
 var storage_page_buttons: Array[Button] = []
 var storage_deposit_button: Button
 var storage_withdraw_button: Button
+var storage_item_view_button: Button
+var storage_money_view_button: Button
+var storage_money_panel: Control
+var storage_money_mode: bool = false
+var storage_money_kind: String = "gold"
+var storage_money_currency_buttons: Dictionary = {}
+var storage_money_wallet_labels: Dictionary = {}
+var storage_money_vault_labels: Dictionary = {}
+var storage_money_amount_input: LineEdit
+var storage_money_deposit_button: Button
+var storage_money_withdraw_button: Button
+var storage_money_notice: Label
 var equipment_panel: Control
 var bag_panel: Control
 var waiting_panel: Control
@@ -453,11 +485,18 @@ func _build() -> void:
  _red_aura(stage,170,85,1110,670,0.10)
  _white_red_glint(stage,515,88,422,3)
  _label("LEOONLINE",stage,491,33,466,52,32)
- var tab_x := [70.0,345.0,620.0,895.0,1170.0]
+ # Center five equal-size tabs in the 1448px artboard; 104px space per side.
+ # Don't crop or scale the existing tab PNG: StyleBoxTexture 9-slicing is retained.
+ var tab_width: float = 232.0
+ var tab_gap: float = 20.0
+ var tab_count: int = 5
+ var tab_total: float = float(tab_count)*tab_width+float(tab_count-1)*tab_gap
+ var tab_left: float = (W-tab_total)*0.5
  var titles := ["Inventory","Character","Skill","Shop","Storage"]
  var tab_icons := ["inventory","character","skill","shop","storage"]
- for idx in range(5):
-  var tab := _hitbox(stage,tab_x[idx],100,250,57,_switch_tab.bind(idx))
+ for idx in range(tab_count):
+  var tab_x: float = tab_left+float(idx)*(tab_width+tab_gap)
+  var tab := _hitbox(stage,tab_x,100,tab_width,57,_switch_tab.bind(idx))
   tab.text = _tr(titles[idx])
   tab.set_meta("l10n",titles[idx])
   _style_text_button(tab,23)
@@ -711,8 +750,20 @@ func _make_storage_panel() -> void:
  _rect(storage_panel,0,0,W,H)
  _red_aura(storage_panel,164,274,405,321,0.105)
  _white_red_glint(storage_panel,191,207,330,2)
- _label("Storage",storage_panel,116,214,234,33,24,HORIZONTAL_ALIGNMENT_LEFT)
- storage_capacity_label = _label("",storage_panel,381,216,237,28,17,HORIZONTAL_ALIGNMENT_RIGHT)
+ _label("Storage",storage_panel,109,214,164,33,22,HORIZONTAL_ALIGNMENT_LEFT)
+ storage_item_view_button = _hitbox(storage_panel,282,210,111,40,_switch_storage_view.bind(false))
+ storage_item_view_button.name = "StorageItemsView"
+ storage_item_view_button.text = _tr("Items")
+ storage_item_view_button.set_meta("l10n","Items")
+ _style_text_button(storage_item_view_button,17)
+ _red_button(storage_item_view_button,"tab_active")
+ storage_money_view_button = _hitbox(storage_panel,404,210,112,40,_switch_storage_view.bind(true))
+ storage_money_view_button.name = "StorageMoneyView"
+ storage_money_view_button.text = _tr("Money")
+ storage_money_view_button.set_meta("l10n","Money")
+ _style_text_button(storage_money_view_button,17)
+ _red_button(storage_money_view_button,"tab_idle")
+ storage_capacity_label = _label("",storage_panel,528,216,106,28,16,HORIZONTAL_ALIGNMENT_RIGHT)
  storage_grid = GridContainer.new()
  storage_grid.name = "StorageGrid"
  storage_grid.columns = 10
@@ -742,7 +793,134 @@ func _make_storage_panel() -> void:
  storage_withdraw_button.set_meta("l10n","Withdraw")
  _style_text_button(storage_withdraw_button,20)
  _red_button(storage_withdraw_button,"action_button")
+ _make_storage_money_panel()
  storage_panel.visible = false
+
+func _make_storage_money_panel() -> void:
+ # Separate money view in the LEFT Storage region; player bag and 4 wallet
+ # balances stay on the RIGHT. Built with actual controls and original icons.
+ storage_money_panel = Control.new()
+ storage_money_panel.name = "StorageMoneyPanel"
+ storage_money_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+ storage_panel.add_child(storage_money_panel)
+ _rect(storage_money_panel,0,0,W,H)
+ _red_aura(storage_money_panel,132,270,480,360,0.085)
+ _label("Vault Money",storage_money_panel,104,257,536,31,20)
+ for i in range(MONEY.size()):
+  var kind: String = MONEY[i]
+  var top: float = 294.0+float(i)*65.0
+  var row := _hitbox(storage_money_panel,107,top,165,54,_choose_storage_money.bind(kind))
+  row.name = "MoneySelect_"+kind
+  row.text = _tr(kind.capitalize())
+  row.set_meta("l10n",kind.capitalize())
+  _style_text_button(row,16)
+  _red_button(row,"tab_active" if kind==storage_money_kind else "tab_idle")
+  _art("icon_"+kind,row,9,12,28,28,false)
+  storage_money_currency_buttons[kind] = row
+  storage_money_wallet_labels[kind] = _label("",storage_money_panel,285,top+1,337,25,15,HORIZONTAL_ALIGNMENT_LEFT,false)
+  storage_money_vault_labels[kind] = _label("",storage_money_panel,285,top+28,337,25,15,HORIZONTAL_ALIGNMENT_LEFT,false)
+  if i < MONEY.size()-1: _fine_separator(storage_money_panel,107,top+59,516)
+ _label("Amount",storage_money_panel,111,560,111,42,18,HORIZONTAL_ALIGNMENT_LEFT)
+ storage_money_amount_input = LineEdit.new()
+ storage_money_amount_input.name = "StorageMoneyAmount"
+ storage_money_amount_input.placeholder_text = _tr("Enter amount")
+ storage_money_amount_input.max_length = 21
+ storage_money_amount_input.add_theme_font_size_override("font_size",17)
+ storage_money_amount_input.add_theme_color_override("font_color",Color("#fff5da"))
+ storage_money_amount_input.add_theme_color_override("font_placeholder_color",Color("#bba58e"))
+ if ui_font != null: storage_money_amount_input.add_theme_font_override("font",ui_font)
+ var amount_bg := StyleBoxFlat.new()
+ amount_bg.bg_color = Color("#240009")
+ amount_bg.border_color = Color("#a97930")
+ amount_bg.set_border_width_all(1)
+ amount_bg.set_corner_radius_all(3)
+ amount_bg.set_content_margin_all(7)
+ storage_money_amount_input.add_theme_stylebox_override("normal",amount_bg)
+ storage_money_panel.add_child(storage_money_amount_input)
+ _rect(storage_money_amount_input,238,560,385,43)
+ storage_money_amount_input.text_changed.connect(func(_value: String): _refresh_storage_money())
+ var all_wallet := _hitbox(storage_money_panel,111,612,231,39,_storage_money_fill_all.bind(false))
+ all_wallet.name = "AllWalletMoney"
+ all_wallet.text = _tr("All wallet")
+ all_wallet.set_meta("l10n","All wallet")
+ _style_text_button(all_wallet,16)
+ _red_button(all_wallet,"action_button")
+ var all_vault := _hitbox(storage_money_panel,372,612,231,39,_storage_money_fill_all.bind(true))
+ all_vault.name = "AllVaultMoney"
+ all_vault.text = _tr("All vault")
+ all_vault.set_meta("l10n","All vault")
+ _style_text_button(all_vault,16)
+ _red_button(all_vault,"action_button")
+ storage_money_deposit_button = _hitbox(storage_money_panel,111,665,231,54,_transfer_storage_money.bind(false))
+ storage_money_deposit_button.name = "DepositMoney"
+ storage_money_deposit_button.text = _tr("Deposit money")
+ storage_money_deposit_button.set_meta("l10n","Deposit money")
+ _style_text_button(storage_money_deposit_button,18)
+ _red_button(storage_money_deposit_button,"action_button")
+ storage_money_withdraw_button = _hitbox(storage_money_panel,372,665,231,54,_transfer_storage_money.bind(true))
+ storage_money_withdraw_button.name = "WithdrawMoney"
+ storage_money_withdraw_button.text = _tr("Withdraw money")
+ storage_money_withdraw_button.set_meta("l10n","Withdraw money")
+ _style_text_button(storage_money_withdraw_button,18)
+ _red_button(storage_money_withdraw_button,"action_button")
+ storage_money_notice = _label("Choose a currency and enter amount",storage_money_panel,99,724,542,39,15)
+ storage_money_notice.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+ storage_money_panel.visible = false
+
+func _switch_storage_view(money_view: bool) -> void:
+ _hide_details()
+ storage_money_mode = money_view
+ if is_instance_valid(storage_money_notice):
+  storage_money_notice.text = _tr("Choose a currency and enter amount")
+ _refresh_storage_money()
+
+func _choose_storage_money(kind: String) -> void:
+ if not MONEY.has(kind): return
+ storage_money_kind = kind
+ storage_money_amount_input.text = ""
+ storage_money_notice.text = _tr("Choose a currency and enter amount")
+ _refresh_storage_money()
+
+func _storage_money_fill_all(from_vault: bool) -> void:
+ var values: Dictionary = game_store.get("storage_currency") if from_vault else game_store.get("currency")
+ var value: String = str(values.get(storage_money_kind,"0"))
+ storage_money_amount_input.text = "" if value=="0" else value
+ _refresh_storage_money()
+
+func _transfer_storage_money(withdraw: bool) -> void:
+ var method: String = "withdraw_money" if withdraw else "deposit_money"
+ if bool(game_store.call(method,storage_money_kind,storage_money_amount_input.text)):
+  storage_money_amount_input.text = ""
+ _refresh_storage_money()
+
+func _refresh_storage_money() -> void:
+ if not is_instance_valid(storage_money_panel) or game_store == null: return
+ storage_money_panel.visible = storage_money_mode
+ storage_grid.visible = not storage_money_mode
+ storage_capacity_label.visible = not storage_money_mode
+ storage_page_label.visible = not storage_money_mode
+ storage_info_label.visible = not storage_money_mode
+ storage_deposit_button.visible = not storage_money_mode
+ storage_withdraw_button.visible = not storage_money_mode
+ for page_button in storage_page_buttons: page_button.visible = not storage_money_mode
+ _red_button(storage_item_view_button,"tab_idle" if storage_money_mode else "tab_active")
+ _red_button(storage_money_view_button,"tab_active" if storage_money_mode else "tab_idle")
+ var wallet: Dictionary = game_store.get("currency")
+ var vault: Dictionary = game_store.get("storage_currency")
+ for kind in MONEY:
+  storage_money_wallet_labels[kind].text = _tr("Wallet")+": "+str(game_store.call("pretty",str(wallet.get(kind,"0"))))
+  storage_money_vault_labels[kind].text = _tr("Vault")+": "+str(game_store.call("pretty",str(vault.get(kind,"0"))))
+  _red_button(storage_money_currency_buttons[kind],"tab_active" if kind==storage_money_kind else "tab_idle")
+ var amount: String = str(game_store.call("normalized_transfer_amount",storage_money_amount_input.text))
+ var valid: bool = not amount.is_empty()
+ if valid:
+  var wallet_amount: String = str(wallet.get(storage_money_kind,"0"))
+  var vault_amount: String = str(vault.get(storage_money_kind,"0"))
+  storage_money_deposit_button.disabled = game_store.call("compare",wallet_amount,amount)<0 or game_store.call("compare",game_store.call("add_decimal",vault_amount,amount),StoreScript.MAX_MONEY)>0
+  storage_money_withdraw_button.disabled = game_store.call("compare",vault_amount,amount)<0 or game_store.call("compare",game_store.call("add_decimal",wallet_amount,amount),StoreScript.MAX_MONEY)>0
+ else:
+  storage_money_deposit_button.disabled = true
+  storage_money_withdraw_button.disabled = true
 
 func open_storage() -> void:
  # No fifth tab or standalone HUD icon: the chest inside the bag
@@ -798,6 +976,7 @@ func _refresh_storage() -> void:
   storage_info_label.text = _tr("Select a bag item to deposit")
  else:
   storage_info_label.text = _tr("Select bag item to deposit or storage item to withdraw.")
+ _refresh_storage_money()
 
 func _pick_storage_item(index: int) -> void:
  _hide_details()
@@ -1166,6 +1345,7 @@ func set_language(value: String) -> void:
  if is_built:
   refresh()
   _adapt_layout()
+  storage_money_amount_input.placeholder_text = _tr("Enter amount")
  _hide_details()
 
 func _translate(node: Node) -> void:
@@ -1174,7 +1354,10 @@ func _translate(node: Node) -> void:
  for ch in node.get_children(): _translate(ch)
 
 func set_notice(msg: String) -> void:
- if current_tab==3 and is_instance_valid(shop_status_label):
+ if storage_mode and storage_money_mode and is_instance_valid(storage_money_notice):
+  storage_money_notice.text = _tr(msg)
+  if is_instance_valid(notice_text): notice_text.text = ""
+ elif current_tab==3 and is_instance_valid(shop_status_label):
   shop_status_label.text=_tr(msg)
   if is_instance_valid(notice_text): notice_text.text=""
  elif is_instance_valid(notice_text):
