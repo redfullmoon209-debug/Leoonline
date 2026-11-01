@@ -6,7 +6,7 @@ signal notice(message: String)
 # PvE/PvP tracking and rankings become authoritative when server systems exist.
 const PROFILE_DEFAULTS: Dictionary = {
  "name":"Adventurer","level":1,"experience":0,"class_tier":0,
- "job":"Novice","path":"Unchosen","faction":"None",
+ "job":"Novice","path":"Unchosen","faction":"None","stat_points":0,
  "attributes":{"strength":10,"vitality":10,"agility":10,"intelligence":10,"dexterity":10,"luck":10},
  "pve_kills":0,"pvp_wins":0,"pvp_losses":0
 }
@@ -317,6 +317,7 @@ func load_data() -> void:
   profile["level"] = clampi(int(saved_profile.get("level",1)),1,999)
   profile["experience"] = clampi(int(saved_profile.get("experience",0)),0,experience_required(int(profile["level"]))-1)
   profile["class_tier"] = clampi(int(saved_profile.get("class_tier",0)),0,10)
+  profile["stat_points"] = clampi(int(saved_profile.get("stat_points",0)),0,99999)
   for key in ["job","path","faction"]:
    profile[key]=str(saved_profile.get(key,PROFILE_DEFAULTS[key])).substr(0,36)
   var attributes: Dictionary = profile["attributes"]
