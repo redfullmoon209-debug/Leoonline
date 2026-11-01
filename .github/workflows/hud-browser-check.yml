@@ -1,0 +1,63 @@
+name: Validate HUD interactions in desktop and mobile browsers
+on:
+  pull_request:
+    paths:
+      - 'scripts/**'
+      - 'assets/ui/hud/**'
+      - 'tools/test_web_inventory.cjs'
+jobs:
+  browser-hud:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download Godot 4.4.1 and Web export templates
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 https://github.com/godotengine/godot-builds/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip -o godot.zip
+          unzip -q godot.zip
+          chmod +x Godot_v4.4.1-stable_linux.x86_64
+          curl -fL --retry 3 https://github.com/godotengine/godot-builds/releases/download/4.4.1-stable/Godot_v4.4.1-stable_export_templates.tpz -o templates.tpz
+          mkdir -p "$HOME/.local/share/godot/export_templates/4.4.1.stable"
+          unzip -j -q templates.tpz 'templates/*' -d "$HOME/.local/share/godot/export_templates/4.4.1.stable"
+      - name: Import and run complete Godot smoke test
+        run: |
+          set -euo pipefail
+          ./Godot_v4.4.1-stable_linux.x86_64 --headless --path . --editor --import --quit 2>&1 | tee import.log
+          if grep -E '(SCRIPT ERROR:|ERROR:|Parse Error:|Failed to load script)' import.log; then exit 1; fi
+          ./Godot_v4.4.1-stable_linux.x86_64 --headless --path . --script res://scripts/smoke_test.gd 2>&1 | tee smoke.log
+          if grep -E '(SCRIPT ERROR:|ERROR:|Parse Error:|Failed to load script)' smoke.log; then exit 1; fi
+      - name: Export isolated preview for browser validation
+        run: |
+          mkdir -p build/web
+          ./Godot_v4.4.1-stable_linux.x86_64 --headless --path . --export-release Web build/web/index.html
+          for ext in html pck js wasm; do test -s "build/web/index.$ext"; done
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium
+        run: |
+          npm install --prefix /tmp/leo-browser --no-save playwright@1.56.1
+          /tmp/leo-browser/node_modules/.bin/playwright install --with-deps chromium
+      - name: Exercise real HUD clicks, drag/resize, inventory and mobile touch
+        env:
+          PLAYWRIGHT_MODULE: /tmp/leo-browser/node_modules/playwright
+        run: |
+          set -euo pipefail
+          python3 - <<'PYCODE'
+          from pathlib import Path
+          p=Path('build/web/index.html')
+          text=p.read_text()
+          text=text.replace('const engine = new Engine(GODOT_CONFIG);', 'GODOT_CONFIG.args = ["--", "--inventory-qa"];\nconst engine = new Engine(GODOT_CONFIG);')
+          Path('build/web/_qa.html').write_text(text)
+          PYCODE
+          python3 -m http.server 8000 --directory build/web > /tmp/leo-hud-http.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid"' EXIT
+          node tools/test_web_inventory.cjs
+      - name: Upload HUD screenshots and test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Leoonline-HUD-browser-check
+          path: build/web/qa/
+          if-no-files-found: warn

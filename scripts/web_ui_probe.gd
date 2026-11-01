@@ -25,7 +25,46 @@ func _process(delta: float) -> void:
  var locked := 0
  for button in ui.bag_grid.get_children():
   if button.get_meta("locked",false): locked+=1
+ var menu: Control=host.get("hud_menu")
+ var hud_icons: Dictionary={}
+ for id in ["world","party","friends","ranking","settings","guild","quest","mail","events"]:
+  hud_icons[id]=bounds(menu.controls[id])
+ var close_hud: Control=menu.popup.find_child("CloseHUDPanel",true,false) as Control
+ var save_hud: Control=menu.toolbar.find_child("SaveHUDLayout",true,false) as Control
+ var cancel_hud: Control=menu.toolbar.find_child("CancelHUDLayout",true,false) as Control
+ var swap_hud: Control=menu.toolbar.find_child("SwapHUDToolbar",true,false) as Control
+ var restore_hud: Control=menu.page_body.find_child("ResetHUDLayout",true,false) as Control
+ var start_hud: Control=menu.page_body.find_child("EditHUDLayout",true,false) as Control
  var state := {
+  "hud_close_button":bounds(close_hud) if close_hud!=null else [],
+  "hud_save_button":bounds(save_hud) if save_hud!=null else [],
+  "hud_cancel_button":bounds(cancel_hud) if cancel_hud!=null else [],
+  "hud_swap_toolbar":bounds(swap_hud) if swap_hud!=null else [],
+  "hud_toolbar_on_top":menu.toolbar_on_top,
+  "hud_reset_button":bounds(restore_hud) if restore_hud!=null else [],
+  "hud_start_editor":bounds(start_hud) if start_hud!=null else [],
+  "hud_icons":hud_icons,
+  "hud_icon_count":hud_icons.size(),
+  "hud_panel_open":menu.popup.visible,
+  "hud_panel_key":menu.popup_key,
+  "hud_panel_bounds":bounds(menu.popup),
+  "hud_panel_children":menu.page_body.get_child_count(),
+  "hud_editing":menu.edit_mode,
+  "hud_toolbar":bounds(menu.toolbar),
+  "hud_editor_slider":bounds(menu.size_slider),
+  "hud_selected":menu.selected_id,
+  "hud_show_touch":menu.display_mobile_controls,
+  "hud_layout":menu.layout_state,
+  "hud_settings_button":bounds(menu.controls["settings"]),
+  "hud_world_button":bounds(menu.controls["world"]),
+  "hud_party_button":bounds(menu.controls["party"]),
+  "hud_joystick":bounds(menu.controls["joystick"]),
+  "hud_touch_jump":bounds(menu.controls["jump"]),
+  "hud_touch_pickup":bounds(menu.controls["pickup"]),
+  "hud_touch_run":bounds(menu.controls["run"]),
+  "hud_joystick_value":menu.controls["joystick"].movement,
+  "hud_quest_pickups":menu.pickups,
+  "hud_mail_claimed":menu.mail_claimed,
   "input_counts":input_counts,"touchscreen":DisplayServer.is_touchscreen_available(),
   "pan":[ui.pan_finger,ui.pan_active],"h_range":[ui.scroller.get_h_scroll_bar().max_value,ui.scroller.get_h_scroll_bar().page],
   "open":ui.visible,"page":ui.current_page,"locale":ui.locale,"tab":ui.current_tab,
