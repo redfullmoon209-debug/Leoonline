@@ -498,6 +498,8 @@ func _toast(text: String) -> void:
 
 func _open_page(id: String) -> void:
  if edit_mode or inventory.visible: return
+ var gm:Control=game.get("gm_menu") as Control
+ if is_instance_valid(gm) and gm.is_open():return
  popup_key=id
  dimmer.visible=true
  popup.visible=true
@@ -512,7 +514,8 @@ func _hide_popup() -> void:
  map_coords=null
 
 func is_gameplay_blocked() -> bool:
- return edit_mode or (is_instance_valid(popup) and popup.visible) or inventory.visible
+ var gm:Control=game.get("gm_menu") as Control
+ return edit_mode or (is_instance_valid(popup) and popup.visible) or inventory.visible or (is_instance_valid(gm) and gm.is_open())
 
 func _render_page() -> void:
  if popup_key.is_empty(): return
