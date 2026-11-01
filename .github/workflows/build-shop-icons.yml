@@ -1,0 +1,49 @@
+name: Build original transparent shop item PNG assets
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/generate_shop_icons.py'
+      - '.github/workflows/build-shop-icons.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: leo-shop-icons
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Render 21 original HP/SP and upgrade-stone sprites (not cropped)
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check 'Pillow==11.3.0'
+          python3 tools/generate_shop_icons.py
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib,json
+          output=Path("assets/ui/shop")
+          pngs=list(output.glob("*.png"))
+          manifest=json.loads((output/"manifest.json").read_text())
+          assert len(pngs)==21 and len(manifest)==21
+          for p in pngs:
+              b=p.read_bytes()
+              assert b[:8]==b'\x89PNG\r\n\x1a\n'
+              assert hashlib.sha256(b).hexdigest()==manifest[p.name]["sha256"]
+          print("Verified 21 standalone transparent item icons")
+          PY
+      - name: Commit standalone PNGs to main, preserve existing images
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/ui/shop/
+          if ! git diff --cached --quiet; then
+            git commit -m "assets: add 21 standalone HP SP upgrade-stone shop icons"
+            git fetch origin main
+            git rebase origin/main
+            git push origin HEAD:main
+          fi
