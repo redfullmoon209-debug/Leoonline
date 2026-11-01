@@ -266,7 +266,8 @@ func clear_target() -> void:
 
 func _target_portrait_texture() -> Texture2D:
  if not is_instance_valid(current_target): return null
- var image: Variant=current_target.get_meta("target_portrait",null)
+ if not current_target.has_meta("target_portrait"): return null
+ var image: Variant=current_target.get_meta("target_portrait")
  if image is Texture2D: return image as Texture2D
  if image is String:
   var file_path:String=str(image)
