@@ -299,7 +299,7 @@ func _refresh_target() -> void:
  if not is_instance_valid(target_label): return
  if not is_instance_valid(current_target):
   current_target=null
-  target_label.text="เป้าหมาย: ยังไม่ได้เลือก"
+  target_label.text="ยังไม่ได้เลือก" if size.y>size.x and size.x<620.0 else "เป้าหมาย: ยังไม่ได้เลือก"
   target_hint.text="แตะ / TARGET" if size.y>size.x and size.x<620.0 else "แตะเป้าหมาย หรือกด T"
   target_portrait.texture=null
   target_portrait.visible=false
