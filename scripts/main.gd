@@ -6,6 +6,9 @@ var camera_arm: Node3D
 var camera: Camera3D
 var hud: CanvasLayer
 var inventory: PanelContainer
+var bag_menu: PanelContainer
+var bag_menu_inventory_button: Button
+var bag_menu_storage_button: Button
 var grid: GridContainer
 var equip_grid: GridContainer
 var money_box: VBoxContainer
@@ -179,14 +182,108 @@ func _make_ui() -> void:
  bag_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
  bag_button.position = Vector2(get_viewport().get_visible_rect().size.x-72,16)
  bag_button.size = Vector2(56,56)
- bag_button.pressed.connect(_toggle)
+ # The only HUD inventory icon opens one red-and-gold list.
+ # Storage is the SECOND row of that list, not an independent HUD icon
+ # and not a floating button inside the Inventory equipment view.
+ bag_button.pressed.connect(_toggle_bag_menu)
+ bag_menu = PanelContainer.new()
+ bag_menu.name = "InventoryMenu"
+ bag_menu.mouse_filter = Control.MOUSE_FILTER_STOP
+ var menu_background := StyleBoxTexture.new()
+ menu_background.texture = load("res://assets/ui/red_matte/inner_panel.png")
+ menu_background.texture_margin_left = 28.0
+ menu_background.texture_margin_right = 28.0
+ menu_background.texture_margin_top = 28.0
+ menu_background.texture_margin_bottom = 28.0
+ menu_background.content_margin_left = 10.0
+ menu_background.content_margin_right = 10.0
+ menu_background.content_margin_top = 10.0
+ menu_background.content_margin_bottom = 10.0
+ bag_menu.add_theme_stylebox_override("panel",menu_background)
+ hud.add_child(bag_menu)
+ var menu_list := VBoxContainer.new()
+ menu_list.name = "InventoryList"
+ menu_list.add_theme_constant_override("separation",4)
+ bag_menu.add_child(menu_list)
+ bag_menu_inventory_button = _inventory_list_button(menu_list,"inventory",_open_inventory_from_menu)
+ bag_menu_storage_button = _inventory_list_button(menu_list,"storage",_open_storage_from_menu)
+ bag_menu.size = Vector2(260,136)
+ bag_menu.position = Vector2(maxf(8.0,get_viewport().get_visible_rect().size.x-276.0),80)
+ bag_menu.visible = false
+ _refresh_bag_menu_locale()
  inventory.visibility_changed.connect(func():
   bag_button.visible = not inventory.visible
+  if inventory.visible:
+   bag_menu.visible = false
  )
  get_viewport().size_changed.connect(func():
   var width: float = get_viewport().get_visible_rect().size.x
   bag_button.position = Vector2(width-72,16)
+  bag_menu.position = Vector2(maxf(8.0,width-276.0),80)
  )
+ 
+func _inventory_list_button(parent: VBoxContainer, icon_name: String, action: Callable) -> Button:
+ var button := Button.new()
+ button.name = "InventoryMenu" + icon_name.capitalize()
+ button.custom_minimum_size = Vector2(234,52)
+ button.mouse_filter = Control.MOUSE_FILTER_STOP
+ button.focus_mode = Control.FOCUS_NONE
+ button.pressed.connect(action)
+ if ResourceLoader.exists("res://assets/fonts/NotoSansThai.ttf"):
+  button.add_theme_font_override("font",load("res://assets/fonts/NotoSansThai.ttf"))
+ button.add_theme_font_size_override("font_size",19)
+ button.add_theme_color_override("font_color",Color("#ffde93"))
+ button.add_theme_color_override("font_hover_color",Color.WHITE)
+ button.add_theme_color_override("font_pressed_color",Color.WHITE)
+ for state in ["normal","hover","pressed"]:
+  var box := StyleBoxTexture.new()
+  var asset: String = "tab_idle" if state=="normal" else ("button_hover" if state=="hover" else "button_pressed")
+  box.texture = load("res://assets/ui/red_matte/"+asset+".png")
+  box.texture_margin_left=24.0
+  box.texture_margin_right=24.0
+  box.texture_margin_top=14.0
+  box.texture_margin_bottom=14.0
+  button.add_theme_stylebox_override(state,box)
+ button.add_theme_stylebox_override("focus",StyleBoxEmpty.new())
+ parent.add_child(button)
+ var icon := TextureRect.new()
+ icon.name = "OriginalIcon"
+ icon.texture = load("res://assets/ui/inventory/icon_"+icon_name+".png")
+ icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+ icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+ icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+ button.add_child(icon)
+ icon.position = Vector2(12,9)
+ icon.size = Vector2(34,34)
+ return button
+
+func _refresh_bag_menu_locale() -> void:
+ if not is_instance_valid(bag_menu_inventory_button): return
+ var thai: bool = str(inventory.get("locale"))=="th"
+ bag_menu_inventory_button.text = "กระเป๋า / Inventory" if thai else "Inventory"
+ bag_menu_storage_button.text = "คลังเก็บของ" if thai else "Storage"
+
+func _toggle_bag_menu() -> void:
+ if open: return
+ bag_menu.visible = not bag_menu.visible
+ if bag_menu.visible:
+  _refresh_bag_menu_locale()
+  Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+func _open_inventory_from_menu() -> void:
+ bag_menu.visible = false
+ if not open:
+  _toggle()
+ else:
+  inventory.call("_switch_tab",0)
+
+func _open_storage_from_menu() -> void:
+ bag_menu.visible = false
+ if not open:
+  open = true
+  inventory.visible = true
+ inventory.call("open_storage")
+ Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 func _starter() -> void:
  for id in ["sword","shirt","boots","potion","scroll","wood","fashion_blade","fashion_dagger","fashion_mask","fashion_cape"]:
@@ -202,6 +299,7 @@ func _refresh() -> void:
   inventory.call("refresh")
 
 func _toggle() -> void:
+ if is_instance_valid(bag_menu): bag_menu.visible = false
  open = not open
  if open:
   inventory.call("_switch_tab",0)
@@ -248,5 +346,7 @@ func _unhandled_input(event: InputEvent) -> void:
  elif event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE:
   if open:
    _toggle()
+  elif is_instance_valid(bag_menu) and bag_menu.visible:
+   bag_menu.visible=false
   else:
    Input.mouse_mode=Input.MOUSE_MODE_VISIBLE
