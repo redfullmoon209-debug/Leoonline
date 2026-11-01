@@ -146,7 +146,7 @@ jobs:
               page=(web/filename).read_text()
               assert 'id="landscape-shell"' in page
               assert 'id="game-frame"' in page
-              assert f'src="{data["game_entrypoint"]}?mobile_ui=1"' in page
+              assert f'src="{data["game_entrypoint"]}?mobile_ui=1&amp;gm_test=1"' in page
               assert 'LANDSCAPE TEST' in page
           assert 'id="phone-shell"' in (web/"index.html").read_text()
           assert 'id="phone-shell"' in (web/"mobile.html").read_text()
