@@ -442,7 +442,7 @@ func validate() -> void:
  # HUD main-menu regression: no picture crops, nine independent working icons,
  # local functional menu panels, mobile controls and a persistent drag/resize UI.
  var hud_menu: Control=game.hud_menu
- check(hud_menu!=null and hud_menu.controls.size()==14,"HUD exposes nine distinct menus, bag, joystick, Jump, Pickup and Run")
+ check(hud_menu!=null and hud_menu.controls.size()==15,"HUD exposes nine distinct menus, bag, joystick, Jump, Pickup, Run and TARGET")
  check(hud_menu.controls["bag"]==game.hud.get_node("OpenInventory"),"Original Inventory button and save data are preserved")
  # Ten native standalone RGBA PNGs, NOT crops of the approved reference sheet.
  # All notification badges are separate controls with zero unread at start.
