@@ -1,0 +1,57 @@
+{
+  "action_button.png": {
+    "width": 320,
+    "height": 84,
+    "sha256": "d52b71789f053cdbdc4d75ef18b7a244482df5480045a0a67519826310765d8c"
+  },
+  "close_button.png": {
+    "width": 320,
+    "height": 84,
+    "sha256": "e027d45db23ff959aef23916301407592ed816a5fc8845f9cd0f3ac34cb3151b"
+  },
+  "currency_row.png": {
+    "width": 490,
+    "height": 65,
+    "sha256": "e1113a2ab90febdcda94818bd55325a1d64fcec5bcc43589d414c5c522ba4f52"
+  },
+  "inner_panel.png": {
+    "width": 240,
+    "height": 240,
+    "sha256": "5e0c2135f17868fbd7ae8fd5e6845a0176df2427440739f37b892a20e9a373e4"
+  },
+  "outer_panel.png": {
+    "width": 240,
+    "height": 240,
+    "sha256": "d3091770314a5faa47463cf011e62a19628cb78ab2fd91f2858aaa9117a085b1"
+  },
+  "pager_button.png": {
+    "width": 320,
+    "height": 84,
+    "sha256": "7924feb8351f09e2adce189ef7071d94a03322ae08b249fd6890f49a302e6323"
+  },
+  "slot_empty.png": {
+    "width": 104,
+    "height": 104,
+    "sha256": "51080454cf1a9d9c249f34a266b88b330eb6f7fefad5b0e1141dabd12e8f1daf"
+  },
+  "slot_locked.png": {
+    "width": 104,
+    "height": 104,
+    "sha256": "efb0991af844ed99d810faec9ef466da6ef67f72a017ed076b2ee0bb5b2409c9"
+  },
+  "slot_selected.png": {
+    "width": 104,
+    "height": 104,
+    "sha256": "6941a76e18182e499cc22c0edb465a72395f0c89c31d33e5cae6fb28ec03adbd"
+  },
+  "tab_active.png": {
+    "width": 320,
+    "height": 84,
+    "sha256": "152a40dcf8c0a0491e19e952e37ebfc7e3087cfe3edf3792b8e275b8f4ab2dff"
+  },
+  "tab_idle.png": {
+    "width": 320,
+    "height": 84,
+    "sha256": "175af8f1d25e1a4d3d5412b172d0d539678cf8e6f236f6ed08d1abd039daf6a5"
+  }
+}
