@@ -102,7 +102,7 @@ DOCUMENT = """<!doctype html>
   </header>
   <main id="landscape-shell" aria-label="Leoonline landscape playtest">
     <iframe id="game-frame" title="Leoonline แนวนอนรุ่นทดสอบ"
-            src="__GAME_FILE__?mobile_ui=1" allow="autoplay; fullscreen"
+            src="__GAME_FILE__?mobile_ui=1&amp;gm_test=1" allow="autoplay; fullscreen"
             allowfullscreen scrolling="no"></iframe>
   </main>
   <section id="rotate-prompt" aria-live="polite">

@@ -5,7 +5,7 @@ extends Control
 const MENU_IDS: Array[String] = ["world","party","friends","ranking","settings","guild","quest","mail","events"]
 # The actual 10-icon row, left to right, includes the existing Inventory button.
 const MENU_ORDER: Array[String] = ["bag","world","party","friends","ranking","settings","guild","quest","mail","events"]
-const LAYOUT_VERSION: int = 2
+const LAYOUT_VERSION: int = 3
 const PREMIUM_ROOT: String = "res://assets/ui/hud/premium/"
 const TopStatusScript = preload("res://scripts/hud_top_status.gd")
 const ALL_IDS: Array[String] = ["bag","world","party","friends","ranking","settings","guild","quest","mail","events","joystick","jump","pickup","run"]
@@ -278,32 +278,31 @@ func _build_buttons() -> void:
 
 func _row_metrics() -> Dictionary:
  var w:float=maxf(320.0,size.x)
- var item_size:float=54.0
- var gap:float=7.0
- var y:float=21.0
- var left_reserve:float=282.0
- var right_reserve:float=165.0
- if w<600.0:
-  # Ten icons remain ONE row on a narrow phone. The player and minimap
-  # occupy the first row above; captions hide, full labels remain tooltips.
-  item_size=clampf((w-16.0-27.0)/10.0,27.0,37.0)
+ var item_size:float=37.0
+ var gap:float=3.0
+ var y:float=13.0
+ var start_x:float=0.0
+ if w<760.0:
+  # Portrait phones and narrow tablet previews: player/minimap at the top;
+  # the ten compact icons share a single second line, target below them.
+  item_size=clampf((w-43.0)/10.0,27.0,37.0)
   gap=3.0
   y=104.0
-  left_reserve=7.0
-  right_reserve=7.0
- elif w<1100.0:
-  item_size=clampf((w-60.0)/16.0,42.0,49.0)
-  gap=5.0
-  y=119.0
-  left_reserve=8.0
-  right_reserve=8.0
+  var narrow_total:float=10.0*item_size+9.0*gap
+  start_x=(w-narrow_total)*0.5
  else:
-  item_size=clampf(w*0.037,48.0,57.0)
-  gap=7.0
- var total:float=float(MENU_ORDER.size())*item_size+float(MENU_ORDER.size()-1)*gap
- var usable:float=maxf(total,w-left_reserve-right_reserve)
- var start_x:float=left_reserve+(usable-total)*0.5
- return {"size":item_size,"gap":gap,"y":y,"start":start_x,"total":total}
+  # Confirmed landscape mock: all ten smaller PNGs form ONE row immediately
+  # to the left of the circular minimap. The target card sits BELOW this row,
+  # centered at the very top of the playable viewport.
+  item_size=clampf(w*0.044,33.0,40.0)
+  gap=3.0
+  y=11.0
+  var map_width:float=118.0 if w<1100.0 else 151.0
+  var map_left:float=w-map_width-9.0
+  var total:float=10.0*item_size+9.0*gap
+  start_x=map_left-8.0-total
+ return {"size":item_size,"gap":gap,"y":y,"start":start_x,
+  "total":10.0*item_size+9.0*gap}
 
 func _default_positions() -> Dictionary:
  var w:float=maxf(320.0,size.x)
@@ -331,7 +330,10 @@ func _min_size(id: String) -> float:
  if id=="joystick": return 90.0
  # Responsive small PNGs must be allowed below 42px to keep all ten
  # icons in one row on a 320-390px phone with zero overlap.
- if MENU_ORDER.has(id) and size.x<600.0: return 27.0
+ # These independently authored PNGs are intentionally compact in the
+ # approved landscape design; 42px was bigger than the 33-40px row metrics
+ # and made every menu icon overlap its neighbor.
+ if MENU_ORDER.has(id): return 27.0 if size.x<760.0 else 30.0
  return 42.0
 
 func _size_of(id: String) -> float:
@@ -496,6 +498,8 @@ func _toast(text: String) -> void:
 
 func _open_page(id: String) -> void:
  if edit_mode or inventory.visible: return
+ var gm:Control=game.get("gm_menu") as Control
+ if is_instance_valid(gm) and gm.is_open():return
  popup_key=id
  dimmer.visible=true
  popup.visible=true
@@ -510,7 +514,8 @@ func _hide_popup() -> void:
  map_coords=null
 
 func is_gameplay_blocked() -> bool:
- return edit_mode or (is_instance_valid(popup) and popup.visible) or inventory.visible
+ var gm:Control=game.get("gm_menu") as Control
+ return edit_mode or (is_instance_valid(popup) and popup.visible) or inventory.visible or (is_instance_valid(gm) and gm.is_open())
 
 func _render_page() -> void:
  if popup_key.is_empty(): return
@@ -1016,8 +1021,9 @@ func _load_local() -> void:
  if not (data is Dictionary):return
  var from_layout:Variant=data.get("layout",{})
  if from_layout is Dictionary:layout_state=from_layout.duplicate(true)
- # Upgrading from the old 3x3 HUD should show the new 10-item row immediately
- # even if an old per-button layout was stored. Retain custom touch gameplay.
+ # A confirmed layout update moves the 10 menu icons next to the minimap.
+ # Older saved menu positions must not cover the portrait or target card.
+ # Retain individual player's custom joystick/Jump/Pickup/Run positions.
  if int(data.get("hud_layout_version",1))<LAYOUT_VERSION:
   for old_menu_id in MENU_ORDER: layout_state.erase(old_menu_id)
  var names:Variant=data.get("friends",[])

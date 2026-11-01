@@ -458,7 +458,7 @@ func validate() -> void:
   check(art!=null and art.get_width()==256 and art.get_height()==256,"Premium icon was authored independently at 256px: "+key)
   var control:Control=hud_menu.controls[key] as Control
   var rect:Rect2=control.get_global_rect()
-  check(rect.size.x>=42 and rect.size.x<=100,"Desktop icon uses compact touch-sized geometry: "+key)
+  check(rect.size.x>=32 and rect.size.x<=100,"Desktop icon uses compact right-aligned geometry: "+key)
   if i==0: row_y=rect.position.y
   check(is_equal_approx(rect.position.y,row_y),"Every main icon is on the same HUD row")
   if i>0:
@@ -471,6 +471,8 @@ func validate() -> void:
    check((control.get_node("Glyph") as TextureRect).texture.resource_path==icon_path,"HUD renders original standalone PNG for "+key)
  check(prior_rect.end.x<game.hud_menu.size.x-150.0,"Ten-icon row leaves free space for the right-hand minimap")
  check(hud_menu.controls["bag"].position.x>265.0,"Ten-icon row leaves room for the left-hand character portrait")
+ check(hud_menu.controls["events"].get_global_rect().end.x < hud_menu.top_status.minimap_button.get_global_rect().position.x,
+  "Ten compact icons sit immediately left of the minimap without overlapping it")
  var top:Control=hud_menu.top_status
  check(top!=null and top.player_panel.visible and top.minimap_button.visible and top.target_panel.visible,"Character data, minimap and target status are three real HUD regions")
  check(top.player_name.text.contains("Lv.") and top.player_class.text.contains("Class"),"Top-left character profile displays current saved level and class")
@@ -489,6 +491,123 @@ func validate() -> void:
  hud_menu.clear_target()
  test_target.queue_free()
  check(not top.target_bar.visible and top.target_label.text.contains("ยังไม่ได้เลือก"),"Clearing target removes stale HP")
+ check(not top.target_mana_bar.visible and not top.target_portrait.visible,"No selected target hides HP/MP values and portrait without fake monster information")
+ check(top.target_decor.get_script()!=null,"Center golden frame is native Godot vector drawing, not a crop")
+ check(ResourceLoader.exists("res://assets/ui/hud/target_training_golem.svg"),"Standalone golem portrait is an original asset, not a cropped reference image")
+ check(game.training_target != null and is_instance_valid(game.training_target),"Actual targetable training golem exists in the 3D test world")
+ check(game.training_target.get_meta("hp")==3240.0 and game.training_target.get_meta("mp")==670.0,
+  "Training golem health and mana are actual entity metadata, not hard-coded HUD labels")
+ game._toggle_target_lock()
+ check(top.current_target==game.training_target,"T target lock selects the real nearby world entity")
+ check(top.target_label.text=="อสูรหินฝึก" and top.target_level_label.text=="Lv.12" and top.target_type_label.text=="Monster",
+  "Centered target card shows actual enemy name, level and type")
+ check(top.target_portrait.visible and top.target_portrait.texture!=null,
+  "Selected enemy shows its own full portrait asset without cropping the approved screenshot")
+ check(top.target_bar.visible and is_equal_approx(top.target_bar.value,100.0) and top.target_health_value.text.contains("3240"),
+  "Red target HP bar and numeric value read actual entity data")
+ check(top.target_mana_bar.visible and is_equal_approx(top.target_mana_bar.value,100.0) and top.target_mana_value.text.contains("670"),
+  "Blue target MP bar and numeric value read actual entity data")
+ game.training_target.set_meta("hp",810.0)
+ game.training_target.set_meta("mp",335.0)
+ top._refresh_target()
+ check(is_equal_approx(top.target_bar.value,25.0) and top.target_health_value.text.contains("25%"),
+  "Real target damage updates red HP bar and percentage dynamically")
+ check(is_equal_approx(top.target_mana_bar.value,50.0) and top.target_mana_value.text.contains("50%"),
+  "Real target mana changes update blue MP bar and percentage dynamically")
+ game.training_target.set_meta("hp",3240.0)
+ game.training_target.set_meta("mp",670.0)
+ game._toggle_target_lock()
+ check(top.current_target==null and not top.target_bar.visible and not top.target_mana_bar.visible,
+  "Pressing T again clears target selection and hides fake HP/MP")
+ # Tap/click also uses an actual 3D camera ray and golem hitbox; not
+ # screen-position arithmetic or fake touch success.
+ var golem_screen:Vector2=game.camera.unproject_position(game.training_target.global_position)
+ var tapped:bool=game._select_target_at(golem_screen)
+ check(tapped and top.current_target==game.training_target,
+  "Click/touch camera ray can select the actual 3D monster collision shape")
+ hud_menu.clear_target()
+ # Multiple distinct enemies and simulated player BOTs are selectable via
+ # the same real 3D hitboxes. No fake online-player presence is claimed.
+ check(game.test_targets.size()==5,"Scene contains original golem, green slime, wolf and two distinct player simulation BOTs")
+ var kinds:Dictionary={}
+ for entity in game.test_targets:
+  check(is_instance_valid(entity) and entity.has_meta("target_portrait"),"Each 3D test entity owns a separately created portrait asset")
+  check(ResourceLoader.exists(str(entity.get_meta("target_portrait"))),"Unique local portrait for selectable target "+entity.name)
+  kinds[entity.get_meta("target_type")]=int(kinds.get(entity.get_meta("target_type"),0))+1
+ check(int(kinds.get("Monster",0))==3 and int(kinds.get("Player Bot",0))==2,
+  "Three actual selectable monsters and two clearly labeled simulated players exist")
+ var selected_slime:StaticBody3D=game.test_targets[1]
+ game._set_test_target(selected_slime)
+ check(top.current_target==selected_slime and top.target_label.text=="สไลม์มรกต" and top.target_level_label.text=="Lv.4",
+  "Target panel switches to the actual slime identity and level")
+ check(top.target_portrait.texture.resource_path.ends_with("target_slime.svg") and top.target_health_value.text.contains("430"),
+  "Slime uses unique un-cropped portrait and real 430 health")
+ var selected_bot:StaticBody3D=game.test_targets[3]
+ var bot_screen:Vector2=game.camera.unproject_position(selected_bot.global_position)
+ var selected_by_click:bool=game._select_target_at(bot_screen)
+ check(selected_by_click and top.current_target==selected_bot and top.target_label.text.contains("[BOT]"),
+  "Click selection distinguishes simulated player bot from monster and updates center target card")
+ check(top.target_portrait.texture.resource_path.ends_with("target_bot_male.svg") and top.target_mana_value.text.contains("1200"),
+  "Player BOT's original portrait and actual mana values are shown")
+ hud_menu.clear_target()
+ # Separate GM test icon must be unavailable in the production main page by
+ # default. Test tools are authorized ONLY by a local playtest opt-in flag,
+ # never mistakenly presented as real server administrator permissions.
+ var gm:Control=game.gm_menu
+ check(gm!=null and not gm.active and not gm.gm_button.visible,
+  "GM red button is separate from ten main icons and hidden on production until TEST opt-in")
+ gm._set_test_mode(true)
+ check(gm.active and gm.gm_button.visible and not hud_menu.controls.has("gm"),
+  "Landscape GM playtest exposes a dedicated red GM button outside ten menu controls")
+ gm._toggle()
+ check(gm.is_open() and hud_menu.is_gameplay_blocked(),"Opening GM test panel blocks world movement")
+ check(gm.target_picker.item_count==5,"GM picker lists the five actual target entities")
+ gm._spawn_monster()
+ check(game.additional_test_targets.size()==1 and game.test_targets.size()==6,
+  "GM can spawn an additional clickable physical monster in the local scene")
+ gm._spawn_player()
+ check(game.additional_test_targets.size()==2 and game.test_targets.size()==7,
+  "GM can spawn a separately labeled simulated player BOT")
+ var spawned_bot:StaticBody3D=game.additional_test_targets[1]
+ check(top.current_target==spawned_bot and top.target_label.text.contains("[BOT]"),
+  "GM automatically selects the newly spawned simulated player's actual target data")
+ var hp_initial:float=float(spawned_bot.get_meta("hp"))
+ var mp_initial:float=float(spawned_bot.get_meta("mp"))
+ gm._damage()
+ gm._drain_mana()
+ check(float(spawned_bot.get_meta("hp"))<hp_initial and top.target_bar.value<100.0,
+  "GM HP test button changes real target metadata and visible red HP bar")
+ check(float(spawned_bot.get_meta("mp"))<mp_initial and top.target_mana_bar.value<100.0,
+  "GM MP test button changes real target metadata and visible blue MP bar")
+ gm._heal()
+ check(is_equal_approx(top.target_bar.value,100.0) and is_equal_approx(top.target_mana_bar.value,100.0),
+  "GM Heal button restores selected entity HP and MP")
+ gm._reset_world()
+ check(game.additional_test_targets.is_empty() and game.test_targets.size()==5 and top.current_target==null,
+  "GM Reset removes only GM-spawned targets, restores starter entities and clears target card")
+ gm._close()
+ gm._set_test_mode(false)
+ check(not gm.gm_button.visible and not gm.is_open(),"Leaving GM test revokes all local debug controls")
+ var wide_target_bounds:Rect2=top.target_panel.get_global_rect()
+ var wide_menu_bounds:Rect2=hud_menu.controls["bag"].get_global_rect()
+ check(absf(wide_target_bounds.get_center().x-720.0)<2.0,
+  "Ornate portrait and HP/MP card is horizontally centered at top on desktop")
+ check(wide_target_bounds.position.y>=wide_menu_bounds.end.y+4.0,
+  "Top-centered target card sits below right-side icon row with clear visual spacing")
+ root.size=Vector2i(844,390)
+ await process_frame
+ await process_frame
+ var landscape_target:Rect2=top.target_panel.get_global_rect()
+ var landscape_menu:Rect2=hud_menu.controls["bag"].get_global_rect()
+ check(absf(landscape_target.get_center().x-422.0)<2.0 and landscape_target.position.y<85.0,
+  "In actual phone landscape, target card stays centered near the top")
+ check(landscape_target.position.y>=landscape_menu.end.y+4.0,
+  "Phone landscape right-side icon row never covers center target data")
+ check(hud_menu.controls["events"].get_global_rect().end.x<top.minimap_button.get_global_rect().position.x,
+  "Right-side icons never overlap landscape minimap")
+ root.size=Vector2i(1440,1100)
+ await process_frame
+ await process_frame
  # Server/social hooks do not manufacture notifications. A verified incoming
  # friend event may show its own red dot, while Mail remains unmarked.
  hud_menu.receive_friend_request("")

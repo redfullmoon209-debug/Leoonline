@@ -73,14 +73,37 @@ async function swipe(dx,dy){
   check(hud.hud_target_name.includes('ยังไม่ได้เลือก')&&!hud.hud_target_health_visible,'Target HUD is in the center and never invents enemy HP when no target exists');
   for(let i=0;i<hud.hud_row.length;i++){
    const rect=hud.hud_row[i];
-   check(rect[2]>=42&&Math.abs(rect[1]-hud.hud_row[0][1])<=1,'All ten compact desktop buttons share one horizontal row');
+   check(rect[2]>=32&&Math.abs(rect[1]-hud.hud_row[0][1])<=1,'All ten compact desktop buttons share one horizontal row');
    if(i>0)check(rect[0]>=hud.hud_row[i-1][0]+hud.hud_row[i-1][2]+1,'Ten buttons do not overlap on desktop');
   }
   check(hud.hud_row[0][0]>hud.hud_profile_bounds[0]+hud.hud_profile_bounds[2],'Desktop icon row leaves room for character portrait');
   check(hud.hud_row[9][0]+hud.hud_row[9][2]<hud.hud_minimap_bounds[0],'Desktop icon row leaves room for the minimap');
   await snap('web-premium-ten-icon-row');
+  check(hud.hud_target_frame_custom===true,'Ornate centered target card is built from real Godot vector strokes, not cropped screenshot');
+  check(hud.hud_training_target_present&&hud.hud_training_target_name==='อสูรหินฝึก','Real training golem is available for interactive target testing');
+  check(!hud.hud_target_portrait_visible&&!hud.hud_target_mp_visible,'No enemy selected: do not show fictional monster portrait, HP or MP');
+  // Select the real scene target via the actual physical T keyboard input,
+  // then inspect the live values and its own standalone illustration.
+  await page.locator('#canvas').focus();
+  await page.keyboard.press('KeyT');
+  await until(()=>window.__leoQA.hud_target_name==='อสูรหินฝึก');
+  let targeted=await state();
+  check(targeted.hud_target_level==='Lv.12'&&targeted.hud_target_type==='Monster','Target name, level and type come from the selected 3D node');
+  check(targeted.hud_target_health_visible&&targeted.hud_target_hp_text.includes('3240'),'Live enemy HUD shows numeric red HP');
+  check(targeted.hud_target_mp_visible&&targeted.hud_target_mp_text.includes('670'),'Live enemy HUD shows numeric blue MP');
+  check(targeted.hud_target_portrait_visible&&targeted.hud_target_portrait_asset.endsWith('target_training_golem.svg'),'Portrait uses its own independent asset, not cropped from reference');
+  check(targeted.hud_target_hp_percent===100&&targeted.hud_target_mp_percent===100,'Actual selected entity starts with full HP and MP');
+  const tb=targeted.hud_target_bounds;
+  check(Math.abs(tb[0]+tb[2]/2-720)<3&&tb[1]>=targeted.hud_row[0][1]+targeted.hud_row[0][3]+4,
+    'Detailed target card is top-centered below right-side icons, without collisions');
+  await snap('web-target-selected-hp-mp');
+  await page.keyboard.press('KeyT');
+  await until(()=>window.__leoQA.hud_target_name.includes('ยังไม่ได้เลือก'));
+  targeted=await state();
+  check(!targeted.hud_target_health_visible&&!targeted.hud_target_mp_visible,
+    'T toggles lock OFF and hides all enemy HP/MP/portrait values');
   for(const name of ['world','party','friends','ranking','guild','quest','mail','events']){
-   check(hud.hud_icons[name][2]>=42,'HUD icon has a touch-friendly viewport hit target: '+name);
+   check(hud.hud_icons[name][2]>=32,'HUD icon remains clickable at the approved compact size: '+name);
    await clickRect(hud.hud_icons[name]);
    await until(()=>window.__leoQA.hud_panel_open);
    hud=await state();
