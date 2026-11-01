@@ -272,12 +272,14 @@ func _build() -> void:
  _label("LEOONLINE",stage,491,33,466,52,32)
  var tab_x := [101.0,407.0,713.0,1019.0]
  var titles := ["Inventory","Character","Skill","Shop"]
+ var tab_icons := ["inventory","character","skill","shop"]
  for idx in range(4):
   var tab := _hitbox(stage,tab_x[idx],100,278,57,_switch_tab.bind(idx))
   tab.text = _tr(titles[idx])
   tab.set_meta("l10n",titles[idx])
   _style_text_button(tab,23)
   _red_button(tab,"tab_active" if idx==current_tab else "tab_idle")
+  _art("icon_"+tab_icons[idx],tab,19,11,35,35,false)
   tab_buttons.append(tab)
  language_button = _hitbox(stage,1257,41,121,41,func(): set_language("th" if locale=="en" else "en"))
  language_button.text = "ไทย / EN"
@@ -299,29 +301,29 @@ func _build() -> void:
  extra_equip_list.mouse_filter = Control.MOUSE_FILTER_PASS
  equipment_panel.add_child(extra_equip_list)
  _rect(extra_equip_list,548,247,54,224)
- _label("Fashion Weapons",equipment_panel,177,512,370,27,18)
+ _label("Fashion Weapons",equipment_panel,177,507,370,25,18)
  fashion_weapon_row = HBoxContainer.new()
  fashion_weapon_row.mouse_filter = Control.MOUSE_FILTER_PASS
  fashion_weapon_row.add_theme_constant_override("separation",18)
  equipment_panel.add_child(fashion_weapon_row)
- _rect(fashion_weapon_row,179,541,129,55)
+ _rect(fashion_weapon_row,179,535,129,55)
  fashion_side_row = HBoxContainer.new()
  fashion_side_row.mouse_filter = Control.MOUSE_FILTER_PASS
  fashion_side_row.add_theme_constant_override("separation",18)
  equipment_panel.add_child(fashion_side_row)
- _rect(fashion_side_row,357,541,129,55)
- _label("Accessories",equipment_panel,195,594,330,27,18)
+ _rect(fashion_side_row,357,535,129,55)
+ _label("Accessories",equipment_panel,195,586,330,24,18)
  accessory_row = HBoxContainer.new()
  accessory_row.mouse_filter = Control.MOUSE_FILTER_PASS
  accessory_row.add_theme_constant_override("separation",23)
  equipment_panel.add_child(accessory_row)
- _rect(accessory_row,139,621,374,55)
- _label("Fashion",equipment_panel,194,675,330,27,18)
+ _rect(accessory_row,139,614,374,55)
+ _label("Fashion",equipment_panel,194,669,330,23,18)
  fashion_row = HBoxContainer.new()
  fashion_row.mouse_filter = Control.MOUSE_FILTER_PASS
  fashion_row.add_theme_constant_override("separation",23)
  equipment_panel.add_child(fashion_row)
- _rect(fashion_row,139,701,374,55)
+ _rect(fashion_row,139,692,374,55)
  bag_panel = Control.new()
  bag_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
  stage.add_child(bag_panel)
