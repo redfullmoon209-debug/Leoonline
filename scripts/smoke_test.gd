@@ -47,14 +47,20 @@ func validate() -> void:
   check(ResourceLoader.exists("res://assets/ui/red_matte/"+sprite+".png"),"Standalone red matte PNG exists: "+sprite)
  check(ui._red_texture("slot_empty") != null,"Matte red slot texture loaded")
  check(ui.tab_buttons[0].get_child_count() >= 1,"Menu buttons keep independent PNG icon layers")
- check(ui.tab_buttons.size()==4 and ui.footer_buttons.size()==6 and ui.page_buttons.size()==4,"All original functional menu and pagination buttons preserved")
- check(ui.tab_buttons[0].position==Vector2(101,100),"Tab locations unchanged")
+ check(ui.tab_buttons.size()==5 and ui.footer_buttons.size()==6 and ui.page_buttons.size()==4,"Five functional tabs and original footer/pagination buttons preserved")
+ check(ui.tab_buttons[0].position==Vector2(70,100) and ui.tab_buttons[4].position==Vector2(1170,100),"Five tabs fit the original top row")
  check(ui.footer_buttons[0].position==Vector2(105,807),"Footer button locations unchanged")
  check(ui.bag_grid.position==Vector2(729,249),"Bag grid location unchanged")
  var source_frames := 0
  for node in ui.stage.get_children():
   if node is NinePatchRect and node.name=="RedMattePanel_inner_panel": source_frames+=1
- check(source_frames==1 and not ui.shop_left_frame.visible,"Shop-only left frame stays hidden in normal Inventory, and footer remains frameless")
+ check(source_frames==0,"No decorative inner panel frame is drawn on the main stage")
+ for borderless_panel in [ui.equipment_panel,ui.storage_panel,ui.shop_panel,ui.character_panel,ui.waiting_panel]:
+  var decorative_frames := 0
+  for child in borderless_panel.get_children():
+   if child is NinePatchRect: decorative_frames+=1
+  check(decorative_frames==0,"Equipment, Storage, Shop, Character and Skill contain no ornate Panel Borders")
+
  var bag_border := 0
  for node in ui.bag_panel.get_children():
   if node is NinePatchRect: bag_border+=1
@@ -187,7 +193,7 @@ func validate() -> void:
  check(ui.waiting_panel.visible and ui.waiting_text.text.contains("ยังไม่"),"Skill unavailable truthfully")
  ui._switch_tab(3)
  check(ui.shop_panel.visible and ui.bag_panel.visible and not ui.equipment_panel.visible,"Shop shows player bag on the LEFT and shop stock on the RIGHT")
- check(ui.shop_left_frame.visible,"Shop-only left inventory border is visible behind the reused bag")
+ check(ui.shop_panel.get_children().all(func(n): return not (n is NinePatchRect)),"Shop panel has no decorative perimeter border")
  check(not ui.waiting_panel.visible,"Shop is usable, not a placeholder")
  check(ui.bag_panel.position==Vector2(-655,0),"Existing 200-slot bag is reused on the left in Shop")
  check(ui.shop_grid.columns==10 and ui.shop_grid.get_child_count()==50,"Shop has 10x5 sellable stock slots")
@@ -231,16 +237,12 @@ func validate() -> void:
  store.selected=-1
  ui.refresh()
  ui._switch_tab(0)
- check(ui.bag_panel.position==Vector2.ZERO and not ui.shop_panel.visible and not ui.shop_left_frame.visible,"Inventory restores the original layout and hides Shop-only borders")
+ check(ui.bag_panel.position==Vector2.ZERO and not ui.shop_panel.visible,"Inventory restores original bag layout without decorative borders")
  check(ResourceLoader.exists("res://assets/ui/inventory/icon_storage.png"),"Storage submenu reuses existing original chest PNG")
  check(game.hud.has_node("OpenInventory"),"Bag keeps its original HUD opener")
  check(not game.hud.has_node("OpenStorage"),"No standalone Storage icon remains on the HUD")
- check(ui.storage_menu_button.get_parent()==ui.bag_panel,"Storage icon is INSIDE existing right-hand bag, not the tab strip")
- check(ui.storage_menu_button.position==Vector2(972,192) and ui.storage_menu_button.size==Vector2(54,54),"Storage icon is inside the bag header next to capacity")
- check(ui.storage_menu_button.text=="" and ui.storage_menu_button.tooltip_text=="คลังเก็บของ","Storage is a standalone PNG icon in bag header, with Thai tooltip")
- check(ui.storage_menu_button.get_child_count()==1,"Bag Storage button has one original PNG art layer")
- var storage_icon_art: TextureRect = ui.storage_menu_button.get_child(0) as TextureRect
- check(storage_icon_art!=null and storage_icon_art.texture.resource_path.ends_with("/icon_storage.png"),"Storage button reuses original chest PNG unchanged")
+ check(ui.tab_buttons[4].text=="คลังเก็บของ","Storage is fifth top tab with Thai text")
+ check(ui.tab_buttons[4].get_child_count()>0,"Storage tab uses original chest icon as a separate texture")
  check(not ui.storage_panel.visible and not ui.storage_mode,"Storage stays hidden in original Inventory")
  var bag_before_storage: Array = store.slots.duplicate()
  var vault_before_storage: Array = store.storage_slots.duplicate()
@@ -248,14 +250,17 @@ func validate() -> void:
  game._toggle()
  check(not ui.visible,"Closing Inventory exposes the single bag HUD opener")
  await click(game.hud.get_node("OpenInventory"))
- check(ui.visible and ui.storage_menu_button.is_visible_in_tree() and not ui.storage_mode,"Bag HUD opens Inventory containing Storage icon in the bag panel")
- await click(ui.storage_menu_button)
- check(ui.visible and ui.storage_mode and ui.current_tab==0,"Click bag-header Storage icon opens Storage mode")
- check(ui.storage_panel.visible and not ui.equipment_panel.visible and ui.bag_panel.visible,"Storage replaces left Equipment; original bag is RIGHT")
+ check(ui.visible and not ui.storage_mode,"Bag HUD opens original Inventory")
+ await click(ui.tab_buttons[4])
+ check(ui.visible and ui.storage_mode and ui.current_tab==4,"Click fifth top tab opens Storage mode")
+ check(ui.storage_panel.visible and not ui.equipment_panel.visible and ui.bag_panel.visible,"Fifth Storage tab shows left vault and right bag")
+ var fifth_style: StyleBox = ui.tab_buttons[4].get_theme_stylebox("normal")
+ check(fifth_style is StyleBoxTexture and fifth_style.texture.resource_path.ends_with("/tab_lit.png"),"Storage tab highlights red when selected")
+
  check(ui.bag_panel.position==Vector2.ZERO and ui.bag_grid.columns==10,"Storage leaves original 10-column bag in place")
  check(ui.storage_grid.columns==10 and ui.storage_grid.get_child_count()==50,"Storage grid is 10 columns by 5 rows")
  check(store.storage_slots.size()==200 and ui.storage_page_buttons.size()==4,"Storage has 200 cells in 4 pages")
- check(ui.tab_buttons.size()==4 and ui.footer_buttons.size()==6,"Storage leaves original 4 tabs and 6 footer controls untouched")
+ check(ui.tab_buttons.size()==5 and ui.footer_buttons.size()==6,"Storage keeps all five top tabs and six footer controls")
  for child in ui.storage_grid.get_children():
   check(child is TextureButton and child.texture_normal==ui._red_texture("slot_empty"),"Storage slots use the same existing inventory PNG")
  store.slots.fill("")
@@ -308,9 +313,9 @@ func validate() -> void:
  ui._change_storage_page(0)
  ui.set_language("en")
  check(ui.storage_deposit_button.text=="Deposit" and ui.storage_withdraw_button.text=="Withdraw","Storage action labels translate without editing PNG")
- check(ui.storage_menu_button.tooltip_text=="Storage","Bag Storage icon tooltip translates to English")
+ check(ui.tab_buttons[4].text=="Storage","Storage top tab translates to English")
  ui.set_language("th")
- check(ui.storage_menu_button.tooltip_text=="คลังเก็บของ","Bag Storage icon tooltip translates to Thai")
+ check(ui.tab_buttons[4].text=="คลังเก็บของ","Storage top tab translates to Thai")
  check(ui.storage_deposit_button.text=="ฝากของ" and ui.storage_withdraw_button.text=="ถอนของ","Thai storage actions are localized")
  store.slots=bag_before_storage
  store.storage_slots=vault_before_storage
@@ -321,9 +326,9 @@ func validate() -> void:
  store.save_data()
  ui._switch_tab(0)
  check(not ui.storage_mode and not ui.storage_panel.visible and ui.equipment_panel.visible and ui.bag_panel.visible,"Inventory tab restores original left Equipment and right Bag")
- check(ui.storage_menu_button.is_visible_in_tree(),"Storage chest icon is visible inside the Inventory bag")
+ check(ui.tab_buttons[4].visible,"Storage fifth tab remains visible from Inventory")
  ui._switch_tab(1)
- check(not ui.storage_menu_button.is_visible_in_tree(),"Storage chest icon hides on Character page")
+ check(ui.tab_buttons[4].visible,"Storage fifth tab remains visible from Character page")
  check(not ui.storage_panel.visible and ui.character_panel.visible,"Character tab does not inherit storage panel")
  ui._switch_tab(3)
  check(not ui.storage_panel.visible and ui.shop_panel.visible and ui.bag_panel.position.x==-655,"Shop keeps its original left bag and right shop unchanged")
@@ -344,7 +349,7 @@ func validate() -> void:
   ui.open_storage()
   check(ui.storage_panel.visible and ui.bag_panel.visible and not ui.equipment_panel.visible,"Mobile Storage still uses left vault and right bag")
   check(ui.storage_grid.get_child(0).get_global_rect().size.x>=44,"Storage touch targets are at least 44 pixels on mobile")
-  check(ui.storage_menu_button.get_global_rect().size.x>=44,"Bag-header Storage icon remains at least 44 pixels wide for mobile touch")
+  check(ui.tab_buttons[4].get_global_rect().size.x>=44,"Fifth Storage tab is touch-friendly on mobile")
   ui._switch_tab(0)
   ui._switch_tab(1)
   check(ui.character_panel.visible and ui.character_values["strength"].text!="","Character data still available on resized mobile viewport")

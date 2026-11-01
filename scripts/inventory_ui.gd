@@ -189,7 +189,6 @@ var storage_page: int = 0
 var locale: String = "th"
 var ui_font: Font
 var language_button: Button
-var storage_menu_button: Button
 var tab_buttons: Array[Button] = []
 var text_nodes: Dictionary = {}
 var character_panel: Control
@@ -232,7 +231,6 @@ var scroller: ScrollContainer
 var scroll_content: Control
 var currency_panel: Control
 var header_label: Label
-var shop_left_frame: NinePatchRect
 var shop_panel: Control
 var shop_grid: GridContainer
 var shop_page_buttons: Array[Button] = []
@@ -455,11 +453,11 @@ func _build() -> void:
  _red_aura(stage,170,85,1110,670,0.10)
  _white_red_glint(stage,515,88,422,3)
  _label("LEOONLINE",stage,491,33,466,52,32)
- var tab_x := [101.0,407.0,713.0,1019.0]
- var titles := ["Inventory","Character","Skill","Shop"]
- var tab_icons := ["inventory","character","skill","shop"]
- for idx in range(4):
-  var tab := _hitbox(stage,tab_x[idx],100,278,57,_switch_tab.bind(idx))
+ var tab_x := [70.0,345.0,620.0,895.0,1170.0]
+ var titles := ["Inventory","Character","Skill","Shop","Storage"]
+ var tab_icons := ["inventory","character","skill","shop","storage"]
+ for idx in range(5):
+  var tab := _hitbox(stage,tab_x[idx],100,250,57,_switch_tab.bind(idx))
   tab.text = _tr(titles[idx])
   tab.set_meta("l10n",titles[idx])
   _style_text_button(tab,23)
@@ -475,7 +473,6 @@ func _build() -> void:
  equipment_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
  stage.add_child(equipment_panel)
  _rect(equipment_panel,0,0,W,H)
- _red_panel(equipment_panel,72,200,581,566)
  _red_aura(equipment_panel,240,266,272,265,0.31)
  _white_red_glint(equipment_panel,166,207,385,3)
  _label("Equipment",equipment_panel,195,211,330,29,21)
@@ -511,10 +508,6 @@ func _build() -> void:
  fashion_row.add_theme_constant_override("separation",23)
  equipment_panel.add_child(fashion_row)
  _rect(fashion_row,139,692,374,55)
- # Shop-only decorative border for the *reused* player inventory.
- # Existing Inventory tab and its border-free original layout are unchanged.
- shop_left_frame = _red_panel(stage,43,205,648,561,"inner_panel")
- shop_left_frame.visible = false
  bag_panel = Control.new()
  bag_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
  stage.add_child(bag_panel)
@@ -559,13 +552,6 @@ func _build() -> void:
  _make_shop_panel()
  _make_character_panel()
  _make_storage_panel()
- # Move the original Storage chest icon INSIDE the existing bag header.
- # Its own HUD icon and the floating tab-under-Inventory button are gone.
- # This stays within the right-hand bag panel in both Inventory and Storage.
- storage_menu_button = _hitbox(bag_panel,972,192,54,54,_toggle_storage_from_bag)
- storage_menu_button.name = "StorageInsideBag"
- storage_menu_button.tooltip_text = _tr("Storage")
- _art("icon_storage",storage_menu_button,0,0,54,54,false)
  # Footer buttons float directly over the crimson surface with no enclosing frame.
  _red_aura(stage,115,780,1214,102,0.12)
  var foot_names := ["Demo Items","Save","Auto Sort","Trash","Equip","Close"]
@@ -589,7 +575,6 @@ func _build() -> void:
  waiting_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
  stage.add_child(waiting_panel)
  _rect(waiting_panel,679,200,693,563)
- _red_panel(waiting_panel,0,0,693,563)
  waiting_text = _label("",waiting_panel,39,115,615,180,24)
  waiting_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
  waiting_panel.visible = false
@@ -643,7 +628,6 @@ func _make_character_panel() -> void:
  character_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
  stage.add_child(character_panel)
  _rect(character_panel,0,0,W,H)
- _red_panel(character_panel,694,204,682,564,"inner_panel")
  _red_aura(character_panel,761,244,549,430,0.085)
  _white_red_glint(character_panel,850,211,360,2)
  _label("Character Status",character_panel,743,213,573,31,25)
@@ -725,7 +709,6 @@ func _make_storage_panel() -> void:
  storage_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
  stage.add_child(storage_panel)
  _rect(storage_panel,0,0,W,H)
- _red_panel(storage_panel,72,200,581,566,"inner_panel")
  _red_aura(storage_panel,164,274,405,321,0.105)
  _white_red_glint(storage_panel,191,207,330,2)
  _label("Storage",storage_panel,116,214,234,33,24,HORIZONTAL_ALIGNMENT_LEFT)
@@ -761,19 +744,12 @@ func _make_storage_panel() -> void:
  _red_button(storage_withdraw_button,"action_button")
  storage_panel.visible = false
 
-func _toggle_storage_from_bag() -> void:
- # Keep the same chest icon in the bag header for entering/leaving Storage.
- if storage_mode:
-  _switch_tab(0)
- else:
-  open_storage()
-
 func open_storage() -> void:
  # No fifth tab or standalone HUD icon: the chest inside the bag
  # toggles the existing left Storage / right Inventory layout.
  _hide_details()
  storage_mode = true
- current_tab = 0
+ current_tab = 4
  if game_store != null:
   game_store.set("selected",-1)
   game_store.set("storage_selected",-1)
@@ -858,7 +834,6 @@ func _make_shop_panel() -> void:
  shop_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
  stage.add_child(shop_panel)
  _rect(shop_panel,0,0,W,H)
- _red_panel(shop_panel,696,205,678,561,"inner_panel")
  _white_red_glint(shop_panel,863,212,355,2)
  _label("Shop Items",shop_panel,742,216,267,35,21)
  shop_stock_label = _label("",shop_panel,1051,216,278,35,17)
@@ -1134,6 +1109,9 @@ func _change_page(page: int) -> void:
 
 func _switch_tab(index: int) -> void:
  _hide_details()
+ if index==4:
+  open_storage()
+  return
  storage_mode=false
  current_tab=clampi(index,0,3)
  if is_built: _adapt_layout()
@@ -1151,14 +1129,11 @@ func _adapt_layout() -> void:
  stage.scale = Vector2(ratio,ratio)
  scroll_content.custom_minimum_size = Vector2(W,H)*ratio
  stage.position = Vector2(maxf(0.0,(size.x-W*ratio)*0.5),maxf(0.0,(size.y-H*ratio)*0.5))
- equipment_panel.visible = current_tab in [0,1] and not storage_mode
- storage_menu_button.visible = current_tab==0
- storage_menu_button.tooltip_text = _tr("Storage")
- storage_panel.visible = storage_mode and current_tab==0
+ equipment_panel.visible = current_tab in [0,1]
+ storage_panel.visible = current_tab==4
  character_panel.visible = current_tab==1
  bag_panel.position = Vector2(-655.0,0.0) if current_tab==3 else Vector2.ZERO
- bag_panel.visible = current_tab==0 or current_tab==3
- shop_left_frame.visible = current_tab==3
+ bag_panel.visible = current_tab==0 or current_tab==3 or current_tab==4
  shop_panel.visible = current_tab==3
  waiting_panel.visible = current_tab==2
  if waiting_panel.visible:
@@ -1167,7 +1142,7 @@ func _adapt_layout() -> void:
  for i in range(tab_buttons.size()):
   tab_buttons[i].add_theme_color_override("font_color",Color.WHITE if i==current_tab else Color("#ffde93"))
   _red_button(tab_buttons[i],"tab_active" if i==current_tab else "tab_idle")
- if current_tab != 0:
+ if current_tab != 0 and current_tab != 4:
   _hide_details()
  _layout_details()
 
@@ -1243,7 +1218,14 @@ func _create_details() -> void:
  detail_content = Control.new()
  var content := detail_content
  detail_panel.add_child(content)
- detail_art = _red_panel(content,0,0,692,160)
+ # Flat detail backdrop without an ornate Panel Border.
+ var flat_detail := ColorRect.new()
+ flat_detail.name = "DetailsBackground"
+ flat_detail.color = Color(0.12,0.025,0.037,0.93)
+ flat_detail.mouse_filter = Control.MOUSE_FILTER_IGNORE
+ content.add_child(flat_detail)
+ _rect(flat_detail,0,0,692,160)
+ detail_art = flat_detail
  detail_icon = _art("",content,108,48,58,58,false)
  detail_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
  detail_heading = _label("",content,184,18,385,30,20,HORIZONTAL_ALIGNMENT_LEFT)

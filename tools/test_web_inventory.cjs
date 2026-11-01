@@ -103,7 +103,7 @@ async function swipe(dx,dy){
   await until(()=>window.__leoQA.tab===3&&window.__leoQA.shop_visible);
   q=await state();
   check(q.shop_left_inventory&&q.shop_left_shift===-655,'Shop reuses actual player inventory on left');
-  check(q.shop_left_border,'Shop-only left gold frame matches right-hand shop frame');
+  check(!q.shop_left_border,'Shop has no decorative panel border');
   check(q.shop_cells===50&&q.shop_stock_label==='21 / 500','Shop has 50 grid cells on each of 10 catalog pages');
   await clickRect(q.shop_slots[0]);
   await until(()=>window.__leoQA.shop_selected_id==='hp_potion_small');
@@ -137,19 +137,19 @@ async function swipe(dx,dy){
   await page.reload();
   await until(()=>!!window.__leoQA);
   check(JSON.stringify((await state()).slots)===JSON.stringify(before),'Web save persists across reload');
-  // Open the single Inventory HUD icon, then the chest inside the bag header.
+  // Open the Inventory HUD icon, then select fifth top-row Storage tab.
   q=await state();
   check(!q.has_storage_hud,'Storage has no standalone HUD opener');
   check(q.storage_slots.length===200&&q.storage_cells===50,'Storage owns a separate 200-slot model and 10x5 rendered grid');
   await clickRect(q.opener);
   await until(()=>window.__leoQA.open);
   q=await state();
-  check(q.storage_icon_visible&&q.storage_icon_in_bag&&q.storage_icon_tooltip===(q.locale==='th'?'คลังเก็บของ':'Storage'),'Storage icon belongs to right-hand bag header');
-  await clickRect(q.storage_icon);
+  check(q.storage_tab_visible&&q.storage_tab_text===(q.locale==='th'?'คลังเก็บของ':'Storage'),'Storage is the fifth top menu button');
+  await clickRect(q.storage_tab);
   await until(()=>window.__leoQA.storage_mode&&window.__leoQA.storage_visible);
   q=await state();
   check(q.storage_bag_right&&q.storage_equipment_hidden,'Storage grid replaces equipment LEFT, original bag remains RIGHT');
-  check(q.bag.length===50&&q.storage_grid.length===50&&q.footer.length===6&&q.tabs.length===4,'Storage reuses original bag and preserves all menus/buttons');
+  check(q.bag.length===50&&q.storage_grid.length===50&&q.footer.length===6&&q.tabs.length===5,'Storage reuses original bag and preserves five tabs/six footer buttons');
   await snap('web-storage-open-en');
   const movedId='sword';
   const movedIndex=q.slots.indexOf(movedId);
@@ -171,7 +171,7 @@ async function swipe(dx,dy){
   check(q.storage_slots[0]==='sword'&&!q.slots.includes('sword'),'Stored item survives immediate reload without duplicating');
   await clickRect(q.opener);
   await until(()=>window.__leoQA.open);
-  await clickRect((await state()).storage_icon);
+  await clickRect((await state()).storage_tab);
   await until(()=>window.__leoQA.storage_visible);
   q=await state();
   await clickRect(q.storage_grid[0]);
@@ -222,7 +222,7 @@ async function swipe(dx,dy){
    await until(()=>!window.__leoQA.detail_visible);
    await context.close();
   }
-  // Real mobile touch: Inventory HUD icon -> chest inside right-hand bag header.
+  // Real mobile touch: pan to the fifth top-row Storage tab and tap it.
   for(const viewport of [{width:390,height:844},{width:844,height:390}]){
    context=await start(viewport,true);
    let mobileStorage=await state();
@@ -230,18 +230,18 @@ async function swipe(dx,dy){
    await clickRect(mobileStorage.opener,true);
    await until(()=>window.__leoQA.open);
    mobileStorage=await state();
-   check(mobileStorage.storage_icon_visible&&mobileStorage.storage_icon_in_bag,'Mobile Storage icon is inside opened bag');
-   // On small screens the player's bag starts beyond the panned left equipment.
-   // Swipe to the right-hand bag until the Storage chest is on screen.
-   for(let attempt=0;attempt<4;attempt++){
+   check(mobileStorage.storage_tab_visible&&mobileStorage.tabs.length===5,'Mobile Storage fifth tab is available');
+   // Small screens pan the entire 1448-wide UI instead of shrinking touch targets.
+   // Reach the fifth tab by a real horizontal swipe before tapping it.
+   for(let attempt=0;attempt<5;attempt++){
     mobileStorage=await state();
-    const bounds=mobileStorage.storage_icon, vw=viewport.width, vh=viewport.height;
-    if(bounds[0]>=0&&bounds[0]+bounds[2]<=vw&&bounds[1]>=0&&bounds[1]+bounds[3]<=vh)break;
-    await swipe(550,0);
+    const rect=mobileStorage.storage_tab;
+    if(rect[0]>=0&&rect[0]+rect[2]<=viewport.width&&rect[1]>=0&&rect[1]+rect[3]<=viewport.height)break;
+    await swipe(500,0);
    }
    mobileStorage=await state();
-   check(mobileStorage.storage_icon[2]>=44,'Mobile chest touch width is at least 44px');
-   await clickRect(mobileStorage.storage_icon,true);
+   check(mobileStorage.storage_tab[2]>=44,'Mobile Storage tab remains a usable touch target');
+   await clickRect(mobileStorage.storage_tab,true);
    await until(()=>window.__leoQA.storage_mode&&window.__leoQA.storage_visible);
    mobileStorage=await state();
    check(mobileStorage.storage_bag_right&&mobileStorage.storage_equipment_hidden,'Mobile Storage keeps bank left and inventory right');
