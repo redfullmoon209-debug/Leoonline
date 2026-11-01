@@ -5,7 +5,7 @@ extends Control
 const MENU_IDS: Array[String] = ["world","party","friends","ranking","settings","guild","quest","mail","events"]
 # The actual 10-icon row, left to right, includes the existing Inventory button.
 const MENU_ORDER: Array[String] = ["bag","world","party","friends","ranking","settings","guild","quest","mail","events"]
-const LAYOUT_VERSION: int = 3
+const LAYOUT_VERSION: int = 4
 const PREMIUM_ROOT: String = "res://assets/ui/hud/premium/"
 const TopStatusScript = preload("res://scripts/hud_top_status.gd")
 const ALL_IDS: Array[String] = ["bag","world","party","friends","ranking","settings","guild","quest","mail","events","joystick","jump","pickup","run","target"]
@@ -20,6 +20,17 @@ const EN_LABELS: Dictionary = {
  "ranking":"Rankings","settings":"Settings","guild":"Guild",
  "quest":"Quests","mail":"Mail","events":"Events",
  "joystick":"Move","jump":"Jump","pickup":"Pick Up","run":"Run","target":"Target"
+}
+# Clear, localized caption text lives BELOW each PNG (never baked into art).
+const SHORT_TH: Dictionary = {
+ "bag":"กระเป๋า","world":"แผนที่","party":"ปาร์ตี้","friends":"เพื่อน",
+ "ranking":"อันดับ","settings":"ตั้งค่า","guild":"กิลด์","quest":"เควสต์",
+ "mail":"จดหมาย","events":"กิจกรรม"
+}
+const SHORT_EN: Dictionary = {
+ "bag":"Bag","world":"Map","party":"Party","friends":"Friends",
+ "ranking":"Rank","settings":"Set","guild":"Guild","quest":"Quest",
+ "mail":"Mail","events":"Events"
 }
 const HUD_FILE: String = "user://leoonline_hud.json"
 const WEB_KEY: String = "leoonline_hud_v1"
@@ -161,6 +172,10 @@ func clear_target() -> void:
 func _label_for(id: String) -> String:
  return str(EN_LABELS.get(id,id)) if inventory.get("locale")=="en" else str(MENU_LABELS.get(id,id))
 
+func _short_label_for(id: String) -> String:
+ var dictionary:Dictionary=SHORT_EN if inventory.get("locale")=="en" else SHORT_TH
+ return str(dictionary.get(id,_label_for(id)))
+
 func _font() -> Font:
  var path: String = "res://assets/fonts/NotoSansThai.ttf"
  return load(path) as Font if ResourceLoader.exists(path) else null
@@ -206,7 +221,11 @@ func _build_buttons() -> void:
  bag_caption.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
  bag_caption.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
  bag_caption.mouse_filter=Control.MOUSE_FILTER_IGNORE
- bag_caption.add_theme_color_override("font_color",Color("#ffe6b3"))
+ bag_caption.add_theme_color_override("font_color",Color("#fff9e9"))
+ bag_caption.add_theme_color_override("font_outline_color",Color("#170819"))
+ bag_caption.add_theme_constant_override("outline_size",3)
+ bag_caption.add_theme_color_override("font_shadow_color",Color.BLACK)
+ bag_caption.add_theme_constant_override("shadow_offset_y",1)
  if _font()!=null: bag_caption.add_theme_font_override("font",_font())
  bag_button.add_child(bag_caption)
  _make_notification_badge(bag_button,"bag")
@@ -235,7 +254,9 @@ func _build_buttons() -> void:
   caption.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
   caption.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
   caption.mouse_filter=Control.MOUSE_FILTER_IGNORE
-  caption.add_theme_color_override("font_color",Color("#fff0c6"))
+  caption.add_theme_color_override("font_color",Color("#fff9e9"))
+  caption.add_theme_color_override("font_outline_color",Color("#170819"))
+  caption.add_theme_constant_override("outline_size",3)
   caption.add_theme_color_override("font_shadow_color",Color(0,0,0,0.92))
   caption.add_theme_constant_override("shadow_offset_y",1)
   if _font()!=null: caption.add_theme_font_override("font",_font())
@@ -279,31 +300,28 @@ func _build_buttons() -> void:
 
 func _row_metrics() -> Dictionary:
  var w:float=maxf(320.0,size.x)
+ var portrait_mode:bool=size.y>size.x
  var item_size:float=37.0
- var gap:float=3.0
- var y:float=13.0
+ var gap:float=4.0
+ var y:float=9.0
  var start_x:float=0.0
- if w<760.0:
-  # Portrait phones and narrow tablet previews: player/minimap at the top;
-  # the ten compact icons share a single second line, target below them.
-  item_size=clampf((w-43.0)/10.0,27.0,37.0)
-  gap=3.0
-  y=104.0
-  var narrow_total:float=10.0*item_size+9.0*gap
-  start_x=(w-narrow_total)*0.5
+ if portrait_mode:
+  # One TOPMOST row of ten icons; information panels line up immediately below.
+  item_size=clampf((w-41.0)/10.0,27.0,48.0)
+  gap=clampf((w-16.0-10.0*item_size)/9.0,3.0,24.0)
+  y=7.0
+  var portrait_total:float=10.0*item_size+9.0*gap
+  start_x=(w-portrait_total)*0.5
  else:
-  # Confirmed landscape mock: all ten smaller PNGs form ONE row immediately
-  # to the left of the circular minimap. The target card sits BELOW this row,
-  # centered at the very top of the playable viewport.
+  # Landscape leaves the player panel on the left and minimap on the right.
   item_size=clampf(w*0.044,33.0,40.0)
-  gap=3.0
-  y=11.0
+  gap=4.0
   var map_width:float=118.0 if w<1100.0 else 151.0
   var map_left:float=w-map_width-9.0
-  var total:float=10.0*item_size+9.0*gap
-  start_x=map_left-8.0-total
+  var landscape_total:float=10.0*item_size+9.0*gap
+  start_x=map_left-8.0-landscape_total
  return {"size":item_size,"gap":gap,"y":y,"start":start_x,
-  "total":10.0*item_size+9.0*gap}
+  "total":10.0*item_size+9.0*gap,"portrait":portrait_mode}
 
 func _default_positions() -> Dictionary:
  var w:float=maxf(320.0,size.x)
@@ -365,19 +383,18 @@ func _reflow() -> void:
   control.position=Vector2(clampf(coordinates.x,5.0,maxf(5.0,size.x-wh-5.0)),clampf(coordinates.y,5.0,maxf(5.0,size.y-wh-5.0)))
   if MENU_ORDER.has(id):
    var caption:Label=control.get_node("Caption") as Label
-   caption.text=_label_for(id)
+   caption.text=_short_label_for(id)
    if id!="bag":
     var icon:TextureRect=control.get_node("Glyph") as TextureRect
-    # The approved ornament already includes its OWN frame and nameplate;
-    # show the ENTIRE standalone PNG without clipping, cropping or inset.
+    # Original nameplate-free PNG, shown whole without clipping.
     icon.position=Vector2.ZERO
     icon.size=Vector2(wh,wh)
-   # Keep each Thai/English caption as live text on the blank nameplate.
-   # No label text is baked into any of the ten transparent PNG files.
-   caption.position=Vector2(-wh*0.07,wh*0.70)
-   caption.size=Vector2(wh*1.14,wh*0.22)
-   caption.add_theme_font_size_override("font_size",clampi(int(wh*0.158),7,10))
-   caption.visible=display_names and size.x>=700.0
+   # Entire standalone PNG without cropping; live text is BELOW the icon
+   # with a bold dark outline, not inside a tiny red/gold label base.
+   caption.position=Vector2(-3.0,wh*0.93)
+   caption.size=Vector2(wh+6.0,19.0)
+   caption.add_theme_font_size_override("font_size",10 if size.x<460.0 else (11 if size.x<1000.0 else 12))
+   caption.visible=display_names
    if notification_badges.has(id):
     var badge:Label=notification_badges[id]
     var badge_size:float=clampf(wh*0.34,12.0,19.0)

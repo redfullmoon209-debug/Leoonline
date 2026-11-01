@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Draw 10 independent richly layered fantasy art icons as RGBA PNG.
+"""Draw 10 independent nameplate-free fantasy art icons as RGBA PNG.
 
 The input is original illustration code per icon, not a screenshot, an asset
 sheet, a clip/crop, or an extract from the approved concept image. Each png
@@ -50,7 +50,6 @@ def base_art():
     for x,y,flip in [(47,99,1),(209,99,-1)]:
         filigree+=f'<path d="M{x} {y-26} q{flip*18} 11 {flip*12} 22 q{-flip*17} 2 {-flip*8} 25" stroke="url(#gold3d)" stroke-width="3" fill="none" opacity=".91"/>'
     return f'''
-      <ellipse cx="128" cy="232" rx="105" ry="13" fill="#000000" opacity=".35"/>
       <circle cx="128" cy="101" r="96" fill="#3a130a" stroke="#421b08" stroke-width="4"/>
       <circle cx="128" cy="98" r="94" fill="url(#gold3d)" stroke="#4f1b05" stroke-width="3"/>
       <circle cx="128" cy="98" r="88" fill="url(#darkGold)" stroke="#fff1a9" stroke-width="1.6"/>
@@ -63,17 +62,7 @@ def base_art():
       {nicks}{filigree}
       <path d="M120 4L128 0 136 4 141 13 128 22 115 13Z" fill="url(#gold3d)" stroke="#4a1c04" stroke-width="2"/>
       <path d="M128 6L134 13 128 20 122 13Z" fill="url(#sapphire)" stroke="#f9ecc4" stroke-width="1.4"/>
-      <!-- Ornamental underlay blank nameplate: all text lives in Godot UI. -->
-      <path d="M28 178L40 173 216 173 228 178 237 193 229 228 216 240 41 240 27 227 18 193Z" fill="#401805" opacity=".75" transform="translate(0 3)"/>
-      <path d="M26 177L40 170 216 170 230 177 238 195 229 231 218 240 38 240 27 229 18 196Z" fill="url(#gold3d)" stroke="#602909" stroke-width="3"/>
-      <path d="M35 183L47 178 208 178 221 184 229 196 219 223 210 231 46 231 37 224 28 197Z" fill="url(#nameplate)" stroke="#ffdc76" stroke-width="1.8"/>
-      <path d="M43 187Q129 176 215 187" stroke="#ffe7ad" opacity=".58" stroke-width="1.7" fill="none"/>
-      <path d="M42 222Q129 232 215 222" stroke="#a56322" opacity=".6" stroke-width="1.7" fill="none"/>
-      <path d="M26 191L13 198 27 206M230 191L243 198 229 206" fill="url(#gold3d)" stroke="#592000" stroke-width="1.7"/>
-      <path d="M121 169L128 161 135 169 128 179Z" fill="url(#gold3d)" stroke="#582505" stroke-width="1.4"/>
-      <path d="M128 164L133 169 128 175 123 169Z" fill="url(#sapphire)" stroke="#d8eef9" stroke-width=".7"/>
-      <path d="M121 237L128 229 135 237 128 249Z" fill="url(#gold3d)" stroke="#59270c" stroke-width="1.5"/>
-      <path d="M128 232L133 238 128 245 123 238Z" fill="url(#sapphire)" stroke="#d8eef9" stroke-width=".7"/>
+      <!-- No base behind text: all captions are separate Godot Labels. -->
       '''
 
 
@@ -328,7 +317,7 @@ DEFS='''
 
 
 def svg(name):
-    return f'<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">{DEFS}<g>{base_art()}</g><g>{GLYPHS[name]()}</g></svg>'
+    return f'<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">{DEFS}<g transform="translate(0 19)">{base_art()}</g><g transform="translate(0 19)">{GLYPHS[name]()}</g></svg>'
 
 
 def main():
