@@ -399,7 +399,7 @@ func _refresh_touch_visibility() -> void:
  # mobile gameplay mode. Its mouse must be able to operate the same
  # joystick and buttons as fingers on a physical phone.
  var portrait_web:bool=OS.has_feature("web") and size.x<=600.0
- var show_touch:bool=DisplayServer.is_touchscreen_available() or display_mobile_controls or edit_mode or portrait_web
+ var show_touch:bool=DisplayServer.is_touchscreen_available() or display_mobile_controls or edit_mode or portrait_web or force_touch_preview
  for id in ["joystick","jump","pickup","run"]:
   controls[id].visible=show_touch and not inventory.visible
  for key in MENU_IDS: controls[key].visible=not inventory.visible
