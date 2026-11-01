@@ -29,11 +29,13 @@ func _process(delta: float) -> void:
  var hud_icons: Dictionary={}
  for id in ["world","party","friends","ranking","settings","guild","quest","mail","events"]:
   hud_icons[id]=bounds(menu.controls[id])
+ var close_hud: Control=menu.popup.find_child("CloseHUDPanel",true,false) as Control
  var save_hud: Control=menu.toolbar.find_child("SaveHUDLayout",true,false) as Control
  var cancel_hud: Control=menu.toolbar.find_child("CancelHUDLayout",true,false) as Control
  var restore_hud: Control=menu.page_body.find_child("ResetHUDLayout",true,false) as Control
  var start_hud: Control=menu.page_body.find_child("EditHUDLayout",true,false) as Control
  var state := {
+  "hud_close_button":bounds(close_hud) if close_hud!=null else [],
   "hud_save_button":bounds(save_hud) if save_hud!=null else [],
   "hud_cancel_button":bounds(cancel_hud) if cancel_hud!=null else [],
   "hud_reset_button":bounds(restore_hud) if restore_hud!=null else [],
