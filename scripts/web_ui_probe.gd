@@ -3,6 +3,10 @@ extends Node
 ## No commands, save mutation, or remote endpoints are exposed.
 var host: Node
 var elapsed := 0.0
+var input_counts: Dictionary = {}
+func _input(event: InputEvent) -> void:
+ var kind: String = event.get_class()
+ input_counts[kind] = int(input_counts.get(kind,0))+1
 func _ready() -> void:
  host = get_parent()
 func bounds(control: Control, offset: Vector2 = Vector2.ZERO) -> Array:
@@ -22,6 +26,8 @@ func _process(delta: float) -> void:
  for button in ui.bag_grid.get_children():
   if button.get_meta("locked",false): locked+=1
  var state := {
+  "input_counts":input_counts,"touchscreen":DisplayServer.is_touchscreen_available(),
+  "pan":[ui.pan_finger,ui.pan_active],"h_range":[ui.scroller.get_h_scroll_bar().max_value,ui.scroller.get_h_scroll_bar().page],
   "open":ui.visible,"page":ui.current_page,"locale":ui.locale,"tab":ui.current_tab,
   "slots":store.slots,"equipped":store.equipped,"unlocked":store.unlocked,
   "selected":store.selected,"currency":store.currency,"notice":ui.notice_text.text,
