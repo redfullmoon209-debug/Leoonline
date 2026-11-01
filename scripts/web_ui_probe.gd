@@ -79,6 +79,10 @@ func _process(delta: float) -> void:
   "hud_target_frame_custom":menu.top_status.target_decor.get_script()!=null,
   "hud_training_target_present":is_instance_valid(host.get("training_target")),
   "hud_training_target_name":str(host.get("training_target").get_meta("target_name","")) if is_instance_valid(host.get("training_target")) else "",
+  "hud_training_target_screen": [
+   host.camera.unproject_position(host.get("training_target").global_position).x,
+   host.camera.unproject_position(host.get("training_target").global_position).y
+  ] if is_instance_valid(host.get("training_target")) else [],
   "hud_panel_open":menu.popup.visible,
   "hud_panel_key":menu.popup_key,
   "hud_panel_bounds":bounds(menu.popup),
