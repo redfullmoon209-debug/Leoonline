@@ -216,6 +216,19 @@ async function swipe(dx,dy){
    await until(()=>!window.__leoQA.detail_visible);
    await context.close();
   }
+  // Additional real touch test: independent chest icon opens the same left
+  // 50-cell Storage grid on both mobile portrait and landscape.
+  for(const viewport of [{width:390,height:844},{width:844,height:390}]){
+   context=await start(viewport,true);
+   let mobileStorage=await state();
+   await clickRect(mobileStorage.storage_opener,true);
+   await until(()=>window.__leoQA.storage_mode&&window.__leoQA.storage_visible);
+   mobileStorage=await state();
+   check(mobileStorage.storage_bag_right&&mobileStorage.storage_equipment_hidden,'Mobile Storage keeps bank left and inventory right');
+   check(mobileStorage.storage_cells===50&&mobileStorage.storage_grid[0][2]>=44,'Mobile Storage has 50 touch-friendly PNG slots');
+   await snap('web-storage-mobile-'+viewport.width);
+   await context.close();
+  }
   check(errors.length===0,'No game JavaScript or GDScript runtime errors');
  }catch(error){
   errors.push(error.stack||String(error));
