@@ -439,6 +439,55 @@ func validate() -> void:
  await process_frame
  await click(ui.footer_buttons[5])
  check(not ui.visible and not ui.detail_panel.visible,"Close hides details too")
+ # HUD main-menu regression: no picture crops, nine independent working icons,
+ # local functional menu panels, mobile controls and a persistent drag/resize UI.
+ var hud_menu: Control=game.hud_menu
+ check(hud_menu!=null and hud_menu.controls.size()==14,"HUD exposes nine distinct menus, bag, joystick, Jump, Pickup and Run")
+ check(hud_menu.controls["bag"]==game.hud.get_node("OpenInventory"),"Original Inventory button and save data are preserved")
+ for id in ["world","party","friends","ranking","settings","guild","quest","mail","events"]:
+  check(ResourceLoader.exists("res://assets/ui/hud/"+id+".svg"),"Menu icon is an original SVG asset: "+id)
+  var menu_button: Button=hud_menu.controls[id]
+  check(menu_button.visible and menu_button.get_node("Glyph").texture!=null,"HUD icon is visible and vector sprite loads: "+id)
+  hud_menu._open_page(id)
+  check(hud_menu.popup.visible and hud_menu.popup_key==id and hud_menu.page_body.get_child_count()>0,"Every independent HUD icon opens a real page: "+id)
+  hud_menu._hide_popup()
+ check(hud_menu.popup_map==null and not hud_menu.popup.visible,"Closing a HUD menu hides its modal overlay")
+ hud_menu._open_page("world")
+ check(hud_menu.popup_map!=null and hud_menu.popup_map.loot_points.size()==game.loot.size(),"World map displays current local loot and player position")
+ hud_menu._hide_popup()
+ hud_menu._open_page("settings")
+ hud_menu._begin_edit()
+ check(hud_menu.edit_mode and hud_menu.toolbar.visible and not hud_menu.popup.visible,"Settings starts real HUD drag/resize editor")
+ var old_hud_layout: Dictionary=hud_menu.layout_state.duplicate(true)
+ hud_menu._select_control("world")
+ hud_menu._resize_selected(80.0)
+ check(hud_menu.controls["world"].size==Vector2(80,80),"HUD editor slider resizes selected icon")
+ hud_menu._update_layout("world",Vector2(140,125),80.0)
+ hud_menu._reflow()
+ check(hud_menu.controls["world"].position.distance_to(Vector2(140,125))<3.0,"HUD editor updates icon positions on canvas")
+ hud_menu._finish_edit(false)
+ check(hud_menu.layout_state==old_hud_layout,"Cancel restores previous HUD positions and sizes without saving")
+ hud_menu._begin_edit()
+ hud_menu._select_control("friends")
+ hud_menu._update_layout("friends",Vector2(118,104),72.0)
+ hud_menu._reflow()
+ hud_menu._finish_edit(true)
+ check(hud_menu.layout_state.has("friends") and hud_menu.controls["friends"].size==Vector2(72,72),"Save keeps new per-icon geometry")
+ var hud_file:=FileAccess.open("user://leoonline_hud.json",FileAccess.READ)
+ var hud_saved:Variant=JSON.parse_string(hud_file.get_as_text()) if hud_file!=null else null
+ check(hud_saved is Dictionary and hud_saved["layout"].has("friends"),"Editable HUD coordinates persist in separate JSON file")
+ hud_menu.layout_state=old_hud_layout.duplicate(true)
+ hud_menu._reflow()
+ hud_menu._save_local()
+ hud_menu.display_mobile_controls=true
+ hud_menu._refresh_touch_visibility()
+ check(hud_menu.controls["joystick"].visible and hud_menu.controls["jump"].visible and hud_menu.controls["pickup"].visible and hud_menu.controls["run"].visible,"Mobile movement, jump, pickup and run controls can be shown and edited on PC")
+ var stick:Control=hud_menu.controls["joystick"]
+ stick._point_to_vector(stick.size*0.8)
+ check(hud_menu.get_movement_vector().length()>0.05,"Virtual mobile joystick drives real movement vector")
+ stick.movement=Vector2.ZERO
+ hud_menu.display_mobile_controls=false
+ hud_menu._refresh_touch_visibility()
  if had_save:
   var file = FileAccess.open("user://leoonline.json",FileAccess.WRITE)
   file.store_buffer(backup)
