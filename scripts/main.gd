@@ -232,7 +232,7 @@ func _toggle() -> void:
  if open:
   inventory.call("_switch_tab",0)
  inventory.visible = open
- Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if open or DisplayServer.is_touchscreen_available() else Input.MOUSE_MODE_CAPTURED
+ Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if open or OS.has_feature("web") or DisplayServer.is_touchscreen_available() else Input.MOUSE_MODE_CAPTURED
 
 func _physics_process(delta: float) -> void:
  var vel := character.velocity
