@@ -341,8 +341,11 @@ func _reflow() -> void:
   if not is_instance_valid(control): continue
   var wh:float=_size_of(id)
   control.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-  control.size=Vector2(wh,wh)
+  # The old Inventory TextureButton starts with a 56px custom minimum.
+  # Clear it BEFORE resizing or Godot keeps the 56px hitbox on phones,
+  # overlapping the next icon and the centered target panel.
   control.custom_minimum_size=Vector2.ZERO
+  control.size=Vector2(wh,wh)
   var coordinates:Vector2=defaults.get(id,Vector2.ZERO)
   var entry:Variant=layout_state.get(id,{})
   if entry is Dictionary and entry.has("x") and entry.has("y"):
