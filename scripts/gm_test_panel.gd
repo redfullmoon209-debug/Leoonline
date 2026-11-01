@@ -38,8 +38,12 @@ func _make_action(parent: Node,text_value: String,fn: Callable) -> Button:
  button.text=text_value
  button.focus_mode=Control.FOCUS_NONE
  button.custom_minimum_size=Vector2(108,39)
- button.add_theme_font_size_override("font_size",13)
+ button.add_theme_font_size_override("font_size",12)
  button.add_theme_color_override("font_color",Color("#ffe8ba"))
+ # Godot's default Button font lacks Thai glyphs on Linux/Web.
+ # Apply the packaged Thai font to every separate GM action.
+ if ResourceLoader.exists("res://assets/fonts/NotoSansThai.ttf"):
+  button.add_theme_font_override("font",load("res://assets/fonts/NotoSansThai.ttf"))
  button.add_theme_stylebox_override("normal",_style(Color("#2c0b13"),Color("#c78a3e")))
  button.add_theme_stylebox_override("hover",_style(Color("#5c1d24"),Color("#ffe0a0")))
  button.add_theme_stylebox_override("pressed",_style(Color("#851d28"),Color("#ffe0a0")))
@@ -102,8 +106,12 @@ func _build() -> void:
  target_picker=OptionButton.new()
  target_picker.name="GMTargetPicker"
  target_picker.custom_minimum_size=Vector2(0,40)
- target_picker.add_theme_font_size_override("font_size",13)
+ target_picker.add_theme_font_size_override("font_size",12)
  target_picker.add_theme_color_override("font_color",Color("#fff0c5"))
+ if ResourceLoader.exists("res://assets/fonts/NotoSansThai.ttf"):
+  var thai_font:Font=load("res://assets/fonts/NotoSansThai.ttf") as Font
+  target_picker.add_theme_font_override("font",thai_font)
+  target_picker.get_popup().add_theme_font_override("font",thai_font)
  target_picker.add_theme_stylebox_override("normal",_style(Color("#341823"),Color("#bd8746")))
  content.add_child(target_picker)
  var choose:=_make_action(content,"เลือกเป้าหมายที่ชี้",_choose_target)
