@@ -526,6 +526,68 @@ func validate() -> void:
  check(tapped and top.current_target==game.training_target,
   "Click/touch camera ray can select the actual 3D monster collision shape")
  hud_menu.clear_target()
+ # Multiple distinct enemies and simulated player BOTs are selectable via
+ # the same real 3D hitboxes. No fake online-player presence is claimed.
+ check(game.test_targets.size()==5,"Scene contains original golem, green slime, wolf and two distinct player simulation BOTs")
+ var kinds:Dictionary={}
+ for entity in game.test_targets:
+  check(is_instance_valid(entity) and entity.has_meta("target_portrait"),"Each 3D test entity owns a separately created portrait asset")
+  check(ResourceLoader.exists(str(entity.get_meta("target_portrait"))),"Unique local portrait for selectable target "+entity.name)
+  kinds[entity.get_meta("target_type")]=int(kinds.get(entity.get_meta("target_type"),0))+1
+ check(int(kinds.get("Monster",0))==3 and int(kinds.get("Player Bot",0))==2,
+  "Three actual selectable monsters and two clearly labeled simulated players exist")
+ var selected_slime:StaticBody3D=game.test_targets[1]
+ game._set_test_target(selected_slime)
+ check(top.current_target==selected_slime and top.target_label.text=="สไลม์มรกต" and top.target_level_label.text=="Lv.4",
+  "Target panel switches to the actual slime identity and level")
+ check(top.target_portrait.texture.resource_path.ends_with("target_slime.svg") and top.target_health_value.text.contains("430"),
+  "Slime uses unique un-cropped portrait and real 430 health")
+ var selected_bot:StaticBody3D=game.test_targets[3]
+ var bot_screen:Vector2=game.camera.unproject_position(selected_bot.global_position)
+ var selected_by_click:bool=game._select_target_at(bot_screen)
+ check(selected_by_click and top.current_target==selected_bot and top.target_label.text.contains("[BOT]"),
+  "Click selection distinguishes simulated player bot from monster and updates center target card")
+ check(top.target_portrait.texture.resource_path.ends_with("target_bot_male.svg") and top.target_mana_value.text.contains("1200"),
+  "Player BOT's original portrait and actual mana values are shown")
+ hud_menu.clear_target()
+ # Separate GM test icon must be unavailable in the production main page by
+ # default. Test tools are authorized ONLY by a local playtest opt-in flag,
+ # never mistakenly presented as real server administrator permissions.
+ var gm:Control=game.gm_menu
+ check(gm!=null and not gm.active and not gm.gm_button.visible,
+  "GM red button is separate from ten main icons and hidden on production until TEST opt-in")
+ gm._set_test_mode(true)
+ check(gm.active and gm.gm_button.visible and not hud_menu.controls.has("gm"),
+  "Landscape GM playtest exposes a dedicated red GM button outside ten menu controls")
+ gm._toggle()
+ check(gm.is_open() and hud_menu.is_gameplay_blocked(),"Opening GM test panel blocks world movement")
+ check(gm.target_picker.item_count==5,"GM picker lists the five actual target entities")
+ gm._spawn_monster()
+ check(game.additional_test_targets.size()==1 and game.test_targets.size()==6,
+  "GM can spawn an additional clickable physical monster in the local scene")
+ gm._spawn_player()
+ check(game.additional_test_targets.size()==2 and game.test_targets.size()==7,
+  "GM can spawn a separately labeled simulated player BOT")
+ var spawned_bot:StaticBody3D=game.additional_test_targets[1]
+ check(top.current_target==spawned_bot and top.target_label.text.contains("[BOT]"),
+  "GM automatically selects the newly spawned simulated player's actual target data")
+ var hp_initial:float=float(spawned_bot.get_meta("hp"))
+ var mp_initial:float=float(spawned_bot.get_meta("mp"))
+ gm._damage()
+ gm._drain_mana()
+ check(float(spawned_bot.get_meta("hp"))<hp_initial and top.target_bar.value<100.0,
+  "GM HP test button changes real target metadata and visible red HP bar")
+ check(float(spawned_bot.get_meta("mp"))<mp_initial and top.target_mana_bar.value<100.0,
+  "GM MP test button changes real target metadata and visible blue MP bar")
+ gm._heal()
+ check(is_equal_approx(top.target_bar.value,100.0) and is_equal_approx(top.target_mana_bar.value,100.0),
+  "GM Heal button restores selected entity HP and MP")
+ gm._reset_world()
+ check(game.additional_test_targets.is_empty() and game.test_targets.size()==5 and top.current_target==null,
+  "GM Reset removes only GM-spawned targets, restores starter entities and clears target card")
+ gm._close()
+ gm._set_test_mode(false)
+ check(not gm.gm_button.visible and not gm.is_open(),"Leaving GM test revokes all local debug controls")
  var wide_target_bounds:Rect2=top.target_panel.get_global_rect()
  var wide_menu_bounds:Rect2=hud_menu.controls["bag"].get_global_rect()
  check(absf(wide_target_bounds.get_center().x-720.0)<2.0,
