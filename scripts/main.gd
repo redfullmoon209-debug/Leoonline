@@ -30,6 +30,8 @@ func _ready() -> void:
  var ui911: Node = load("res://scripts/ui911.gd").new()
  add_child(ui911)
  Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+ if OS.has_feature("web") and "--inventory-qa" in OS.get_cmdline_user_args():
+  add_child(load("res://scripts/web_ui_probe.gd").new())
 
 func _register_keys() -> void:
  var keys := {"forward":[KEY_W,KEY_UP],"back":[KEY_S,KEY_DOWN],"left":[KEY_A,KEY_LEFT],"right":[KEY_D,KEY_RIGHT],"jump":[KEY_SPACE],"run":[KEY_SHIFT],"bag":[KEY_B],"pickup":[KEY_E]}
@@ -167,6 +169,7 @@ func _make_ui() -> void:
  inventory.visible = false
  # A real touch target is required to open the bag without a keyboard.
  var bag_button := TextureButton.new()
+ bag_button.name = "OpenInventory"
  bag_button.texture_normal = load("res://assets/ui/inventory/icon_inventory.png")
  bag_button.ignore_texture_size = true
  bag_button.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED

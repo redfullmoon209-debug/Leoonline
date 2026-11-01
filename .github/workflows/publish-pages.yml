@@ -11,6 +11,7 @@ on:
       - 'assets/**'
       - 'project.godot'
       - 'export_presets.cfg'
+      - 'tools/test_web_inventory.cjs'
 permissions:
   contents: read
   pages: write
@@ -45,6 +46,35 @@ jobs:
           mkdir -p build/web/911
           cp 911/index.html 911/manifest.webmanifest 911/icon.svg 911/sw.js build/web/911/
           test -s build/web/911/manifest.webmanifest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser QA runtime
+        run: |
+          npm install --prefix /tmp/leo-browser --no-save playwright@1.56.1
+          /tmp/leo-browser/node_modules/.bin/playwright install --with-deps chromium
+      - name: Test release Web export with real desktop and mobile browser input
+        env:
+          PLAYWRIGHT_MODULE: /tmp/leo-browser/node_modules/playwright
+        run: |
+          set -euo pipefail
+          python3 - <<'PYCODE'
+          from pathlib import Path
+          p=Path('build/web/index.html')
+          test_html=p.read_text().replace('const engine = new Engine(GODOT_CONFIG);', 'GODOT_CONFIG.args = ["--", "--inventory-qa"];\nconst engine = new Engine(GODOT_CONFIG);')
+          Path('build/web/_qa.html').write_text(test_html)
+          PYCODE
+          python3 -m http.server 8000 --directory build/web > /tmp/leo-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid"; rm -f build/web/_qa.html' EXIT
+          node tools/test_web_inventory.cjs
+      - name: Preserve browser QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Leoonline-browser-QA
+          path: build/web/qa/
+          if-no-files-found: warn
       - name: Upload static site
         uses: actions/upload-pages-artifact@v3
         with:
