@@ -53,7 +53,7 @@ func validate() -> void:
  var source_frames := 0
  for node in ui.stage.get_children():
   if node is NinePatchRect and node.name=="RedMattePanel_inner_panel": source_frames+=1
- check(source_frames==0,"Footer group has no decorative perimeter frame")
+ check(source_frames==1 and not ui.shop_left_frame.visible,"Shop-only left frame stays hidden in normal Inventory, and footer remains frameless")
  var bag_border := 0
  for node in ui.bag_panel.get_children():
   if node is NinePatchRect: bag_border+=1
