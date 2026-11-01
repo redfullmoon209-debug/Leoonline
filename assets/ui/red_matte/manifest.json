@@ -4,6 +4,16 @@
     "height": 84,
     "sha256": "d52b71789f053cdbdc4d75ef18b7a244482df5480045a0a67519826310765d8c"
   },
+  "button_hover.png": {
+    "width": 320,
+    "height": 84,
+    "sha256": "c6237fc6a05ea4063b14bc495bd10b9f903e7e9482f9eaea4a2ae0d0050af2ac"
+  },
+  "button_pressed.png": {
+    "width": 320,
+    "height": 84,
+    "sha256": "c79e9ed1b826ccebf0105c16f7e17e5382e7ec98be21a638dbd2ca1fdeeb8982"
+  },
   "close_button.png": {
     "width": 320,
     "height": 84,
@@ -53,5 +63,10 @@
     "width": 320,
     "height": 84,
     "sha256": "175af8f1d25e1a4d3d5412b172d0d539678cf8e6f236f6ed08d1abd039daf6a5"
+  },
+  "tab_lit.png": {
+    "width": 320,
+    "height": 84,
+    "sha256": "af7e672f2fca3cc153cfa366c798d78c4272398ba0444619b610952574c4f6dd"
   }
 }
