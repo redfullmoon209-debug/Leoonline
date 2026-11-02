@@ -40,10 +40,10 @@ jobs:
           curl -fL --retry 3 https://github.com/godotengine/godot-builds/releases/download/4.4.1-stable/Godot_v4.4.1-stable_export_templates.tpz -o templates.tpz
           mkdir -p "$HOME/.local/share/godot/export_templates/4.4.1.stable"
           unzip -j -q templates.tpz 'templates/*' -d "$HOME/.local/share/godot/export_templates/4.4.1.stable"
-      - name: Import real female character model from approved existing repository
+      - name: Import compatible female Mixamo FBX and textures from existing user project
         run: |
           python3 tools/prepare_female_character.py
-          test -s assets/characters/female/Female.glb
+          test -s assets/characters/female/Female.fbx
       - name: Export site
         run: |
           ./Godot_v4.4.1-stable_linux.x86_64 --headless --path . --editor --import --quit 2>&1 | tee import.log
