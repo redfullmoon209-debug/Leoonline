@@ -220,6 +220,8 @@ func validate() -> void:
  check(skills.preview_buttons[2].position.y+skills.preview_buttons[2].size.y<=left_region.position.y+left_region.size.y,"All animation controls fit above left panel's bottom without overflow")
  check(skills.current_level_label.position.y+skills.current_level_label.size.y<skills.preview_buttons[0].position.y,"Compact level details do not collide with preview controls")
  check(skills.get_children().all(func(node):return not (node is NinePatchRect)),"All Novice skill panels are frameless; no double gold PNG borders remain")
+ check(skills.get_node("SkillPreviewFrame").material is ShaderMaterial and skills.get_node("SkillRightSkillsPanel").material is ShaderMaterial,
+  "Existing frameless skill panels have premium crimson surface finish only, without new geometry")
  for flat_name in ["SkillLeftPanel","SkillRightTopPanel","SkillRightSkillsPanel","SkillHotbarPanel","SkillUpgradePanel","SkillPreviewFrame","SkillCurrentStatsFrame","SkillNextStatsFrame"]:
   var flat:Control=skills.get_node_or_null(flat_name) as Control
   check(flat is ColorRect and (flat as ColorRect).color.a>0.0,"Skill section is a dark-maroon flat surface with no lines: "+flat_name)
@@ -700,6 +702,25 @@ func validate() -> void:
   var available_count:int=3 if profession_index==0 else 14
   check(skills.skill_slots.filter(func(cell):return not cell.disabled).size()==available_count,
    "Skill grid shows 3 starter slots or 14 job slots: "+str(entry["id"]))
+  # All first-tier job icons are independently generated PNGs and reuse
+  # the SAME Godot controls/positions with no line/border decorations.
+  if int(entry["tier"])==1:
+   var class_catalog=load("res://scripts/skill_catalog.gd")
+   var class_skills:Array=class_catalog.skills_for_job(str(entry["id"]))
+   check(class_skills.size()==14,"First-tier profession has 14 authored skill entries: "+str(entry["id"]))
+   for skill_index in range(class_skills.size()):
+    var skill_def:Dictionary=class_skills[skill_index]
+    var skill_path:String=str(skill_def["icon"])
+    var painted:TextureRect=skills.skill_slots[skill_index].get_node_or_null("SkillArt") as TextureRect
+    check(ResourceLoader.exists(skill_path),"Separate PNG exists: "+str(skill_def["id"]))
+    check(painted!=null and painted.texture!=null and painted.texture.resource_path==skill_path,
+     "Original skill slot shows correct individual icon: "+str(skill_def["id"]))
+   var first_equipped:TextureRect=skills.active_slots[0].get_node_or_null("SkillArt") as TextureRect
+   check(first_equipped!=null and first_equipped.texture!=null,
+    "GM preview reuses original three-slot skill hotbar: "+str(entry["id"]))
+   skills._skill_cell_selected("NoviceSkillSlot09")
+   check(skills.selected_skill==str(class_skills[8]["id"]) and skills.slot_label.text==str(class_skills[8]["th"]),
+    "Existing skill slot selects skill specific to chosen profession: "+str(entry["id"]))
   check(skills.preview_anchor.get_child_count()==0 and skills.upgrade_button.disabled,
    "GM cannot fake animation or deduct currency for blank skills")
  check(store.profile==real_career_before,"GM preview does not overwrite career, EXP, gold or skill points")
