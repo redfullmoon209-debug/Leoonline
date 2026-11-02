@@ -498,6 +498,7 @@ func _spawn_gm_test_entity(kind: String) -> StaticBody3D:
   Vector3(x,1.1,z),"res://assets/ui/hud/"+image,
   Color("#547bd0") if is_player else Color("#6ad0b3"))
  additional_test_targets.append(entity)
+ if world_collision_count>0:_snap_target_to_terrain(entity,character.global_position.y)
  return entity
 
 func _set_test_target(entity:StaticBody3D) -> void:
@@ -685,7 +686,7 @@ func _physics_process(delta: float) -> void:
  if not character.is_on_floor():
   vel.y-=19.6*delta
  elif (Input.is_action_just_pressed("jump") or touch_jump) and not blocked:
-  vel.y=7.5
+  vel.y=3.6
  var in_rush:bool=is_instance_valid(combat) and combat.rush_active
  var v:Vector2=Vector2.ZERO if blocked or in_rush else Input.get_vector("left","right","forward","back")
  if not blocked and is_instance_valid(hud_menu):
@@ -711,13 +712,22 @@ func _physics_process(delta: float) -> void:
   visual_direction=combat.rush_target.global_position-character.global_position
   visual_direction.y=0.0
   visual_direction=visual_direction.normalized()
- var speed:float=8.0 if auto_running else (8.0 if sprinting else 5.0)
+ var speed:float=RUN_SPEED if auto_running or sprinting else WALK_SPEED
  vel.x=dir.x*speed
  vel.z=dir.z*speed
+ var was_grounded:bool=character.is_on_floor()
+ var start_position:Vector3=character.global_position
  character.velocity=vel
- # Auto-running uses exactly the same CharacterBody3D collision + slide
- # as ordinary movement, never teleporting or ignoring a blocked path.
+ # Follow the original streets rather than the deleted all-flat collision box.
  character.move_and_slide()
+ if was_grounded and not blocked and not in_rush and character.is_on_wall() and vel.y<=0.1:
+  TerrainSteps.try_climb(character,start_position,Vector3(vel.x,0,vel.z)*delta)
+ # Rescue only if the original map has a genuine opening to empty space.
+ if world_collision_count>0 and character.global_position.y < -4.5:
+  character.velocity=Vector3.ZERO
+  character.global_position=Vector3(0,1.1*ACTOR_SCALE,0)
+  if is_instance_valid(combat):combat.stop_auto_attack()
+  if is_instance_valid(store):store.notice.emit("กลับจุดเกิด: พื้นที่นอกขอบแมพ")
  if in_rush:combat.advance_rush(delta)
  if is_instance_valid(combat):combat.advance_auto_attack(delta,blocked)
  var female_visual:Node3D=character.get_node_or_null("FemalePlayerVisual") as Node3D
