@@ -67,5 +67,65 @@ func _check() -> void:
         push_error("Female character idle state is not reachable")
         quit(1)
         return
-    print("FEMALE ANIMATION QA PASSED: idle/walk/run")
+    # Regression: a imported T-pose is NOT an acceptable idle animation.
+    # Both actual arm joint vectors should now point mainly downward.
+    var skel:Skeleton3D=visual.get("skeleton") as Skeleton3D
+    var right_arm:int=int(visual.get("right_arm_index"))
+    var right_forearm:int=int(visual.get("right_elbow_index"))
+    var right_hand:int=int(visual.get("right_hand_index"))
+    var left_arm:int=int(visual.get("left_arm_index"))
+    var left_forearm:int=int(visual.get("left_elbow_index"))
+    var left_hand:int=int(visual.get("left_hand_index"))
+    if skel==null or not bool(visual.get("rig_ready")) or [right_arm,right_forearm,right_hand,left_arm,left_forearm,left_hand].has(-1):
+        push_error("Original Mixamo skeleton does not have both complete arm chains")
+        quit(1)
+        return
+    var right_idle:Vector3=(skel.get_bone_global_pose(right_forearm).origin-skel.get_bone_global_pose(right_arm).origin).normalized()
+    var left_idle:Vector3=(skel.get_bone_global_pose(left_forearm).origin-skel.get_bone_global_pose(left_arm).origin).normalized()
+    print("FEMALE POSE QA: right upper-arm ",right_idle," left upper-arm ",left_idle)
+    if right_idle.y > -0.48 or left_idle.y > -0.48:
+        push_error("FemaleLeo is still T-posing; upper arms must hang down in idle")
+        quit(1)
+        return
+    var socket:BoneAttachment3D=visual.get("sword_attachment") as BoneAttachment3D
+    var sword:Node3D=visual.get("sword_visual") as Node3D
+    if socket==null or sword==null or not bool(sword.get("mesh_ready")):
+        push_error("Novice training sword was not created as actual 3D meshes")
+        quit(1)
+        return
+    if socket.get_parent()!=skel or sword.get_parent()!=socket or socket.bone_idx!=right_hand:
+        push_error("Sword must follow the actual imported RightHand Mixamo bone")
+        quit(1)
+        return
+    for piece in ["SwordBlade","LeatherSwordGrip","GoldenCrossguard","SwordPommel"]:
+        var node:MeshInstance3D=sword.get_node_or_null(piece) as MeshInstance3D
+        if node==null or node.mesh==null:
+            push_error("Missing real sword geometry: "+piece)
+            quit(1)
+            return
+    # The slash must change the ACTUAL arm pose, not just subtract monster HP.
+    visual.call("play_basic_attack")
+    visual.call("animate_motion",Vector3.ZERO,false,0.12)
+    var windup:Vector3=(skel.get_bone_global_pose(right_forearm).origin-skel.get_bone_global_pose(right_arm).origin).normalized()
+    visual.call("animate_motion",Vector3.ZERO,false,0.21)
+    var slash:Vector3=(skel.get_bone_global_pose(right_forearm).origin-skel.get_bone_global_pose(right_arm).origin).normalized()
+    print("FEMALE COMBAT QA: raised arm ",windup," swing arm ",slash)
+    if windup.distance_to(right_idle)<0.20 or slash.distance_to(windup)<0.18:
+        push_error("The right-hand sword is not animated through a visible slash arc")
+        quit(1)
+        return
+    visual.call("animate_motion",Vector3.ZERO,false,0.20)
+    visual.call("animate_motion",Vector3.ZERO,false,0.20)
+    var ready_again:Vector3=(skel.get_bone_global_pose(right_forearm).origin-skel.get_bone_global_pose(right_arm).origin).normalized()
+    if ready_again.y>-0.50:
+        push_error("Sword arm did not return to the lowered ready stance")
+        quit(1)
+        return
+    visual.call("animate_motion",Vector3.FORWARD,true,0.10)
+    var running_arm:Vector3=(skel.get_bone_global_pose(right_forearm).origin-skel.get_bone_global_pose(right_arm).origin).normalized()
+    if running_arm.y>-0.35:
+        push_error("Running restores T-pose; combat-ready arms must persist")
+        quit(1)
+        return
+    print("FEMALE ANIMATION QA PASSED: true arms-down idle/walk/run, right-hand sword and visible slash")
     quit(0)
