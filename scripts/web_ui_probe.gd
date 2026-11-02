@@ -77,7 +77,8 @@ func _process(delta: float) -> void:
   "hud_icon_count":hud_icons.size(),
   "hud_row_order":ten_ids,
   "hud_row":ten_bounds,
-  "hud_png_paths":ten_textures,
+  "hud_icon_paths":ten_textures,
+  "hud_png_paths":ten_textures, # Compatibility with old tests
   "hud_caption_bounds":caption_bounds,
   "hud_caption_labels":caption_labels,
   "hud_caption_visible":caption_visible,
