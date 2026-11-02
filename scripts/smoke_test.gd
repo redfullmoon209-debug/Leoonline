@@ -211,7 +211,7 @@ func validate() -> void:
  check(skills.skill_slots.size()==14 and skills.active_slots.size()==3,"Novice screen reserves 14 numbered cells and 3 empty hotbar cells")
  check(skills.preview_anchor.get_child_count()==0,"Skill preview is truly empty until 3D animations exist")
  check(skills.class_label.text=="อาชีพเริ่มต้น","Novice class reads actual character job; skill screen cannot change professions")
- check(skills.level_label.text=="Lv. 1" and skills.gold_label.text.contains("0") and skills.sp_label.text.contains("0"),"Starter screen uses real Level, Gold and SP data")
+ check(skills.level_label.text=="Lv. "+str(store.profile["level"]) and skills.gold_label.text.contains(store.pretty(str(store.currency.gold))) and skills.sp_label.text.contains(str(store.profile["skill_points"])),"Starter screen uses exact current Level, Gold and SP data, even after demo transactions")
  for i in range(14):
   var slot:TextureButton=skills.skill_slots[i]
   var expected:String="slot_empty" if i<3 else "slot_locked"
