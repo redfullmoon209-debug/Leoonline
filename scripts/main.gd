@@ -1,6 +1,8 @@
 extends Node3D
 const RedButtonStyle = preload("res://scripts/ui_button_style.gd")
 const StoreScript = preload("res://scripts/store.gd")
+# World-scale actor height: map buildings and roads are substantially smaller than the original 80m prototype.
+const ACTOR_SCALE: float = 0.50
 var store: Node
 var character: CharacterBody3D
 var player_placeholder: MeshInstance3D
@@ -17,7 +19,13 @@ var capacity_label: Label
 var notice_label: Label
 var page := 0
 var open := false
-var pitch := -0.2
+var pitch: float = -0.29
+var camera_distance: float = 5.4
+const CAMERA_MIN_DISTANCE: float = 2.2
+const CAMERA_MAX_DISTANCE: float = 18.0
+var camera_dragging: bool = false
+var camera_touches: Dictionary = {}
+var camera_pinch_distance: float = 0.0
 var loot: Array[Area3D] = []
 var trash_dialog: ConfirmationDialog
 var hud_menu: Control
@@ -55,7 +63,8 @@ func _ready() -> void:
  _make_ui()
  var ui911: Node = load("res://scripts/ui911.gd").new()
  add_child(ui911)
- Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if OS.has_feature("web") else Input.MOUSE_MODE_CAPTURED
+ # Pointer always stays visible. RMB dragging rotates; releasing RMB keeps the exact angle.
+ Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
  if OS.has_feature("web") and "--inventory-qa" in OS.get_cmdline_user_args():
   add_child(load("res://scripts/web_ui_probe.gd").new())
 
@@ -163,18 +172,19 @@ func _spawn_loot(id: String,pos: Vector3,color: Color) -> void:
 
 func _make_character() -> void:
  character = CharacterBody3D.new()
- character.position = Vector3(0,1.1,0) if has_node("BangkokCityMap") else Vector3(0,1.1,5)
+ character.position = Vector3(0,1.1*ACTOR_SCALE,0) if has_node("BangkokCityMap") else Vector3(0,1.1*ACTOR_SCALE,5)
+ character.set_meta("world_actor_scale",ACTOR_SCALE)
  add_child(character)
  var col := CollisionShape3D.new()
  var shape := CapsuleShape3D.new()
- shape.height = 2.1
- shape.radius = 0.35
+ shape.height = 2.1*ACTOR_SCALE
+ shape.radius = 0.35*ACTOR_SCALE
  col.shape = shape
  character.add_child(col)
  var mesh := MeshInstance3D.new()
  var body := CapsuleMesh.new()
- body.height = 1.6
- body.radius = 0.35
+ body.height = 1.6*ACTOR_SCALE
+ body.radius = 0.35*ACTOR_SCALE
  mesh.mesh = body
  mesh.material_override = _mat(Color("4bb9ec"))
  character.add_child(mesh)
@@ -183,14 +193,21 @@ func _make_character() -> void:
  # The collision capsule stays as a physics-only controller.
  var female_visual := load("res://scripts/female_character_visual.gd").new() as Node3D
  female_visual.name = "FemalePlayerVisual"
+ # Scale the actual rig before it enters the scene, keeping its feet aligned
+ # with the smaller physical capsule (not a visual-only floating avatar).
+ female_visual.set("target_height_m",1.62*ACTOR_SCALE)
+ female_visual.set("feet_y",-1.05*ACTOR_SCALE)
  character.add_child(female_visual)
  # Enable the real female model by default once it has been imported.
  # The GM test menu can switch back to the old placeholder on demand.
  set_female_character_enabled(true)
  camera_arm = Node3D.new()
+ camera_arm.name = "OrbitCameraPivot"
+ camera_arm.rotation.x = pitch
  add_child(camera_arm)
  camera = Camera3D.new()
- camera.position = Vector3(0,1.4,7.8)
+ camera.name = "OrbitCamera"
+ camera.position = Vector3(0,0,camera_distance)
  camera.current = true
  camera_arm.add_child(camera)
 
@@ -216,7 +233,8 @@ func _make_training_target() -> void:
  training_target.name="TrainingStoneGolem"
  # Place the training golem far enough from the new Bangkok road spawn
  # to keep the ATK chase/stop regression realistic and deterministic.
- training_target.position=Vector3(3.0,1.35,-13.0)
+ training_target.position=Vector3(3.0,1.35*ACTOR_SCALE,-13.0)
+ training_target.scale=Vector3.ONE*ACTOR_SCALE
  training_target.set_meta("target_name","อสูรหินฝึก")
  training_target.set_meta("target_type","Monster")
  training_target.set_meta("level",12)
@@ -282,7 +300,9 @@ func _build_test_entity(
 ) -> StaticBody3D:
  var target:=StaticBody3D.new()
  target.name=key
- target.position=location
+ # Scale the complete entity: art, target collider and over-head label stay aligned.
+ target.position=Vector3(location.x,(1.05 if kind=="player" else (0.60 if kind=="slime" else 0.65))*ACTOR_SCALE,location.z)
+ target.scale=Vector3.ONE*ACTOR_SCALE
  target.set_meta("test_target",true)
  target.set_meta("target_name",caption)
  target.set_meta("target_type","Player Bot" if kind=="player" else "Monster")
@@ -585,7 +605,7 @@ func _toggle() -> void:
  if open:
   inventory.call("_switch_tab",0)
  inventory.visible = open
- Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if open or OS.has_feature("web") or DisplayServer.is_touchscreen_available() else Input.MOUSE_MODE_CAPTURED
+ Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 func _collect_nearest() -> void:
  if open or (is_instance_valid(hud_menu) and hud_menu.is_gameplay_blocked()): return
@@ -625,7 +645,9 @@ func _physics_process(delta: float) -> void:
  if not blocked and not manual_moving and not in_rush and is_instance_valid(combat):
   auto_dir=combat.auto_run_direction()
  var auto_running:bool=auto_dir.length_squared()>0.01
- var dir:Vector3=camera_arm.global_basis.x*v.x+camera_arm.global_basis.z*v.y
+ # Travel uses yaw only: tilting the camera must not change walking speed.
+ var walking_basis:Basis=Basis(Vector3.UP,camera_arm.rotation.y)
+ var dir:Vector3=walking_basis.x*v.x+walking_basis.z*v.y
  dir.y=0.0
  dir=auto_dir if auto_running else dir.normalized()
  var sprinting:bool=Input.is_action_pressed("run") or (is_instance_valid(hud_menu) and hud_menu.run_pressed) or auto_running
@@ -653,7 +675,7 @@ func _physics_process(delta: float) -> void:
    face.y=0.0
    if face.length_squared()>0.05:
     female_visual.rotation.y=lerp_angle(female_visual.rotation.y,atan2(-face.x,-face.z),clampf(delta*15.0,0.0,1.0))
- camera_arm.global_position=character.global_position+Vector3(0,0.2,0)
+ camera_arm.global_position=character.global_position+Vector3(0,0.2*ACTOR_SCALE,0)
 
 func _cast_hotbar_slot(slot_index:int) -> bool:
  if slot_index<0 or slot_index>=3:return false
@@ -667,11 +689,100 @@ func _normal_attack() -> bool:
  if not is_instance_valid(combat):return false
  return bool(combat.toggle_basic_auto_attack())
 
+# The camera consumes only unhandled world-space gestures. Native HUD buttons,
+# inventory, minimap and the movement joystick receive their own touches first.
+func _camera_is_blocked() -> bool:
+ return open or (is_instance_valid(hud_menu) and hud_menu.is_gameplay_blocked())
+
+func _camera_rotate(delta:Vector2, touch:bool=false) -> void:
+ if not is_instance_valid(camera_arm) or _camera_is_blocked():return
+ var sensitivity:float=float(hud_menu.camera_sensitivity) if is_instance_valid(hud_menu) else 0.003
+ if touch:sensitivity*=1.25
+ camera_arm.rotation.y-=delta.x*sensitivity
+ pitch=clampf(pitch-delta.y*sensitivity,-1.20,-0.055)
+ camera_arm.rotation.x=pitch
+
+func _camera_zoom(new_distance:float) -> void:
+ camera_distance=clampf(new_distance,CAMERA_MIN_DISTANCE,CAMERA_MAX_DISTANCE)
+ if is_instance_valid(camera):
+  camera.position.z=camera_distance
+
+func _camera_touch_distance() -> float:
+ if camera_touches.size()!=2:return 0.0
+ var positions:Array=camera_touches.values()
+ return (positions[0] as Vector2).distance_to(positions[1] as Vector2)
+
+func _camera_touch_start(index:int,point:Vector2) -> void:
+ if camera_touches.has(index) or camera_touches.size()>=2:return
+ camera_touches[index]=point
+ camera_pinch_distance=_camera_touch_distance()
+
+func _camera_touch_end(index:int) -> void:
+ camera_touches.erase(index)
+ camera_pinch_distance=_camera_touch_distance()
+
+func _camera_touch_move(index:int,point:Vector2) -> bool:
+ if not camera_touches.has(index) or _camera_is_blocked():return false
+ var previous:Vector2=camera_touches[index]
+ camera_touches[index]=point
+ if camera_touches.size()==2:
+  var next_distance:float=_camera_touch_distance()
+  if next_distance>8.0 and camera_pinch_distance>8.0:
+   # Fingers spread => smaller camera distance; fingers together => zoom out.
+   _camera_zoom(camera_distance*camera_pinch_distance/next_distance)
+  camera_pinch_distance=next_distance
+ else:
+  _camera_rotate(point-previous,true)
+ return true
+
+func _input(event:InputEvent) -> void:
+ # Release gestures even if the cursor/finger finishes above a HUD control.
+ if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_RIGHT and not event.pressed:
+  camera_dragging=false
+ elif event is InputEventScreenTouch and not event.pressed:
+  _camera_touch_end(event.index)
+ if _camera_is_blocked():
+  camera_dragging=false
+  camera_touches.clear()
+  camera_pinch_distance=0.0
+
 func _unhandled_input(event: InputEvent) -> void:
- # Use existing game input (1/2/3) for an ACTUAL equipped, castable skill.
- # This adds no on-screen button and cannot activate a permanent passive.
+ # RMB is an explicit drag gesture, never permanent mouse capture.
+ if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_RIGHT:
+  if event.pressed and not _camera_is_blocked():
+   camera_dragging=true
+   get_viewport().set_input_as_handled()
+  else:
+   camera_dragging=false
+  return
+ if event is InputEventMouseMotion and camera_dragging:
+  _camera_rotate(event.relative)
+  get_viewport().set_input_as_handled()
+  return
+ # Desktop mouse wheel is a companion to mobile pinch zoom.
+ if event is InputEventMouseButton and event.pressed and not _camera_is_blocked():
+  if event.button_index==MOUSE_BUTTON_WHEEL_UP:
+   _camera_zoom(camera_distance*0.88)
+   get_viewport().set_input_as_handled()
+   return
+  if event.button_index==MOUSE_BUTTON_WHEEL_DOWN:
+   _camera_zoom(camera_distance*1.12)
+   get_viewport().set_input_as_handled()
+   return
+ if event is InputEventScreenDrag:
+  if _camera_touch_move(event.index,event.position):
+   get_viewport().set_input_as_handled()
+  return
+ if event is InputEventScreenTouch:
+  if event.pressed and not _camera_is_blocked():
+   _camera_touch_start(event.index,event.position)
+   if _target_pointer_input(event.position,1):
+    get_viewport().set_input_as_handled()
+  else:
+   _camera_touch_end(event.index)
+  return
+ # Existing inputs: ordinary ATK, hotbar, target selection, inventory, pickup.
  if event is InputEventKey and event.pressed and not event.echo:
-  # J triggers exactly the same ordinary sword attack as the visible ATK button.
   if event.keycode==KEY_J:
    _normal_attack()
    get_viewport().set_input_as_handled()
@@ -686,9 +797,6 @@ func _unhandled_input(event: InputEvent) -> void:
  if event.is_action_pressed("target") and not event.is_echo():
   _toggle_target_lock()
   get_viewport().set_input_as_handled()
- elif event is InputEventScreenTouch and event.pressed:
-  if _target_pointer_input(event.position,1):
-   get_viewport().set_input_as_handled()
  elif event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_LEFT and Input.mouse_mode==Input.MOUSE_MODE_VISIBLE:
   if _target_pointer_input(event.position,2):
    get_viewport().set_input_as_handled()
@@ -697,20 +805,9 @@ func _unhandled_input(event: InputEvent) -> void:
   get_viewport().set_input_as_handled()
  elif event.is_action_pressed("pickup") and not open and not event.is_echo():
   _collect_nearest()
- elif event is InputEventMouseButton and event.pressed and not open and not DisplayServer.is_touchscreen_available():
-  if not is_instance_valid(hud_menu) or (not hud_menu.is_gameplay_blocked() and hud_menu.size.x>=600.0 and not hud_menu.force_touch_preview):
-   # Keep mouse pointer usable for landscape-test mobile controls,
-   # even when a landscape viewport is wider than 600 pixels.
-   Input.mouse_mode=Input.MOUSE_MODE_CAPTURED
- elif event is InputEventMouseMotion and not open and Input.mouse_mode==Input.MOUSE_MODE_CAPTURED:
-  if not is_instance_valid(hud_menu) or not hud_menu.is_gameplay_blocked():
-   var sensitivity: float=hud_menu.camera_sensitivity if is_instance_valid(hud_menu) else 0.003
-   camera_arm.rotation.y-=event.relative.x*sensitivity
-   pitch=clampf(pitch-event.relative.y*sensitivity,-0.7,0.5)
-   camera.rotation.x=pitch
  elif event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE:
-  if open: _toggle()
+  if open:_toggle()
   elif is_instance_valid(hud_menu) and hud_menu.is_gameplay_blocked():
-   if hud_menu.edit_mode: hud_menu.call("_finish_edit",false)
-   else: hud_menu.call("_hide_popup")
-  else: Input.mouse_mode=Input.MOUSE_MODE_VISIBLE
+   if hud_menu.edit_mode:hud_menu.call("_finish_edit",false)
+   else:hud_menu.call("_hide_popup")
+  else:Input.mouse_mode=Input.MOUSE_MODE_VISIBLE
