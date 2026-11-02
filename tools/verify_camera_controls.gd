@@ -5,6 +5,12 @@ var checks: int = 0
 
 func _initialize() -> void:
  call_deferred("_validate")
+ call_deferred("_watchdog")
+
+func _watchdog() -> void:
+ await create_timer(35.0).timeout
+ push_error("BANGKOK_CAMERA_QA_TIMEOUT: camera validation never finished")
+ quit(1)
 
 func _check(ok:bool, reason:String) -> void:
  checks+=1
@@ -16,6 +22,7 @@ func _validate() -> void:
  var game=load("res://scenes/main.tscn").instantiate()
  root.add_child(game)
  await process_frame
+ print("BANGKOK_CAMERA_QA_STAGE: SCENE_READY")
  var hero_shape:CollisionShape3D=game.character.get_node("CollisionShape3D") as CollisionShape3D
  var female:Node3D=game.character.get_node("FemalePlayerVisual") as Node3D
  _check(hero_shape.shape is CapsuleShape3D and is_equal_approx((hero_shape.shape as CapsuleShape3D).height,1.05),
@@ -33,6 +40,7 @@ func _validate() -> void:
  game._unhandled_input(motion)
  _check(is_equal_approx(original_yaw,game.camera_arm.rotation.y),
   "Moving the mouse WITHOUT RMB must never orbit")
+ print("BANGKOK_CAMERA_QA_STAGE: MOUSE_CHECK")
  var mouse_down:=InputEventMouseButton.new()
  mouse_down.button_index=MOUSE_BUTTON_RIGHT
  mouse_down.pressed=true
@@ -49,6 +57,7 @@ func _validate() -> void:
  game._unhandled_input(motion)
  _check(not game.camera_dragging and is_equal_approx(stopped_yaw,game.camera_arm.rotation.y),
   "Releasing RMB preserves the exact last orbit angle")
+ print("BANGKOK_CAMERA_QA_STAGE: TOUCH_CHECK")
  var start:=InputEventScreenTouch.new()
  start.index=0
  start.pressed=true
@@ -60,6 +69,7 @@ func _validate() -> void:
  game._unhandled_input(drag)
  _check(game.camera_touches.size()==1 and not is_equal_approx(stopped_yaw,game.camera_arm.rotation.y),
   "One world-space finger rotates the mobile camera")
+ print("BANGKOK_CAMERA_QA_STAGE: PINCH_CHECK")
  var second:=InputEventScreenTouch.new()
  second.index=1
  second.pressed=true
@@ -91,6 +101,7 @@ func _validate() -> void:
  _check(is_equal_approx(modal_angle,game.camera_arm.rotation.y),
   "Opening inventory blocks camera rotation")
  game.open=false
+ print("BANGKOK_CAMERA_QA_STAGE: FINISH_CHECK")
  game.queue_free()
  await process_frame
  for failure in failures:
