@@ -1031,6 +1031,18 @@ func validate() -> void:
  novice_touch._process(0.0)
  check(novice_touch.skill_buttons.size()==3 and novice_touch.visible,
   "Phone shows three original skill PNG buttons without changing HUD joystick/action positions")
+ var atk_button:Button=novice_touch.atk_button as Button
+ check(atk_button!=null and atk_button.visible and atk_button.text=="ATK",
+  "A separate ordinary ATK action is visible and text-rendered, with no extra PNG asset")
+ var atk_style:StyleBox=atk_button.get_theme_stylebox("normal")
+ check(atk_style is StyleBoxFlat and (atk_style as StyleBoxFlat).border_width_left==0,
+  "Basic ATK has flat ruby UI without a base-icon ring or decorative frame")
+ check(atk_button.get_global_rect().end.y<=mobile_target_button.get_global_rect().position.y-4.0
+  and not atk_button.get_global_rect().intersects(mobile_target_button.get_global_rect()),
+  "ATK is above unchanged TARGET, not in front of target-touch controls")
+ for attack_neighbor in ["jump","pickup","run"]:
+  check(not atk_button.get_global_rect().intersects(hud_menu.controls[attack_neighbor].get_global_rect()),
+   "New ATK button does not cover existing "+attack_neighbor+" mobile control")
  for i in range(3):
   var novice_button:TextureButton=novice_touch.skill_buttons[i]
   var novice_art:Texture2D=novice_button.texture_normal
@@ -1038,10 +1050,47 @@ func validate() -> void:
    "Mobile starter hotbar reuses individual authentic PNG art: "+str(i+1))
   check(not novice_button.get_global_rect().intersects(mobile_target_button.get_global_rect()),
    "Starter skill button is separate from unchanged mobile TARGET control")
+ # Check portrait and compact landscape separately: ATK should remain
+ # visible, right-hand aligned, and clear of both minimap and target.
+ root.size=Vector2i(390,844)
+ await process_frame
+ await process_frame
+ novice_touch._process(0.0)
+ check(atk_button.visible and atk_button.get_global_rect().end.x<=390.0,
+  "ATK stays readable and inside a real 390px portrait phone viewport")
+ check(not atk_button.get_global_rect().intersects(hud_menu.controls["target"].get_global_rect())
+  and not atk_button.get_global_rect().intersects(hud_menu.top_status.minimap_button.get_global_rect()),
+  "Portrait ATK never covers TARGET or minimap")
+ root.size=Vector2i(844,390)
+ await process_frame
+ await process_frame
+ novice_touch._process(0.0)
+ check(atk_button.visible and not atk_button.get_global_rect().intersects(hud_menu.controls["target"].get_global_rect())
+  and not atk_button.get_global_rect().intersects(hud_menu.top_status.minimap_button.get_global_rect()),
+  "Landscape ATK avoids unchanged TARGET and minimap")
+ root.size=Vector2i(844,350)
+ await process_frame
+ await process_frame
+ novice_touch._process(0.0)
+ check(not atk_button.get_global_rect().intersects(hud_menu.top_status.minimap_button.get_global_rect())
+  and not atk_button.get_global_rect().intersects(hud_menu.top_status.target_panel.get_global_rect()),
+  "Short landscape ATK moves left of skills instead of overlapping top status")
+ root.size=Vector2i(1440,1100)
+ await process_frame
+ await process_frame
  hud_menu.display_mobile_controls=false
  hud_menu._refresh_touch_visibility()
  novice_touch._process(0.0)
- check(not novice_touch.visible,"Starter touch icons hide on non-touch desktop without changing the original HUD")
+ check(novice_touch.visible and atk_button.visible and novice_touch.skill_buttons.filter(func(button):return button.visible).size()==0,
+  "PC retains clickable ordinary ATK while hiding mobile-only three-skill icons")
+ # Inventory modal and GM UI must capture input; ATK cannot attack behind them.
+ game._toggle()
+ novice_touch._process(0.0)
+ check(not atk_button.visible and not game._normal_attack(),
+  "Opening the bag disables basic ATK and hides it underneath the original modal UI")
+ game._toggle()
+ novice_touch._process(0.0)
+ check(atk_button.visible,"Closing the bag restores standalone basic ATK")
  # Actual local combat regression: the previously decorative Novice skill
  # hotbar must now perform meaningful and isolated target HP/stamina changes.
  var combat:Node=game.combat
@@ -1071,16 +1120,42 @@ func validate() -> void:
   "Existing target HP card updates after a real slash, not a test-only GM slider")
  check(not game._cast_hotbar_slot(0) and is_equal_approx(float(real_training_target.get_meta("hp")),after_slash),
   "Novice Slash cooldown prevents spam, with no phantom second damage")
+ # Normal ATK has independent timing and never consumes Skill 1/2/3
+ # cooldown or stamina, so it is usable WHILE Slash is recharging.
+ var basic_stamina_before:float=float(combat.stamina)
+ var slash_cd_before:float=float(combat.cooldown_left("novice_slash"))
+ check(game._normal_attack(),"Basic ATK hits the same real target while skill 1 is on cooldown")
+ var after_basic_atk:float=float(real_training_target.get_meta("hp"))
+ check(after_basic_atk<after_slash and is_equal_approx(float(combat.stamina),basic_stamina_before),
+  "Ordinary ATK lowers actual enemy HP without consuming stamina")
+ check(is_equal_approx(float(combat.cooldown_left("novice_slash")),slash_cd_before)
+  and combat.basic_attack_left()>0.0,
+  "ATK has only a short independent sword-swing interval, not a skill cooldown")
+ check(not game._normal_attack() and is_equal_approx(float(real_training_target.get_meta("hp")),after_basic_atk),
+  "One tap cannot duplicate an ATK hit during the same sword swing")
+ combat._process(0.53)
+ novice_touch._process(0.0)
+ var before_button_hit:float=float(real_training_target.get_meta("hp"))
+ atk_button.pressed.emit()
+ check(float(real_training_target.get_meta("hp"))<before_button_hit,
+  "Pressing visible ATK button invokes real normal combat, not a dead UI placeholder")
  combat._process(0.85)
  check(float(combat.cooldown_left("novice_slash"))<=0.01,
   "Starter Slash recovers exactly after its 0.8-second cooldown")
  # No-target/out-of-range skill attempts must not spend stamina or trigger cooldowns.
  hud_menu.clear_target()
  var before_failed_stamina:float=float(combat.stamina)
+ combat._process(0.54)
+ check(not game._normal_attack() and combat.basic_attack_left()<=0.0,
+  "Normal ATK requires a real locked, living target")
  check(not game._cast_hotbar_slot(0) and is_equal_approx(float(combat.stamina),before_failed_stamina),
   "No-target Slash is rejected without consuming resources")
  game._set_test_target(real_training_target)
  game.character.global_position=real_training_target.global_position+Vector3(0,0,7.5)
+ var far_hp:float=float(real_training_target.get_meta("hp"))
+ check(not game._normal_attack() and is_equal_approx(float(real_training_target.get_meta("hp")),far_hp)
+  and combat.basic_attack_left()<=0.0,
+  "Out-of-range ATK deals no damage and does not lock a cooldown")
  check(not game._cast_hotbar_slot(0) and float(combat.cooldown_left("novice_slash"))<=0.01,
   "Novice Slash rejects distant target without starting cooldown")
  var before_rush_health:float=float(real_training_target.get_meta("hp"))
@@ -1117,8 +1192,18 @@ func validate() -> void:
  combat._process(1.0)
  check(float(combat.stamina)>=13.9 and float(combat.stamina)<=14.1,
   "Stamina regenerates over real game time while no skill is activated")
+ # ATK must remain usable even at ZERO stamina; skill Rush cannot.
+ combat.stamina=0.0
+ combat.basic_attack_seconds=0.0
+ game.character.global_position=real_training_target.global_position+Vector3(0,0,2.7)
+ game._set_test_target(real_training_target)
+ var zero_stamina_enemy_hp:float=float(real_training_target.get_meta("hp"))
+ check(game._normal_attack() and float(real_training_target.get_meta("hp"))<zero_stamina_enemy_hp
+  and is_equal_approx(float(combat.stamina),0.0),
+  "Ordinary ATK needs zero stamina even when all stamina-consuming skills are exhausted")
  real_training_target.set_meta("hp",1.0)
  combat.cooldowns.clear()
+ combat.basic_attack_seconds=0.0
  game.character.global_position=real_training_target.global_position+Vector3(0,0,2.7)
  game._set_test_target(real_training_target)
  check(game._cast_hotbar_slot(0) and is_equal_approx(float(real_training_target.get_meta("hp")),0.0),
@@ -1128,6 +1213,7 @@ func validate() -> void:
   "Defeated training monsters recover after 8 seconds so combat can be tested repeatedly")
  combat.reset_training_targets()
  combat.cooldowns.clear()
+ combat.basic_attack_seconds=0.0
  combat.guard_seconds=0.0
  combat.stamina=combat.max_stamina
  combat.health=combat.max_health

@@ -608,10 +608,21 @@ func _cast_hotbar_slot(slot_index:int) -> bool:
  if open or (is_instance_valid(hud_menu) and hud_menu.is_gameplay_blocked()):return false
  return bool(store.activate_hotbar_slot(slot_index))
 
+func _normal_attack() -> bool:
+ # ATK is an independent basic melee action, never hotbar skill slot 4.
+ if open or (is_instance_valid(hud_menu) and hud_menu.is_gameplay_blocked()):return false
+ if not is_instance_valid(combat):return false
+ return bool(combat.basic_attack())
+
 func _unhandled_input(event: InputEvent) -> void:
  # Use existing game input (1/2/3) for an ACTUAL equipped, castable skill.
  # This adds no on-screen button and cannot activate a permanent passive.
  if event is InputEventKey and event.pressed and not event.echo:
+  # J triggers exactly the same ordinary sword attack as the visible ATK button.
+  if event.keycode==KEY_J:
+   _normal_attack()
+   get_viewport().set_input_as_handled()
+   return
   var key_slots:Array=[KEY_1,KEY_2,KEY_3]
   var skill_index:int=key_slots.find(event.keycode)
   if skill_index>=0:

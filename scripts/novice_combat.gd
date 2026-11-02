@@ -5,6 +5,10 @@ extends Node
 signal changed
 
 const SLASH_RANGE:float=3.6
+# Normal melee attacks have their own short swing interval, never use
+# a skill cooldown or stamina, and remain usable while skills recharge.
+const BASIC_ATTACK_RANGE:float=3.6
+const BASIC_ATTACK_INTERVAL:float=0.52
 const RUSH_RANGE:float=12.0
 const HIT_RANGE:float=2.55
 const GUARD_DURATION:float=5.0
@@ -33,6 +37,7 @@ var stamina:float=100.0
 var max_stamina:float=100.0
 var guard_seconds:float=0.0
 var cooldowns:Dictionary={}
+var basic_attack_seconds:float=0.0
 var rush_active:bool=false
 var rush_target:StaticBody3D
 var rush_remaining:float=0.0
@@ -59,6 +64,35 @@ func cooldown_left(skill_id:String) -> float:
 
 func guard_active() -> bool:
  return guard_seconds>0.0
+
+func basic_attack_left() -> float:
+ return maxf(0.0,basic_attack_seconds)
+
+func basic_attack() -> bool:
+ # This is NOT a fourth equippable skill: it never uses skill hotbar
+ # slots, cooldowns or skill points and has zero stamina cost.
+ if str(game_store.effective_job_info().get("id","Novice"))!="Novice":return false
+ if rush_active:return false
+ if basic_attack_left()>0.0:return false
+ var target:StaticBody3D=_locked_target()
+ if target==null:
+  game_store.notice.emit("ล็อกเป้าหมายที่มี HP ก่อนกด ATK")
+  return false
+ if _distance_to(target)>BASIC_ATTACK_RANGE:
+  game_store.notice.emit("เป้าหมายไกลเกินระยะตีธรรมดา")
+  return false
+ basic_attack_seconds=BASIC_ATTACK_INTERVAL
+ _attack_visual()
+ _damage_target(target,_basic_damage())
+ changed.emit()
+ return true
+
+func _basic_damage() -> float:
+ var attrs:Dictionary=game_store.effective_attributes()
+ var strength:float=float(attrs.get("strength",10))
+ var dex:float=float(attrs.get("dexterity",10))
+ # Weaker than Slash, but uses the same character's real stats.
+ return float(maxi(1,roundi(10.0+strength*1.15+dex*0.18)))
 
 func _target_is_valid(target:Node3D) -> bool:
  return is_instance_valid(target) and game.test_targets.has(target) and not target.is_queued_for_deletion() and float(target.get_meta("max_hp",0.0))>0.0 and float(target.get_meta("hp",0.0))>0.0
@@ -204,6 +238,7 @@ func _player_defeated() -> void:
  rush_target=null
  guard_seconds=0.0
  cooldowns.clear()
+ basic_attack_seconds=0.0
  game.character.velocity=Vector3.ZERO
  game.character.global_position=Vector3(0,1.1,5)
  health=_max_health()
@@ -235,6 +270,7 @@ func _process(delta:float) -> void:
   health=clampf(health+max_health-old_max,0.0,max_health)
  var old_guard:float=guard_seconds
  guard_seconds=maxf(0.0,guard_seconds-delta)
+ basic_attack_seconds=maxf(0.0,basic_attack_seconds-delta)
  if guard_visual!=null:guard_visual.visible=guard_seconds>0.0
  var old_stamina:float=stamina
  stamina=minf(max_stamina,stamina+delta*STAMINA_REGEN)
