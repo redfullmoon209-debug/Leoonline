@@ -99,11 +99,27 @@ async function swipe(dx,dy){
   check(Math.abs(tb[0]+tb[2]/2-720)<3&&tb[1]>=targeted.hud_row[0][1]+targeted.hud_row[0][3]+4,
     'Detailed target card is top-centered below right-side icons, without collisions');
   await snap('web-target-selected-hp-mp');
-  await page.keyboard.press('KeyT');
-  await until(()=>window.__leoQA.hud_target_name.includes('ยังไม่ได้เลือก'));
+  check(targeted.hud_target_cancel_visible&&targeted.hud_target_cancel_bounds[2]>=25,
+    'Selected enemy has a real clickable unlock X, separate from icon sprites');
+  const cx=targeted.hud_target_cancel_bounds;
+  check(cx[0]>=tb[0]&&cx[1]>=tb[1]&&cx[0]+cx[2]<=tb[0]+tb[2]+1,
+    'Unlock X fits inside target panel without overlapping minimap');
+  await clickRect(cx);
+  await until(()=>!window.__leoQA.hud_target_panel_visible);
   targeted=await state();
-  check(!targeted.hud_target_health_visible&&!targeted.hud_target_mp_visible,
-    'T toggles lock OFF and hides all enemy HP/MP/portrait values');
+  check(!targeted.hud_target_cancel_visible&&!targeted.hud_target_health_visible,
+    'Clicking target HUD X immediately hides target card and close control');
+  await page.locator('#canvas').focus();
+  await page.keyboard.press('KeyT');
+  await until(()=>window.__leoQA.hud_target_panel_visible);
+  targeted=await state();
+  check(targeted.hud_target_cancel_visible&&targeted.hud_target_name==='อสูรหินฝึก',
+    'Keyboard T relocks a real enemy after X cancellation');
+  await page.keyboard.press('KeyT');
+  await until(()=>!window.__leoQA.hud_target_panel_visible);
+  targeted=await state();
+  check(!targeted.hud_target_health_visible&&!targeted.hud_target_mp_visible&&!targeted.hud_target_cancel_visible,
+    'Keyboard T toggles any selected lock OFF and hides HP/MP, portrait and X');
   for(const name of ['world','party','friends','ranking','guild','quest','mail','events']){
    check(hud.hud_icons[name][2]>=32,'HUD icon remains clickable at the approved compact size: '+name);
    await clickRect(hud.hud_icons[name]);
