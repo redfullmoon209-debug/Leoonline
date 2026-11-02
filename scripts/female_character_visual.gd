@@ -108,11 +108,22 @@ func _load_uploaded_run_tracks() -> void:
             var target_name: String = String(original_name).to_lower()
             for i in range(skeleton.get_bone_count()):
                 var candidate: String = String(skeleton.get_bone_name(i)).to_lower()
-                candidate = candidate.replace("mixamorig:", "").replace("mixamorig_", "")
-                if candidate == target_name:
+                # Godot GLB imports often rename "mixamorig:Hips" to
+                # "mixamorigHips" (no colon), or mixamorig1:Hips.
+                # The previous mapping handled only colon/underscore names,
+                # causing zero matching bones and a frozen avatar.
+                candidate = candidate.replace("mixamorig", "")
+                for separator in [":", "_", "|", "-", " ", ".", "/"]:
+                    candidate = candidate.replace(separator, "")
+                if candidate == target_name or candidate.ends_with(target_name):
                     bone_indices[original_name] = i
                     bone_bind_pose[original_name] = skeleton.get_bone_pose_rotation(i)
                     break
+    if bone_indices.is_empty():
+        var first_bones := PackedStringArray()
+        for i in range(mini(25, skeleton.get_bone_count())):
+            first_bones.append(String(skeleton.get_bone_name(i)))
+        push_warning("Unable to map avatar animation bones. Actual rig names: " + str(first_bones))
     print("Female character visuals: meshes=", rendered_mesh_count,
         " bones_with_motion=", bone_indices.size(),
         " run=", bone_tracks.size(), " walk=", walk_bone_tracks.size())
