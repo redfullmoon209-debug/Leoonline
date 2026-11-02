@@ -390,7 +390,7 @@ func _player_defeated() -> void:
  cooldowns.clear()
  basic_attack_seconds=0.0
  game.character.velocity=Vector3.ZERO
- game.character.global_position=Vector3(0,1.1,5)
+ game.character.global_position=Vector3(0,1.1,0) if game.has_node("BangkokCityMap") else Vector3(0,1.1,5)
  health=_max_health()
  stamina=max_stamina
  if guard_visual!=null:guard_visual.visible=false
