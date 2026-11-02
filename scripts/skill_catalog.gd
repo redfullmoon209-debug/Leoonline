@@ -244,12 +244,12 @@ const PASSIVE_BY_JOB:Dictionary={
  "wood_2":[["จิตเจ้าป่า","Forest Spirit","intelligence",2],["กายาไม้พฤกษา","Wooden Body","vitality",2],["มือแส้พริ้วไหว","Whip Agility","agility",2],["โชคแห่งไพร","Forest Fortune","luck",2]]
 }
 const TIMED_BUFF_BY_JOB:Dictionary={
- "earth_1":[["โล่หิน","Stoneguard","vitality",5,120],["จิตพิภพ","Spirit of Earth","strength",5,180]],
+ "earth_1":[["โล่หิน","Stoneguard","strength",5,120],["จิตพิภพ","Spirit of Earth","vitality",5,180]],
  "wind_1":[["วายุคุ้มกาย","Wind Veil","dexterity",5,120],["พรแห่งวายุ","Blessing of Wind","agility",5,120]],
  "water_1":[["ม่านน้ำ","Aqua Veil","vitality",5,120],["พรแห่งวารี","Blessing of Water","intelligence",5,180]],
  "fire_1":[["เกราะเพลิง","Flame Guard","vitality",5,120],["เปลวอัคคี","Flame Power","strength",5,120]],
  "lightning_1":[["เกราะกระแส","Volt Shield","vitality",5,120],["สปีดสายฟ้า","Thunder Speed","agility",5,60]],
- "wood_1":[["ม่านพฤกษา","Bark Ward","vitality",5,120],["พรแห่งพฤกษา","Nature's Blessing","intelligence",5,180]],
+ "wood_1":[["ม่านพฤกษา","Bark Ward","intelligence",5,120],["พรแห่งพฤกษา","Nature's Blessing","vitality",5,180]],
  "earth_2":[["คุ้มครองภูผา","Mountain Ward","vitality",7,120],["ลมหายใจภูผา","Mountain Breath","strength",7,180]],
  "wind_2":[["ม่านสายลม","Wind Shield","vitality",7,120],["ลมเสริมกำลัง","Blessing Breeze","agility",7,180]],
  "water_2":[["ม่านสมุทร","Ocean Ward","vitality",7,120],["พรเจ้าสมุทร","Ocean Blessing","intelligence",7,180]],
@@ -270,8 +270,8 @@ static func skills_for_job(job_id: String) -> Array:
   var kind:String="active"
   var name_th:String=str(label_pair[0])
   var name_en:String=str(label_pair[1])
-  var type_th:String=str(DISPLAY_TYPES_TH[i])
-  var type_en:String=str(DISPLAY_TYPES_EN[i])
+  var type_th:String=str(DISPLAY_TYPES_TH[i%DISPLAY_TYPES_TH.size()])
+  var type_en:String=str(DISPLAY_TYPES_EN[i%DISPLAY_TYPES_EN.size()])
   var desc_th:String="โจมตี/ความสามารถกดใช้ · ระบบต่อสู้ยังไม่พร้อม"
   var desc_en:String="Activated ability · gameplay combat is not available yet"
   var attr:String=""
