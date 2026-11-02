@@ -1,0 +1,74 @@
+name: Import six approved standalone transparent skill PNGs
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/import-approved-skill-art.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: write
+jobs:
+  import-skill-art:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Download original art PNG bytes without cropping or code drawing
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, pathlib, struct, time, urllib.request
+          urls = {
+    "earth_1_01.png": "https://dnznrvs05pmza.cloudfront.net/sam3_image_segmentation/ab27e425-ef28-43ce-9129-8ce0acb7953f/af33a38a-ad83-4d52-93ea-74febd9c582e.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiOTc2NjY3ZjQzNDc0YTkwMSIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc5Mzc0NzcwMH0.7eiR99Qm0XlW-w2exiObfqXgoXy-dE2zuGdDELGt7yA",
+    "wind_1_01.png": "https://dnznrvs05pmza.cloudfront.net/sam3_image_segmentation/ce0ad2a4-96f8-4408-8571-5283a97e5b9a/1e178d3e-0957-4d9b-b174-17800a3f7370.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiZWVkMDYyNWZmYzdhZDU4ZCIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc5Mzc1NzI3OX0.-o7LkMx2HN63Kz80k_nAar37BmsrYEWLsd3F9Pk19gY",
+    "water_1_01.png": "https://dnznrvs05pmza.cloudfront.net/sam3_image_segmentation/fbdea351-b110-43bb-9c71-b7365c9781c5/d2a843f9-51e9-46e2-b2fe-248493e2e04d.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiMzA1M2JiODY2OGQ4ZmJkNCIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc5Mzc2NjY2Mn0.kkzX_fYZfJagnsjigg5RAQiQiI9txGJnbg1VE-nwyTU",
+    "fire_1_01.png": "https://dnznrvs05pmza.cloudfront.net/sam3_image_segmentation/2912ae07-0a67-471f-b209-0881865cc462/2c73e0aa-f3c6-4944-8c70-31208a275bce.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiZmUwOGRjNjQ3MDM4NWUxZiIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc5MzgwNDc3Mn0.GU2U1fskwuMobk2rr4DSoXqDkfYtNTUjI2faHMAMAbc",
+    "lightning_1_01.png": "https://dnznrvs05pmza.cloudfront.net/sam3_image_segmentation/7e513274-2ca0-4d0d-bb09-61d064cff3af/30badae7-c65a-4db4-8321-3f91cc0dcaed.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiOTEzYzNmOTlkNjljYTU0ZSIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc5Mzc0MjM2MX0.T0MHVvA_RZ-7yY-3k_ke5UnyBMRfgjgOViN5DSyyhGs",
+    "wood_1_01.png": "https://dnznrvs05pmza.cloudfront.net/sam3_image_segmentation/fdbf58dc-db14-4746-9f0c-326c09a406f2/3eee883a-d718-4920-a935-f4b0ee9d9d92.png?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiNDNhYTZhODAyNDNmOGRjYSIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc5Mzc4MjY1Nn0.Xe7TNIdVZsZ2oVPqKeKyLPFtlFBVLxqHZR1Zpa9mt_k",
+          }
+          out = pathlib.Path('assets/ui/skills')
+          out.mkdir(parents=True,exist_ok=True)
+          for name,url in urls.items():
+              if not name.endswith('_01.png'):
+                  raise RuntimeError('Invalid filename')
+              target=out/name
+              for attempt in range(4):
+                  try:
+                      req=urllib.request.Request(url,headers={'User-Agent':'LeoonlineSkillAssetImporter/1.0'})
+                      with urllib.request.urlopen(req,timeout=45) as h: data=h.read(16_000_000)
+                      if data[:8]!=bytes([137,80,78,71,13,10,26,10]):
+                          raise RuntimeError('Not a PNG: '+name)
+                      if data[12:16]!=b'IHDR' or data[25] not in (4,6):
+                          raise RuntimeError('PNG has no alpha channel: '+name)
+                      w,h=struct.unpack('>II',data[16:24])
+                      if min(w,h)<128 or max(w,h)>4096 or len(data)<8000:
+                          raise RuntimeError('Suspicious dimensions/size for '+name)
+                      target.write_bytes(data)
+                      print('Accepted standalone transparent PNG',name,w,h,len(data))
+                      break
+                  except Exception as exc:
+                      if attempt==3: raise RuntimeError('Cannot retrieve '+name) from exc
+                      time.sleep(2*(attempt+1))
+          assert len(list(out.glob('*_01.png')))==6
+          PY
+      - name: Commit original generated image files to Godot repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/ui/skills/earth_1_01.png assets/ui/skills/wind_1_01.png assets/ui/skills/water_1_01.png assets/ui/skills/fire_1_01.png assets/ui/skills/lightning_1_01.png assets/ui/skills/wood_1_01.png
+          if ! git diff --cached --quiet; then
+            git commit -m "Add six genuinely illustrated transparent PNG class-skill icons (original image assets)"
+            git push origin HEAD:main
+          fi
+      - name: Publish updated Leoonline game using original PNG assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh workflow run publish-pages.yml --ref main
