@@ -500,6 +500,7 @@ func validate() -> void:
   "Ten compact icons sit immediately left of the minimap without overlapping it")
  var top:Control=hud_menu.top_status
  check(top!=null and top.player_panel.visible and top.minimap_button.visible and not top.target_panel.visible,"Character and minimap display, while target HUD stays entirely hidden without an actual lock")
+ check(top.target_cancel!=null and not top.target_cancel.visible,"No unlock X is visible when no target is selected")
  check(top.player_panel.get_theme_stylebox("panel") is StyleBoxFlat,"Character panel has a clean gold outer frame without image-painted inner dividers")
  check(top.player_name.text.contains("Lv.") and top.player_class.text.contains("Class"),"Top-left character profile displays current saved level and class")
  check(top.exp_bar.value>=0.0 and top.exp_bar.value<=100.0,"Character EXP bar shows actual saved progression")
@@ -514,9 +515,10 @@ func validate() -> void:
  game.add_child(test_target)
  hud_menu.set_target(test_target)
  check(top.target_panel.visible and top.target_label.text.contains("หุ่นฝึก") and top.target_bar.visible and is_equal_approx(top.target_bar.value,50.0),"Selecting a real target displays the central HUD with its actual HP")
+ check(top.target_cancel.visible and top.target_cancel.text=="×","A visible clickable X appears on selected target HUD")
  hud_menu.clear_target()
  test_target.queue_free()
- check(not top.target_panel.visible and not top.target_bar.visible and top.target_label.text.contains("ยังไม่ได้เลือก"),"Clearing target immediately hides the entire central HUD")
+ check(not top.target_panel.visible and not top.target_cancel.visible and not top.target_bar.visible and top.target_label.text.contains("ยังไม่ได้เลือก"),"Clearing target removes card and unlock button instantly")
  check(not top.target_mana_bar.visible and not top.target_portrait.visible,"No selected target hides HP/MP values and portrait without fake monster information")
  check(top.target_decor.get_script()!=null,"Center golden frame is native Godot vector drawing, not a crop")
  check(ResourceLoader.exists("res://assets/ui/hud/target_training_golem.svg"),"Standalone golem portrait is an original asset, not a cropped reference image")
@@ -549,9 +551,23 @@ func validate() -> void:
  # screen-position arithmetic or fake touch success.
  var golem_screen:Vector2=game.camera.unproject_position(game.training_target.global_position)
  var tapped:bool=game._select_target_at(golem_screen)
- check(tapped and top.current_target==game.training_target,
-  "Click/touch camera ray can select the actual 3D monster collision shape")
- hud_menu.clear_target()
+ check(tapped and top.current_target==game.training_target and top.target_cancel.visible,
+  "Click/touch camera ray selects actual monster and reveals unlock X")
+ var tapped_again:bool=game._select_target_at(golem_screen)
+ check(tapped_again and top.current_target==null and not top.target_panel.visible and not top.target_cancel.visible,
+  "Click/touching the same target again immediately cancels the lock")
+ var relocked:bool=game._select_target_at(golem_screen)
+ check(relocked and top.current_target==game.training_target and top.target_panel.visible,
+  "Clicking after cancel correctly locks the same enemy again")
+ top.target_cancel.pressed.emit()
+ check(top.current_target==null and not top.target_panel.visible and not top.target_cancel.visible,
+  "Pressing the visible X directly cancels target lock")
+ game._set_test_target(game.test_targets[1])
+ check(top.current_target==game.test_targets[1] and top.target_panel.visible,
+  "Alternate slime is an independent selectable lock")
+ game._toggle_target_lock()
+ check(top.current_target==null and not top.target_panel.visible and not top.target_cancel.visible,
+  "T / TARGET cancels ANY selected enemy, not only training golem")
  # Multiple distinct enemies and simulated player BOTs are selectable via
  # the same real 3D hitboxes. No fake online-player presence is claimed.
  check(game.test_targets.size()==5,"Scene contains original golem, green slime, wolf and two distinct player simulation BOTs")
@@ -729,9 +745,9 @@ func validate() -> void:
  var jump_button_rect:Rect2=hud_menu.controls["jump"].get_global_rect()
  check(target_button_rect.end.y+4.0<=jump_button_rect.position.y and target_button_rect.position.x>=0.0,"Target control sits above Jump without blocking the other mobile buttons")
  mobile_target_button.pressed.emit()
- check(top.current_target==game.training_target and top.target_panel.visible and top.target_bar.visible and top.target_portrait.visible,"Touch TARGET selects a real enemy and reveals centered target HUD")
+ check(top.current_target==game.training_target and top.target_panel.visible and top.target_cancel.visible and top.target_bar.visible and top.target_portrait.visible,"Touch TARGET selects a real enemy and reveals centered target HUD with X")
  mobile_target_button.pressed.emit()
- check(top.current_target==null and not top.target_panel.visible and not top.target_bar.visible,"Pressing TARGET again hides the entire target UI")
+ check(top.current_target==null and not top.target_panel.visible and not top.target_cancel.visible and not top.target_bar.visible,"Pressing TARGET again hides the entire target UI including unlock X")
  var stick:Control=hud_menu.controls["joystick"]
  stick._point_to_vector(stick.size*0.8)
  check(hud_menu.get_movement_vector().length()>0.05,"Virtual mobile joystick drives real movement vector")
