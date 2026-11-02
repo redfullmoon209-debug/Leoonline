@@ -1,17 +1,17 @@
 extends SceneTree
-## Headless QA: verifies the downloaded female GLB has real meshes.
+## Headless QA: verifies the downloaded female FBX has real meshes.
 func _initialize() -> void:
     call_deferred("_check")
 
 func _check() -> void:
-    var path := "res://assets/characters/female/Female.glb"
+    var path := "res://assets/characters/female/Female.fbx"
     if not ResourceLoader.exists(path):
         push_error("Female model not imported: " + path)
         quit(1)
         return
     var scene := load(path) as PackedScene
     if scene == null:
-        push_error("Female GLB did not import as a PackedScene")
+        push_error("Female FBX did not import as a PackedScene")
         quit(1)
         return
     var model := scene.instantiate()
@@ -27,14 +27,14 @@ func _check() -> void:
     print("FEMALE MODEL QA: meshes=", meshes, " skeletons=", rig_count)
     model.queue_free()
     if meshes < 1:
-        push_error("Female GLB has no visible usable meshes")
+        push_error("Female FBX has no visible usable meshes")
         quit(1)
         return
     if rig_count < 1:
-        push_error("Female GLB has no Skeleton3D")
+        push_error("Female FBX has no Skeleton3D")
         quit(1)
         return
-    # Prove not just that the GLB exists: verify bones can actually be
+    # Prove not just that the FBX exists: verify bones can actually be
     # matched to the sampled Mixamo walk/run animation tracks. This test
     # catches a fully rendered but completely frozen T-pose character.
     var visual: Node3D = load("res://scripts/female_character_visual.gd").new() as Node3D
@@ -45,7 +45,7 @@ func _check() -> void:
     print("FEMALE ANIMATION QA: matched bones=", matched.size(),
           " walk tracks=", walk_data.size(), " run tracks=", run_data.size())
     if visual.get("visual_loaded") != true or matched.size() < 8:
-        push_error("Female character animation bones did not retarget to the actual GLB rig")
+        push_error("Female character animation bones did not retarget to the actual FBX rig")
         quit(1)
         return
     if walk_data.size() < 8 or run_data.size() < 8:
