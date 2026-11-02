@@ -231,7 +231,29 @@ func validate() -> void:
   check(slot.texture_normal.resource_path=="res://assets/ui/red_matte/"+expected+".png","Novice skill slot is reused from standalone inventory PNG, no screenshot crop: "+str(i+1))
   check(slot.disabled==(i>=3),"Only three starter skill cells are available; others are reserved")
  for hotbar in skills.active_slots:
-  check(hotbar.texture_normal.resource_path=="res://assets/ui/red_matte/slot_empty.png","Empty hotbar reuses unchanged inventory slot PNG")
+  check(hotbar.texture_normal.resource_path=="res://assets/ui/red_matte/slot_empty.png","Skill hotbar reuses unchanged inventory slot PNG")
+ # Full in-game Skill UI: independent PNG assets, visible art, saved hotbar.
+ var starter_names:Array=["novice_slash","novice_rush","novice_guard"]
+ for i in range(3):
+  var icon_path:String="res://assets/ui/skills/"+starter_names[i]+".png"
+  check(ResourceLoader.exists(icon_path),"Real standalone Novice PNG is shipped: "+starter_names[i])
+  var skill_art:TextureRect=skills.skill_slots[i].get_node_or_null("SkillArt") as TextureRect
+  var equipped_art:TextureRect=skills.active_slots[i].get_node_or_null("SkillArt") as TextureRect
+  check(skill_art!=null and skill_art.texture!=null and skill_art.texture.resource_path==icon_path,"Skill grid renders independent skill art: "+starter_names[i])
+  check(equipped_art!=null and equipped_art.texture!=null,"Equipped Hotbar renders skill icon: "+starter_names[i])
+ var before_setup:Array=store.skill_hotbar.duplicate()
+ skills._skill_cell_selected("NoviceSkillSlot02")
+ check(skills.slot_label.text=="พุ่งจู่โจม","Selecting a skill shows its real name and data")
+ skills._equip_to(0)
+ check(store.skill_hotbar[0]=="novice_rush","Equipping a skill changes the actual store Hotbar")
+ check(store.save_data(),"Equipped skill hotbar saves")
+ store.skill_hotbar[0]="novice_slash"
+ store.load_data()
+ check(store.skill_hotbar[0]=="novice_rush","Saved skill loadout survives load_data")
+ for i in range(3):store.skill_hotbar[i]=str(before_setup[i])
+ store.save_data()
+ skills.selected_skill=""
+ skills.refresh()
  check(skills.upgrade_button.disabled and skills.preview_buttons.all(func(b):return b.disabled),"Absent skill data cannot consume real money/SP or play fake animations")
  check(not ui.footer_buttons[0].visible and ui.footer_buttons[5].visible,"Only the real Close action remains in Skill screen footer")
  var before_sp:int=int(store.profile["skill_points"])

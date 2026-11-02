@@ -40,6 +40,8 @@ jobs:
           curl -fL --retry 3 https://github.com/godotengine/godot-builds/releases/download/4.4.1-stable/Godot_v4.4.1-stable_export_templates.tpz -o templates.tpz
           mkdir -p "$HOME/.local/share/godot/export_templates/4.4.1.stable"
           unzip -j -q templates.tpz 'templates/*' -d "$HOME/.local/share/godot/export_templates/4.4.1.stable"
+      - name: Generate standalone Novice PNG assets
+        run: python3 tools/create_skill_pngs.py
       - name: Reassemble exact FemaleLeo.fbx uploaded by project owner
         run: |
           python3 tools/prepare_female_character.py

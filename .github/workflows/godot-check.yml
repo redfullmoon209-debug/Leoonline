@@ -12,6 +12,8 @@ jobs:
           curl -fL https://github.com/godotengine/godot-builds/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip -o godot.zip
           unzip -q godot.zip
           chmod +x Godot_v4.4.1-stable_linux.x86_64
+      - name: Generate standalone Novice PNG assets
+        run: python3 tools/create_skill_pngs.py
       - name: Reassemble exact uploaded FemaleLeo.fbx
         run: python3 tools/prepare_female_character.py
       - name: Import project and fail on Godot errors
