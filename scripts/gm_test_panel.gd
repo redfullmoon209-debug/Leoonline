@@ -8,6 +8,8 @@ var game: Node3D
 var menu: Control
 var gm_button: Button
 var gm_popup: PanelContainer
+var gm_scroll: ScrollContainer
+var job_jump_button: Button
 var target_picker: OptionButton
 var job_picker: OptionButton
 var gm_job_open_button: Button
@@ -90,20 +92,23 @@ func _build() -> void:
  panel_style.content_margin_bottom=11
  gm_popup.add_theme_stylebox_override("panel",panel_style)
  add_child(gm_popup)
- var scroll:=ScrollContainer.new()
- scroll.name="GMScrollableControls"
- scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
- scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL
- gm_popup.add_child(scroll)
+ gm_scroll=ScrollContainer.new()
+ gm_scroll.name="GMScrollableControls"
+ gm_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
+ gm_scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL
+ gm_popup.add_child(gm_scroll)
  var content:=VBoxContainer.new()
  content.name="GMTools"
  content.add_theme_constant_override("separation",6)
  content.size_flags_horizontal=Control.SIZE_EXPAND_FILL
- scroll.add_child(content)
+ gm_scroll.add_child(content)
  var header:=HBoxContainer.new()
  content.add_child(header)
- var heading:=_label(header,"GM • ทดสอบเป้าหมาย",17)
+ var heading:=_label(header,"GM • ทดสอบเป้า / อาชีพ",15)
  heading.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ job_jump_button=_make_action(header,"อาชีพ",_jump_to_jobs)
+ job_jump_button.name="GMJumpToJobs"
+ job_jump_button.custom_minimum_size=Vector2(62,35)
  var close:=_make_action(header,"ปิด",_close)
  close.name="GMCloseButton"
  close.custom_minimum_size=Vector2(58,35)
@@ -235,6 +240,11 @@ func _layout() -> void:
  var pop_h:float=minf(555.0,h-18.0)
  gm_popup.position=Vector2(7.0,maxf(9.0,(h-pop_h)*0.5))
  gm_popup.size=Vector2(pop_w,pop_h)
+
+func _jump_to_jobs() -> void:
+ if not active or not gm_popup.visible:return
+ # One tap on the GM header reveals the job picker even on tiny phones.
+ gm_scroll.call_deferred("ensure_control_visible",gm_job_open_button)
 
 func _refresh_job_picker() -> void:
  if not is_instance_valid(job_picker):return
