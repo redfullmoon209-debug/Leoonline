@@ -280,6 +280,9 @@ func _execute_skill(skill_id:String,target:StaticBody3D) -> bool:
  stamina=maxf(0.0,stamina-cost)
  cooldowns[skill_id]=float(SKILL_COOLDOWNS[skill_id])
  if skill_id=="novice_slash":
+  # Finish the actual authored sword slash before another ordinary hit,
+  # rather than restarting the same arm animation in the next frame.
+  basic_attack_seconds=maxf(basic_attack_seconds,BASIC_ATTACK_INTERVAL)
   _attack_visual()
   _damage_target(target,_attack_damage(false))
  elif skill_id=="novice_rush":
@@ -327,6 +330,7 @@ func _finish_rush(try_hit:bool) -> void:
  rush_remaining=0.0
  rush_target=null
  if try_hit and _target_is_valid(target) and _distance_to(target)<=3.1:
+  basic_attack_seconds=maxf(basic_attack_seconds,BASIC_ATTACK_INTERVAL)
   _attack_visual()
   _damage_target(target,_attack_damage(true))
  elif try_hit:
