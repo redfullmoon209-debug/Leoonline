@@ -1,8 +1,13 @@
 extends Node3D
 const RedButtonStyle = preload("res://scripts/ui_button_style.gd")
 const StoreScript = preload("res://scripts/store.gd")
+const BangkokCollisions = preload("res://scripts/bangkok_collision.gd")
+const TerrainSteps = preload("res://scripts/terrain_step_solver.gd")
 # World-scale actor height: map buildings and roads are substantially smaller than the original 80m prototype.
-const ACTOR_SCALE: float = 0.50
+const ACTOR_SCALE: float = 0.25
+const WALK_SPEED: float = 2.5
+const RUN_SPEED: float = 4.0
+var world_collision_count: int = 0
 var store: Node
 var character: CharacterBody3D
 var player_placeholder: MeshInstance3D
@@ -63,6 +68,7 @@ func _ready() -> void:
  _make_ui()
  var ui911: Node = load("res://scripts/ui911.gd").new()
  add_child(ui911)
+ call_deferred("_align_spawned_entities_to_terrain")
  # Pointer always stays visible. RMB dragging rotates; releasing RMB keeps the exact angle.
  Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
  if OS.has_feature("web") and "--inventory-qa" in OS.get_cmdline_user_args():
@@ -120,32 +126,36 @@ func _make_world() -> void:
    if city != null:
     city.name = "BangkokCityMap"
     add_child(city)
- # Keep one reliable, broad collision floor even before detailed city collisions.
- # This is an actual StaticBody3D, not a visual-only mesh.
- var ground := StaticBody3D.new()
- ground.name = "BangkokGroundCollision"
- ground.position = Vector3(0.0,-0.5,0.0)
- add_child(ground)
- var ground_collision := CollisionShape3D.new()
- ground_collision.name = "CollisionShape3D"
- var ground_shape := BoxShape3D.new()
- ground_shape.size = Vector3(210.0,1.0,245.0)
- ground_collision.shape = ground_shape
- ground.add_child(ground_collision)
- var terrain := MeshInstance3D.new()
- terrain.name = "BangkokWalkableTerrain"
- var plane := PlaneMesh.new()
- plane.size = Vector2(210.0,245.0)
- terrain.mesh = plane
- terrain.position.y = -0.04
- terrain.material_override = _mat(Color("405a47"))
- add_child(terrain)
- if not has_node("BangkokCityMap"):
-  # Local fallback for environments where the map has not yet been reconstructed.
-  for x in range(-3,4):
-   for z in range(-3,4):
-    if (x+z)%3 == 0:
-     _box(Vector3(x*7,0.3,z*7-12),Vector3(2,0.6,2),Color("7b93a0"))
+    world_collision_count=BangkokCollisions.install(city)
+    print("BANGKOK_TERRAIN_COLLISIONS ",world_collision_count)
+ # A flat plate exists ONLY in prototype fallback; it must never mask source stairs.
+ if world_collision_count==0:
+  # Keep one reliable, broad collision floor even before detailed city collisions.
+  # This is an actual StaticBody3D, not a visual-only mesh.
+  var ground := StaticBody3D.new()
+  ground.name = "BangkokGroundCollision"
+  ground.position = Vector3(0.0,-0.5,0.0)
+  add_child(ground)
+  var ground_collision := CollisionShape3D.new()
+  ground_collision.name = "CollisionShape3D"
+  var ground_shape := BoxShape3D.new()
+  ground_shape.size = Vector3(210.0,1.0,245.0)
+  ground_collision.shape = ground_shape
+  ground.add_child(ground_collision)
+  var terrain := MeshInstance3D.new()
+  terrain.name = "BangkokWalkableTerrain"
+  var plane := PlaneMesh.new()
+  plane.size = Vector2(210.0,245.0)
+  terrain.mesh = plane
+  terrain.position.y = -0.04
+  terrain.material_override = _mat(Color("405a47"))
+  add_child(terrain)
+  if not has_node("BangkokCityMap"):
+   # Local fallback for environments where the map has not yet been reconstructed.
+   for x in range(-3,4):
+    for z in range(-3,4):
+     if (x+z)%3 == 0:
+      _box(Vector3(x*7,0.3,z*7-12),Vector3(2,0.6,2),Color("7b93a0"))
  _spawn_loot("sword",Vector3(-3,0.65,0),Color.GOLD)
  _spawn_loot("boots",Vector3(3,0.65,0),Color.DEEP_SKY_BLUE)
  _spawn_loot("potion",Vector3(0,0.65,-5),Color.HOT_PINK)
@@ -158,12 +168,12 @@ func _spawn_loot(id: String,pos: Vector3,color: Color) -> void:
  item.set_meta("id",id)
  var mesh := MeshInstance3D.new()
  mesh.mesh = SphereMesh.new()
- mesh.scale = Vector3(0.4,0.4,0.4)
+ mesh.scale = Vector3.ONE*ACTOR_SCALE*0.60
  mesh.material_override = _mat(color)
  item.add_child(mesh)
  var label := Label3D.new()
  label.text = id + " [E]"
- label.position.y = 1.0
+ label.position.y = 1.0*ACTOR_SCALE
  label.font_size = 36
  label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
  item.add_child(label)
@@ -174,6 +184,12 @@ func _make_character() -> void:
  character = CharacterBody3D.new()
  character.position = Vector3(0,1.1*ACTOR_SCALE,0) if has_node("BangkokCityMap") else Vector3(0,1.1*ACTOR_SCALE,5)
  character.set_meta("world_actor_scale",ACTOR_SCALE)
+ character.collision_layer=BangkokCollisions.PLAYER_LAYER
+ character.collision_mask=BangkokCollisions.WORLD_LAYER | BangkokCollisions.NPC_LAYER
+ character.floor_max_angle=deg_to_rad(52.0)
+ character.floor_snap_length=0.18
+ character.floor_constant_speed=true
+ character.safe_margin=0.005
  add_child(character)
  var col := CollisionShape3D.new()
  col.name = "CollisionShape3D"
@@ -232,6 +248,8 @@ func _make_training_target() -> void:
  # live data rather than a fictional screenshot of a monster.
  training_target=StaticBody3D.new()
  training_target.name="TrainingStoneGolem"
+ training_target.collision_layer=BangkokCollisions.NPC_LAYER
+ training_target.collision_mask=0
  # Place the training golem far enough from the new Bangkok road spawn
  # to keep the ATK chase/stop regression realistic and deterministic.
  training_target.position=Vector3(3.0,1.35*ACTOR_SCALE,-13.0)
@@ -301,6 +319,8 @@ func _build_test_entity(
 ) -> StaticBody3D:
  var target:=StaticBody3D.new()
  target.name=key
+ target.collision_layer=BangkokCollisions.NPC_LAYER
+ target.collision_mask=0
  # Scale the complete entity: art, target collider and over-head label stay aligned.
  target.position=Vector3(location.x,(1.05 if kind=="player" else (0.60 if kind=="slime" else 0.65))*ACTOR_SCALE,location.z)
  target.scale=Vector3.ONE*ACTOR_SCALE
