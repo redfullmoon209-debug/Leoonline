@@ -80,6 +80,9 @@ jobs:
           echo "Standalone Godot runtime: https://redfullmoon209-debug.github.io/Leoonline/${game_id}.html" >> "$GITHUB_STEP_SUMMARY"
           mkdir -p build/web/911
           cp 911/index.html 911/manifest.webmanifest 911/icon.svg 911/sw.js build/web/911/
+          # A standalone, clickable 16:9 skill UI concept preview (not the game runtime).
+          cp 911/skill-landscape-preview.html build/web/skill-landscape-preview.html
+          test -s build/web/skill-landscape-preview.html
           test -s build/web/911/manifest.webmanifest
       - uses: actions/setup-node@v4
         with:
