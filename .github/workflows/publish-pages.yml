@@ -68,7 +68,9 @@ jobs:
           ./Godot_v4.4.1-stable_linux.x86_64 --headless --path . --script res://scripts/smoke_test.gd 2>&1 | tee smoke.log
           ./Godot_v4.4.1-stable_linux.x86_64 --headless --path . --script res://tools/check_female_asset.gd 2>&1 | tee female-model-qa.log
           ./Godot_v4.4.1-stable_linux.x86_64 --headless --path . --script res://tools/verify_bangkok_map.gd 2>&1 | tee bangkok-map-qa.log
-          ./Godot_v4.4.1-stable_linux.x86_64 --headless --path . --script res://tools/verify_camera_controls.gd 2>&1 | tee camera-controls-qa.log
+          echo "BANGKOK_CAMERA_QA_BEGIN"
+          timeout 60s ./Godot_v4.4.1-stable_linux.x86_64 --headless --path . --script res://tools/verify_camera_controls.gd 2>&1 | tee camera-controls-qa.log
+          echo "BANGKOK_CAMERA_QA_END"
           if grep -E '(SCRIPT ERROR:|ERROR:|Parse Error:|Failed to load script)' female-model-qa.log; then exit 1; fi
           if grep -E '(SCRIPT ERROR:|ERROR:|Parse Error:|Failed to load script)' bangkok-map-qa.log; then exit 1; fi
           if grep -E '(SCRIPT ERROR:|ERROR:|Parse Error:|Failed to load script)' camera-controls-qa.log; then exit 1; fi
