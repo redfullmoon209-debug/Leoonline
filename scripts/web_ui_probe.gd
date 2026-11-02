@@ -93,6 +93,8 @@ func _process(delta: float) -> void:
   "hud_minimap_bounds":bounds(menu.top_status.minimap_button),
   "hud_minimap_items":menu.top_status.minimap.items.size(),
   "hud_target_panel_visible":menu.top_status.target_panel.visible,
+  "hud_target_cancel_visible":menu.top_status.target_cancel.visible,
+  "hud_target_cancel_bounds":bounds(menu.top_status.target_cancel),
   "hud_target_bounds":bounds(menu.top_status.target_panel),
   "hud_target_name":menu.top_status.target_label.text,
   "hud_target_health_visible":menu.top_status.target_bar.visible,
