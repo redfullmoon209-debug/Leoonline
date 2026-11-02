@@ -174,7 +174,7 @@ func _build() -> void:
  job_picker.add_theme_font_size_override("font_size",13)
  job_picker.add_theme_color_override("font_color",Color("#fff0c5"))
  if ResourceLoader.exists("res://assets/fonts/NotoSansThai.ttf"):
-  var job_font:Font=load("res://assets/fonts/NotoSansThai.ttf")
+  var job_font:Font=load("res://assets/fonts/NotoSansThai.ttf") as Font
   job_picker.add_theme_font_override("font",job_font)
   job_picker.get_popup().add_theme_font_override("font",job_font)
  RedButtonStyle.apply(job_picker)
