@@ -62,7 +62,7 @@ DOCUMENT = """<!doctype html>
       margin: 0; padding: 0; border: 0;
       border-radius: 25px;
       background: #0c0710;
-      touch-action: auto;
+      touch-action: none;
     }
     /* A real phone uses the whole available screen: no fake bezel,
        borders, letterboxing, horizontal scrollbar or cropped HUD. */
