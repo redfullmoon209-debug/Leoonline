@@ -12,6 +12,7 @@ on:
       - 'project.godot'
       - 'export_presets.cfg'
       - 'tools/test_web_inventory.cjs'
+      - 'tools/test_release_combat_boot.cjs'
       - 'tools/test_phone_shell.cjs'
       - 'tools/create_mobile_shell.py'
       - 'tools/create_landscape_shell.py'
@@ -95,7 +96,8 @@ jobs:
         run: |
           npm install --prefix /tmp/leo-browser --no-save playwright@1.56.1
           /tmp/leo-browser/node_modules/.bin/playwright install --with-deps chromium
-      - name: Test release Web export with real desktop and mobile browser input
+      - name: Browser release gate - prove ATK walks toward locked enemy
+        timeout-minutes: 3
         env:
           PLAYWRIGHT_MODULE: /tmp/leo-browser/node_modules/playwright
         run: |
@@ -108,18 +110,13 @@ jobs:
           PYCODE
           python3 -m http.server 8000 --directory build/web > /tmp/leo-http.log 2>&1 &
           server_pid=$!
-          trap 'kill "$server_pid"; rm -f build/web/_qa.html build/web/_phone_qa.html build/web/_landscape_qa.html' EXIT
-          # First execute the entire existing desktop/mobile inventory and HUD
-          # test suite against the unmodified Godot export.
-          node tools/test_web_inventory.cjs
-          # Then run the SAME actual game as a real 9:19.5 browser viewport
-          # inside a desktop phone frame and an edge-to-edge mobile frame.
-          python3 tools/create_mobile_shell.py --web build/web --game _qa.html --output _phone_qa.html
-          node tools/test_phone_shell.cjs
-          # Landscape is a separate TEST entrypoint. It runs the same game
-          # at a real horizontal aspect ratio, never replacing portrait /.
-          python3 tools/create_landscape_shell.py --web build/web --game _qa.html --output _landscape_qa.html
-          node tools/test_landscape_shell.cjs
+          trap 'kill "$server_pid"; rm -f build/web/_qa.html' EXIT
+          # The FULL multi-page HUD/GM/Shop regression runs separately on
+          # pull_request via hud-browser-check.yml. Do not block public
+          # playtesting for unrelated, very long UI-sweep test suites.
+          # Keep the critical gate: live browser must start and prove
+          # CharacterBody actually RUNS after pressing ATK and Slash.
+          timeout 120s node tools/test_release_combat_boot.cjs
       - name: Preserve browser QA evidence
         if: always()
         uses: actions/upload-artifact@v4
