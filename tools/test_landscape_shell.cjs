@@ -60,8 +60,8 @@ async function runLiveGame(browser,{width,height,mobile}){
     'Joystick, Jump, Pickup, Run and TARGET work in landscape mode: '+scenario);
   check(data.hud_profile_bounds[2]>100&&data.hud_minimap_bounds[2]>=88,
     'Character information and minimap remain present: '+scenario);
-  check(data.hud_target_bounds[2]>=200&&Object.values(data.hud_notification_badges).every(v=>v===false),
-    'Centered target and event-only red dots unchanged: '+scenario);
+  check(data.hud_target_bounds[2]>=200&&!data.hud_target_panel_visible&&Object.values(data.hud_notification_badges).every(v=>v===false),
+    'No target card before enemy lock, notifications remain event-only: '+scenario);
   check(data.hud_caption_visible.every(Boolean)&&data.hud_caption_font_sizes.every(n=>n>=11),
     'All ten separate nameplate-free icons have high-contrast live captions: '+scenario);
   const captionsEnd=Math.max(...data.hud_caption_bounds.map(c=>c[1]+c[3]));
