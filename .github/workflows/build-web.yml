@@ -21,6 +21,8 @@ jobs:
           unzip -j -q export_templates.tpz 'templates/*' -d "$HOME/.local/share/godot/export_templates/4.4.1.stable"
       - name: Generate standalone Novice PNG assets
         run: python3 tools/create_skill_pngs.py
+      - name: Generate 84 independent first-tier profession PNGs
+        run: python3 tools/create_profession_skill_pngs.py
       - name: Reassemble exact FemaleLeo source and verify original SHA-256
         run: |
           python3 tools/prepare_female_character.py
