@@ -468,7 +468,7 @@ func validate() -> void:
  if party_tint!=null:
   party_icon.mouse_entered.emit()
   check(is_zero_approx(party_tint.color.a),"Hovering any other menu icon keeps the glyph fully visible")
- # Ten ring-free independent SVG glyphs, NOT crops or medallion PNG bases.
+ # Ten original premium PNG icons restored byte-for-byte; no substitute artwork.
  # All notification badges are separate controls with zero unread at start.
  var menu_order: Array[String]=["bag","world","party","friends","ranking","settings","guild","quest","mail","events"]
  check(hud_menu.MENU_ORDER.size()==10 and hud_menu.MENU_ORDER==menu_order,"HUD has ten distinct buttons in the requested left-to-right order")
@@ -476,10 +476,10 @@ func validate() -> void:
  var row_y:float=-1.0
  for i in range(menu_order.size()):
   var key:String=menu_order[i]
-  var icon_path:String="res://assets/ui/hud/"+key+".svg"
-  check(ResourceLoader.exists(icon_path),"Standalone ring-free SVG exists for "+key)
+  var icon_path:String="res://assets/ui/hud/premium/"+key+".png"
+  check(ResourceLoader.exists(icon_path),"Original premium PNG exists for "+key)
   var art:Texture2D=load(icon_path) as Texture2D
-  check(art!=null and art.get_width()==64 and art.get_height()==64,"Ring-free menu pictogram is 64px crisp vector: "+key)
+  check(art!=null and art.get_width()==256 and art.get_height()==256,"Original premium icon is 256px: "+key)
   var control:Control=hud_menu.controls[key] as Control
   var rect:Rect2=control.get_global_rect()
   check(rect.size.x>=32 and rect.size.x<=100,"Desktop icon uses compact right-aligned geometry: "+key)
@@ -490,10 +490,10 @@ func validate() -> void:
   prior_rect=rect
   check(hud_menu.notification_badges.has(key) and not hud_menu.notification_badges[key].visible,"No red alert dot is displayed unless a real event arrives: "+key)
   if key=="bag":
-   check(game.hud.get_node("OpenInventory").texture_normal.resource_path==icon_path,"Bag button loads standalone ring-free SVG instead of gold medallion PNG")
+   check(game.hud.get_node("OpenInventory").texture_normal.resource_path==icon_path,"Bag button renders its exact original premium PNG")
   else:
-   check((control.get_node("Glyph") as TextureRect).texture.resource_path==icon_path,"HUD renders vector pictogram without ring or base: "+key)
-   check(control.get_node_or_null("GlyphShadow")!=null,"The independent ring-free symbol has a legibility shadow: "+key)
+   check((control.get_node("Glyph") as TextureRect).texture.resource_path==icon_path,"HUD renders original PNG unchanged: "+key)
+   check(control.get_node_or_null("GlyphShadow")==null,"No replacement pictogram or shadow: "+key)
  check(prior_rect.end.x<game.hud_menu.size.x-150.0,"Ten-icon row leaves free space for the right-hand minimap")
  check(hud_menu.controls["bag"].position.x>265.0,"Ten-icon row leaves room for the left-hand character portrait")
  check(hud_menu.controls["events"].get_global_rect().end.x < hud_menu.top_status.minimap_button.get_global_rect().position.x,
