@@ -187,17 +187,18 @@ func _show_selected() -> void:
  _paint_skill(selected,art)
  var kind:String=str(item.get("kind","active"))
  if kind=="passive":
-  var level:int=int(game_store.skill_levels.get(selected_skill,0))
+  var level:int=int(game_store.passive_level(selected_skill))
   var amount:int=int(item.get("stat_amount",0))
   var key:String=str(SkillCatalog.STAT_LABEL.get(str(item.get("stat_key","")),""))
   var max_level:int=int(item.get("max_level",SkillCatalog.PASSIVE_LEVEL_CAP))
   current_level_label.text="Lv."+str(level)+" / "+str(max_level)+"  "+key+" +"+str(level*amount)
   next_level_label.text=_tr("ขั้นถัดไป : ","Next level: ")+key+" +"+str((level+1)*amount) if level<max_level else _tr("ระดับสูงสุดแล้ว","MAX LEVEL")
   var costs:Dictionary=game_store.passive_upgrade_cost(selected_skill)
-  price_label.text=_tr("ใช้แต้มสกิล : ","Skill Points: ")+str(costs["sp"])
+  var is_gm:bool=str(game_store.gm_preview_job_id)!=""
+  price_label.text=_tr("GM ทดลองฟรี ไม่บันทึก","GM free preview · unsaved") if is_gm else _tr("ใช้แต้มสกิล : ","Skill Points: ")+str(costs["sp"])
   cost_label.text=_tr("ใช้เงิน : ","Gold: ")+str(costs["gold"])
   upgrade_button.text=_tr("อัปเกรดสกิลติดตัว","Upgrade Passive")
-  upgrade_button.disabled=level>=max_level or str(game_store.gm_preview_job_id)!="" or str(game_store.profile.get("job","Novice"))!=str(game_store.effective_job_info().get("id","Novice")) or int(game_store.profile.get("skill_points",0))<int(costs["sp"]) or game_store.compare(str(game_store.currency.get("gold","0")),str(costs["gold"]))<0
+  upgrade_button.disabled=level>=max_level or (not is_gm and (str(game_store.profile.get("job","Novice"))!=str(game_store.effective_job_info().get("id","Novice")) or int(game_store.profile.get("skill_points",0))<int(costs["sp"]) or game_store.compare(str(game_store.currency.get("gold","0")),str(costs["gold"]))<0))
   hint_label.text=_tr("สกิลติดตัว: เพิ่มค่าสถานะถาวร ห้ามใส่ช่องใช้งาน","PASSIVE: permanent stats, never equippable")
  elif kind=="timed_buff":
   var duration:int=int(item.get("duration_seconds",60))
