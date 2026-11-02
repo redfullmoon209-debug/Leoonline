@@ -336,6 +336,9 @@ func _make_demo_targets() -> void:
   preview.name = "FemaleBotVisual"
   preview.feet_y = -1.05
   luna.add_child(preview)
+  if not preview.visual_loaded:
+   for node in luna.get_children():
+    if node is MeshInstance3D: node.visible = true
 
 func _spawn_gm_test_entity(kind: String) -> StaticBody3D:
  if not is_instance_valid(gm_menu) or not gm_menu.active:return null
