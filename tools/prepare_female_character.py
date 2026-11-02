@@ -27,7 +27,7 @@ FILES = {
 def valid(name: str, data: bytes) -> bool:
     if name.endswith(".fbx"):
         return len(data) > 1_000_000 and data.startswith(b"Kaydara FBX Binary  ")
-    return len(data) > 10_000 and data.startswith(b"\\x89PNG\\r\\n\\x1a\\n")
+    return len(data) > 10_000 and data[:8] == bytes([137, 80, 78, 71, 13, 10, 26, 10])
 
 def main():
     OUTPUT.mkdir(parents=True, exist_ok=True)
