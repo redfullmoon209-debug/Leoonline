@@ -99,6 +99,22 @@ async function runLiveGame(browser,{width,height,mobile}){
     catch(e){return false;}
   });
   check((await state()).hud_target_health_visible&&(await state()).hud_target_panel_visible,'Touch TARGET shows the complete real target card in landscape: '+scenario);
+  let locked=await state();
+  check(locked.hud_target_cancel_visible,'Touch TARGET reveals the explicit unlock X: '+scenario);
+  const cancel=locked.hud_target_cancel_bounds,card=locked.hud_target_bounds;
+  check(cancel[0]>=card[0]&&cancel[0]+cancel[2]<=card[0]+card[2]+1&&cancel[1]>=card[1],
+    'Touch target close control stays within card, clear of minimap: '+scenario);
+  await tapFrame(cancel);
+  await page.waitForFunction(()=>{
+    try{return document.getElementById('game-frame')?.contentWindow?.__leoQA?.hud_target_panel_visible===false;}
+    catch(e){return false;}
+  });
+  check(!(await state()).hud_target_cancel_visible,'Touching X hides the entire card and close control: '+scenario);
+  await tapFrame((await state()).hud_touch_target);
+  await page.waitForFunction(()=>{
+    try{return document.getElementById('game-frame')?.contentWindow?.__leoQA?.hud_target_panel_visible===true;}
+    catch(e){return false;}
+  });
   await tapFrame((await state()).hud_touch_target);
   await page.waitForFunction(()=>{
     try{return document.getElementById('game-frame')?.contentWindow?.__leoQA?.hud_target_name?.includes('ยังไม่ได้เลือก');}
@@ -175,6 +191,14 @@ async function runLiveGame(browser,{width,height,mobile}){
     },null,{timeout:12000});
     check((await state()).hud_target_portrait_asset.endsWith('target_slime.svg'),'Real 3D slime touch displays its OWN separate portrait');
     await page.screenshot({path:path.join(out,'web-'+scenario+'-slime-locked.jpg'),type:'jpeg',quality:90});
+    // Retapping the same real 3D entity cancels the lock on touch and mouse.
+    if(mobile)await page.touchscreen.tap(rect.x+slime.x,rect.y+slime.y);
+    else await page.mouse.click(rect.x+slime.x,rect.y+slime.y);
+    await page.waitForFunction(()=>{
+      try{return document.getElementById('game-frame')?.contentWindow?.__leoQA?.hud_target_panel_visible===false;}
+      catch(e){return false;}
+    },null,{timeout:12000});
+    check(!(await state()).hud_target_cancel_visible,'Retapping selected slime fully unlocks it: '+scenario);
   }
   const [ix,iy,iw,ih]=data.opener;
   if(mobile)await page.touchscreen.tap(rect.x+ix+iw/2,rect.y+iy+ih/2);
