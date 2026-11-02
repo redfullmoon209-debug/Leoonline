@@ -27,6 +27,13 @@ func _process(delta: float) -> void:
   if button.get_meta("locked",false): locked+=1
  var menu: Control=host.get("hud_menu")
  var gm:Control=host.get("gm_menu") as Control
+ # Read-only release QA metrics. Published production HTML never enables
+ # this probe; no control/mutation functions or remote calls are exposed.
+ var combat:Node=host.get("combat")
+ var hero:CharacterBody3D=host.get("character") as CharacterBody3D
+ var selected_enemy:Node3D=menu.top_status.current_target as Node3D
+ var auto_bar:Control=host.get("novice_touch_bar") as Control
+ var attack_button:Button=auto_bar.atk_button as Button if auto_bar!=null else null
  var target_screens:Array=[]
  for entity in host.get("test_targets"):
   if is_instance_valid(entity):
@@ -109,6 +116,14 @@ func _process(delta: float) -> void:
   "hud_target_portrait_asset":menu.top_status.target_portrait.texture.resource_path if menu.top_status.target_portrait.texture!=null else "",
   "hud_target_frame_custom":menu.top_status.target_decor.get_script()!=null,
   "hud_target_inner_ornament_visible":menu.top_status.target_decor.visible,
+  "novice_auto_active":bool(combat.is_auto_attacking()) if combat!=null else false,
+  "novice_basic_atk_visible":attack_button!=null and attack_button.is_visible_in_tree(),
+  "novice_basic_atk_label":attack_button.text if attack_button!=null else "",
+  "novice_basic_atk_bounds":bounds(attack_button) if attack_button!=null else [],
+  "novice_player_xz":[hero.global_position.x,hero.global_position.z] if hero!=null else [],
+  "novice_locked_distance":float(combat._distance_to(selected_enemy)) if combat!=null and is_instance_valid(selected_enemy) else -1.0,
+  "novice_locked_hp":float(selected_enemy.get_meta("hp",0.0)) if is_instance_valid(selected_enemy) else -1.0,
+  "novice_queued_skill":str(combat.queued_combat_skill) if combat!=null else "",
   "hud_training_target_present":is_instance_valid(host.get("training_target")),
   "hud_training_target_name":str(host.get("training_target").get_meta("target_name","")) if is_instance_valid(host.get("training_target")) else "",
   "hud_target_entities":target_screens,
