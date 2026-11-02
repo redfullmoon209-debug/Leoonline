@@ -209,6 +209,51 @@ async function runLiveGame(browser,{width,height,mobile}){
   },null,{timeout:20000});
   check((await state()).open===true,'Original real Inventory opens inside landscape test: '+scenario);
   await page.screenshot({path:path.join(out,'web-'+scenario+'-inventory.jpg'),type:'jpeg',quality:90});
+  // Exercise the real Canvas buttons, not a synthetic GM state assignment.
+  // Previous world, target and Inventory tests have already completed.
+  await canvas.focus();
+  await page.keyboard.press('KeyB');
+  await page.waitForFunction(()=>{
+   try{return document.getElementById('game-frame')?.contentWindow?.__leoQA?.open===false;}
+   catch(e){return false;}
+  },null,{timeout:16000});
+  await tapFrame((await state()).hud_gm_button_bounds);
+  await page.waitForFunction(()=>{
+   try{return document.getElementById('game-frame')?.contentWindow?.__leoQA?.hud_gm_panel_open===true;}
+   catch(e){return false;}
+  },null,{timeout:12000});
+  data=await state();
+  check(data.hud_gm_job_picker_items===13,'GM lists Novice, six Tier 1 and six Tier 2 test jobs: '+scenario);
+  check(data.hud_real_saved_job==='Novice','Real career is Novice before GM changes preview: '+scenario);
+  await tapFrame(data.hud_gm_job_jump);
+  await page.waitForTimeout(350);
+  data=await state();
+  const nextJob=data.hud_gm_job_next,openJobs=data.hud_gm_job_open_skills;
+  check(nextJob[1]>=0&&nextJob[1]+nextJob[3]<=rect.height+1,
+   'GM Job shortcut makes Next Profession visible on landscape PC and phone: '+scenario);
+  check(openJobs[1]>=0&&openJobs[1]+openJobs[3]<=rect.height+1,
+   'GM open Skill action is actually reachable on touch screen: '+scenario);
+  await tapFrame(nextJob);
+  await page.waitForFunction(()=>{
+   try{return document.getElementById('game-frame')?.contentWindow?.__leoQA?.hud_gm_selected_job_id==='earth_1';}
+   catch(e){return false;}
+  },null,{timeout:12000});
+  data=await state();
+  check(data.hud_profile_job==='นักสู้พิภพ'&&data.hud_real_saved_job==='Novice',
+   'GM preview updates the real HUD but NEVER changes saved profession: '+scenario);
+  await tapFrame(data.hud_gm_job_open_skills);
+  await page.waitForFunction(()=>{
+   try{
+    const q=document.getElementById('game-frame')?.contentWindow?.__leoQA;
+    return q?.open===true&&q?.tab===2&&q?.skill_visible===true;
+   }catch(e){return false;}
+  },null,{timeout:16000});
+  data=await state();
+  check(data.skill_class_name==='นักสู้พิภพ'&&data.skill_cell_count===14&&data.skill_available_cells===14,
+   'GM Earth Tier 1 opens 14 original empty slot PNGs for this class: '+scenario);
+  check(!data.hud_gm_panel_open&&data.hud_real_saved_job==='Novice'&&data.skill_preview_empty,
+   'Open Skill closes GM overlay, leaves animation blank and preserves character save: '+scenario);
+  await page.screenshot({path:path.join(out,'web-'+scenario+'-gm-earth-tier1-skill.jpg'),type:'jpeg',quality:90});
  }finally{
   await context.close();
  }
