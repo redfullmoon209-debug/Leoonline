@@ -374,6 +374,9 @@ func refresh() -> void:
  # GM can inspect a temporary loadout, never affecting saved equipment.
  if current_job!=last_shown_job:
   selected_skill=""
+  _paint_skill(get_node("SelectedSkillIcon") as TextureButton,"")
+  slot_label.text=_tr("ยังไม่ได้เลือกสกิล","No skill selected")
+  description_label.text=_tr("กดไอคอนเพื่อดูข้อมูลสกิล","Tap an icon to inspect a skill")
   var class_skills:Array=SkillCatalog.skills_for_job(current_job)
   for i in range(3):
    preview_loadout[i]=str(class_skills[i]["id"]) if i<class_skills.size() else ""
