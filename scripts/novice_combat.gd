@@ -294,7 +294,7 @@ func _execute_skill(skill_id:String,target:StaticBody3D) -> bool:
  else:
   guard_seconds=GUARD_DURATION
   if guard_visual!=null:guard_visual.visible=true
-  _float_text(game.character.global_position+Vector3(0,1.75,0),"GUARD 65%",Color("#8bdcfb"))
+  _float_text(game.character.global_position+Vector3(0,1.75*float(game.character.get_meta("world_actor_scale",1.0)),0),"GUARD 65%",Color("#8bdcfb"))
   game_store.notice.emit("เกราะคุ้มกันลดความเสียหาย 65% นาน 5 วินาที")
  changed.emit()
  _update_feedback()
@@ -312,7 +312,7 @@ func _damage_target(target:StaticBody3D,raw_damage:float) -> float:
  var hp:float=float(target.get_meta("hp",0.0))
  var damage:float=minf(hp,maxf(1.0,raw_damage))
  target.set_meta("hp",maxf(0.0,hp-damage))
- _float_text(target.global_position+Vector3(0,1.6,0),"-"+str(int(damage)),Color("#ffb45a"))
+ _float_text(target.global_position+Vector3(0,1.6*float(game.character.get_meta("world_actor_scale",1.0)),0),"-"+str(int(damage)),Color("#ffb45a"))
  if float(target.get_meta("hp",0.0))<=0.0:
   _defeated[target]=RESPAWN_SECONDS
   # Explicitly stop on death. The respawned monster does NOT trigger
@@ -390,7 +390,8 @@ func _player_defeated() -> void:
  cooldowns.clear()
  basic_attack_seconds=0.0
  game.character.velocity=Vector3.ZERO
- game.character.global_position=Vector3(0,1.1,0) if game.has_node("BangkokCityMap") else Vector3(0,1.1,5)
+ var spawn_height:float=1.1*float(game.character.get_meta("world_actor_scale",1.0))
+ game.character.global_position=Vector3(0,spawn_height,0) if game.has_node("BangkokCityMap") else Vector3(0,spawn_height,5)
  health=_max_health()
  stamina=max_stamina
  if guard_visual!=null:guard_visual.visible=false
@@ -459,7 +460,9 @@ func _install_player_feedback() -> void:
  bubble.radius=1.18
  bubble.height=2.36
  guard_visual.mesh=bubble
- guard_visual.position=Vector3(0,0.05,0)
+ var scale_factor:float=float(game.character.get_meta("world_actor_scale",1.0))
+ guard_visual.position=Vector3(0,0.05*scale_factor,0)
+ guard_visual.scale=Vector3.ONE*scale_factor
  var shield_material:=StandardMaterial3D.new()
  shield_material.albedo_color=Color(0.20,0.66,1.0,0.18)
  shield_material.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -470,7 +473,7 @@ func _install_player_feedback() -> void:
  floating_status=Label3D.new()
  floating_status.name="NoviceVitals"
  floating_status.billboard=BaseMaterial3D.BILLBOARD_ENABLED
- floating_status.position=Vector3(0,1.85,0)
+ floating_status.position=Vector3(0,1.55*scale_factor,0)
  floating_status.font_size=25
  floating_status.pixel_size=0.006
  floating_status.modulate=Color("#faf1dd")
