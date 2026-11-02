@@ -1,5 +1,6 @@
 extends Node
 const JobCatalog=preload("res://scripts/job_catalog.gd")
+const SkillCatalog=preload("res://scripts/skill_catalog.gd")
 signal changed
 signal notice(message: String)
 # Character profile is a real saved model. Initial base attributes are the first
@@ -60,6 +61,8 @@ var storage_currency: Dictionary = {"gold":"0","blue":"0","purple":"0","green":"
 var profile: Dictionary = PROFILE_DEFAULTS.duplicate(true)
 # GM local playtest profession only: NEVER serialized or permanently selected.
 var gm_preview_job_id: String = ""
+# Three authentic equipped Novice skills, persisted with the existing save.
+var skill_hotbar: Array[String] = ["novice_slash","novice_rush","novice_guard"]
 var unlocked := 40
 var selected := -1
 var seconds_online := 0.0
@@ -191,6 +194,22 @@ func effective_job_info() -> Dictionary:
 func set_gm_job_preview(job_id: String) -> bool:
  if JobCatalog.info(job_id).is_empty():return false
  gm_preview_job_id=job_id
+ changed.emit()
+ return true
+
+func equip_skill_to_hotbar(slot_index: int,skill_id: String) -> bool:
+ if slot_index<0 or slot_index>=3:return false
+ # GM previews must not overwrite the player's saved real skill setup.
+ if gm_preview_job_id!="":return false
+ if not SkillCatalog.belongs_to_job(str(profile.get("job","Novice")),skill_id):
+  notice.emit("Skill does not belong to current profession")
+  return false
+ var old:String=skill_hotbar[slot_index]
+ skill_hotbar[slot_index]=skill_id
+ if not save_data():
+  skill_hotbar[slot_index]=old
+  notice.emit("Cannot save skill setup")
+  return false
  changed.emit()
  return true
 
@@ -427,7 +446,7 @@ func pretty(value: String) -> String:
 const WEB_SAVE_KEY = "leoonline_save_v1"
 
 func save_data() -> bool:
- var data := {"slots":slots,"storage_slots":storage_slots,"storage_currency":storage_currency,"equipped":equipped,"currency":currency,"unlocked":unlocked,"online":seconds_online,"reward":next_reward,"profile":profile}
+ var data := {"slots":slots,"storage_slots":storage_slots,"storage_currency":storage_currency,"equipped":equipped,"currency":currency,"unlocked":unlocked,"online":seconds_online,"reward":next_reward,"profile":profile,"skill_hotbar":skill_hotbar}
  var payload: String = JSON.stringify(data)
  var file_saved: bool = false
  var file := FileAccess.open("user://leoonline.json",FileAccess.WRITE)
@@ -519,4 +538,12 @@ func load_data() -> void:
     attributes[key]=clampi(int(saved_attributes.get(key,10)),0,99999)
   for key in ["pve_kills","pvp_wins","pvp_losses"]:
    profile[key]=clampi(int(saved_profile.get(key,0)),0,2147483647)
+ # Older saves had no skill_hotbar. Preserve the three Novice defaults.
+ # Ignore tampered IDs and NEVER persist temporary GM profession previews.
+ var saved_hotbar:Variant=data.get("skill_hotbar",null)
+ if saved_hotbar is Array and saved_hotbar.size()==3:
+  for i in range(3):
+   var candidate:String=str(saved_hotbar[i])
+   if candidate=="" or SkillCatalog.belongs_to_job(str(profile.get("job","Novice")),candidate):
+    skill_hotbar[i]=candidate
  changed.emit()
