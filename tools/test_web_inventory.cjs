@@ -66,7 +66,7 @@ async function swipe(dx,dy){
   // be visible in the REAL game viewport, not a screenshot mockup.
   const approved=['bag','world','party','friends','ranking','settings','guild','quest','mail','events'];
   check(JSON.stringify(hud.hud_row_order)===JSON.stringify(approved)&&hud.hud_row.length===10,'Exactly ten icons in requested left-to-right order, Inventory first');
-  check(hud.hud_icon_paths.every((p,i)=>p.endsWith('/hud/'+approved[i]+'.svg')),'All ten buttons use standalone ring-free vector symbols, without medallion PNG bases');
+  check(hud.hud_png_paths.every((p,i)=>p.endsWith('/premium/'+approved[i]+'.png')),'All ten buttons use the unchanged original premium PNG files');
   check(Object.values(hud.hud_notification_badges).every(v=>v===false),'All real notification layers start hidden, especially Mail');
   check(hud.hud_profile_label.includes('Lv.')&&hud.hud_profile_experience.includes('EXP'),'Top-left profile uses saved character level and experience');
   check(hud.hud_minimap_bounds[2]>120&&hud.hud_minimap_items>=0,'Top-right circular minimap is actually connected to the playable world');
@@ -354,7 +354,7 @@ async function swipe(dx,dy){
    if(viewport.width===390){
     let touchHud=await state();
     check(touchHud.hud_icon_count===9&&touchHud.hud_joystick[2]>=90,'Portrait mobile renders nine independent menus and the touch joystick');
-    check(touchHud.hud_row.length===10&&touchHud.hud_icon_paths.every(p=>p.endsWith('.svg')),'Portrait phone uses all ten ring-free vector symbols');
+    check(touchHud.hud_row.length===10&&touchHud.hud_png_paths.every(p=>p.endsWith('.png')),'Portrait phone uses all ten original premium PNG icons');
     for(let i=0;i<touchHud.hud_row.length;i++){
      const rect=touchHud.hud_row[i];
      check(rect[0]>=0&&rect[0]+rect[2]<=viewport.width+1,'Every compact phone icon fits in the viewport');
