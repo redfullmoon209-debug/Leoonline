@@ -504,7 +504,7 @@ func _layout() -> void:
   # Full target name gets its own line: do not cram it beside Lv.
   _set_target_rect(target_label,Vector2(text_start,6.0),Vector2(maxf(35.0,inner_w-text_start-29.0),22.0))
   target_label.add_theme_font_size_override("font_size",10)
-  _set_target_rect(target_level_label,Vector2(text_start,27.0),Vector2(44.0,15.0))
+  _set_target_rect(target_level_label,Vector2(text_start,27.0),Vector2(44.0,12.0))
   target_level_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT
   target_level_label.add_theme_font_size_override("font_size",9)
   _set_target_rect(target_type_label,Vector2(inner_w-60.0,27.0),Vector2(50.0,15.0))
@@ -527,11 +527,15 @@ func _layout() -> void:
   target_portrait_placeholder.add_theme_font_size_override("font_size",29)
   var text_start:float=99.0
   var text_right:float=inner_w-8.0
-  _set_target_rect(target_label,Vector2(text_start,6.0),Vector2(maxf(55.0,inner_w-text_start-151.0),26.0))
-  target_label.add_theme_font_size_override("font_size",15)
-  _set_target_rect(target_level_label,Vector2(inner_w-146.0,8.0),Vector2(46.0,22.0))
-  target_level_label.add_theme_font_size_override("font_size",12)
-  _set_target_rect(target_type_label,Vector2(inner_w-95.0,8.0),Vector2(57.0,22.0))
+  # Preserve a wide, legible name: show Lv/type in a small second row,
+  # rather than squeezing the name against the unlock X.
+  _set_target_rect(target_label,Vector2(text_start,5.0),Vector2(maxf(55.0,inner_w-text_start-38.0),20.0))
+  target_label.add_theme_font_size_override("font_size",12 if target_w<290.0 else 15)
+  _set_target_rect(target_level_label,Vector2(text_start,26.0),Vector2(61.0,10.0))
+  target_level_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT
+  target_level_label.add_theme_font_size_override("font_size",10)
+  _set_target_rect(target_type_label,Vector2(text_start+67.0,26.0),Vector2(maxf(20.0,inner_w-text_start-110.0),10.0))
+  target_type_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT
   target_type_label.add_theme_font_size_override("font_size",10)
   var bar_left:float=text_start+43.0
   var bar_width:float=maxf(72.0,text_right-bar_left-5.0)
