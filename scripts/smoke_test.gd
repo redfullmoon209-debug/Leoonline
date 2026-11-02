@@ -568,6 +568,25 @@ func validate() -> void:
  game._toggle_target_lock()
  check(top.current_target==null and not top.target_panel.visible and not top.target_cancel.visible,
   "T / TARGET cancels ANY selected enemy, not only training golem")
+ # Real mobile browsers can emit a touch + emulated mouse in EITHER order.
+ # Only the second source is ignored; a deliberate repeat of the same
+ # physical input type must still unlock.
+ game.last_target_pointer_kind=0
+ var mobile_touch:bool=game._target_pointer_input(golem_screen,1)
+ var emulated_mouse:bool=game._target_pointer_input(golem_screen,2)
+ check(mobile_touch and emulated_mouse and top.current_target==game.training_target,
+  "Touch followed by synthetic mouse locks once, without accidental cancellation")
+ var second_touch:bool=game._target_pointer_input(golem_screen,1)
+ check(second_touch and top.current_target==null and not top.target_panel.visible,
+  "The next independent finger tap cancels the selected enemy")
+ game.last_target_pointer_kind=0
+ var mouse_first:bool=game._target_pointer_input(golem_screen,2)
+ var emulated_touch:bool=game._target_pointer_input(golem_screen,1)
+ check(mouse_first and emulated_touch and top.current_target==game.training_target,
+  "Mouse followed by emulated touch also locks once")
+ top.target_cancel.pressed.emit()
+ check(top.current_target==null and not top.target_cancel.visible,
+  "Explicit unlock X clears a target after cross-input duplicate suppression")
  # Multiple distinct enemies and simulated player BOTs are selectable via
  # the same real 3D hitboxes. No fake online-player presence is claimed.
  check(game.test_targets.size()==5,"Scene contains original golem, green slime, wolf and two distinct player simulation BOTs")
