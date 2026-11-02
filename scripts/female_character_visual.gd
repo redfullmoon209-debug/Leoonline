@@ -1,8 +1,8 @@
 extends Node3D
-## Displays the existing artist-owned female GLB from NexTgenLeo.
-## The model is downloaded during Godot web builds, before import.
+## Displays the artist-owned Mixamo-rigged female FBX from happy-farm.
+## Model and original texture maps are downloaded before Godot imports them.
 ## Run cycle is sampled from the user's uploaded Run.fbx (20 frames).
-const MODEL_PATH := "res://assets/characters/female/Female.glb"
+const MODEL_PATH := "res://assets/characters/female/Female.fbx"
 const RUN_TRACKS_PATH := "res://assets/characters/female/run_tracks.json"
 const WALK_TRACKS_PATH := "res://assets/characters/female/walk_tracks.json"
 
@@ -24,15 +24,15 @@ var stride_clock: float = 0.0
 
 func _ready() -> void:
     if not ResourceLoader.exists(MODEL_PATH):
-        push_warning("Female character GLB missing: run python3 tools/prepare_female_character.py")
+        push_warning("Female character FBX missing: run python3 tools/prepare_female_character.py")
         return
     var asset: PackedScene = load(MODEL_PATH) as PackedScene
     if asset == null:
-        push_warning("Female GLB could not be imported")
+        push_warning("Female FBX could not be imported")
         return
     var instance: Node3D = asset.instantiate() as Node3D
     if instance == null:
-        push_warning("Female GLB root is not Node3D")
+        push_warning("Female FBX root is not Node3D")
         return
     model_fit = Node3D.new()
     model_fit.name = "FemaleMeshFit"
@@ -52,6 +52,24 @@ func _ready() -> void:
             if mesh.name == "Cube":
                 mesh.visible = false
             elif mesh.mesh != null:
+                # Reuse the same author's original PBR texture maps. FBX
+                # stores skin/UV/geometry but these maps are separate PNGs.
+                var color_path := "res://assets/characters/female/female_color.png"
+                if ResourceLoader.exists(color_path):
+                    var material := StandardMaterial3D.new()
+                    material.albedo_texture = load(color_path) as Texture2D
+                    material.roughness = 0.85
+                    var normal_path := "res://assets/characters/female/female_normal.png"
+                    if ResourceLoader.exists(normal_path):
+                        material.normal_enabled = true
+                        material.normal_texture = load(normal_path) as Texture2D
+                    var rough_path := "res://assets/characters/female/female_roughness.png"
+                    if ResourceLoader.exists(rough_path):
+                        material.roughness_texture = load(rough_path) as Texture2D
+                    var metallic_path := "res://assets/characters/female/female_metallic.png"
+                    if ResourceLoader.exists(metallic_path):
+                        material.metallic_texture = load(metallic_path) as Texture2D
+                    mesh.material_override = material
                 var bounds: AABB = mesh.get_aabb()
                 var transform: Transform3D = inv * mesh.global_transform
                 for i in range(8):
