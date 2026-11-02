@@ -579,28 +579,47 @@ func _physics_process(delta: float) -> void:
  elif (Input.is_action_just_pressed("jump") or touch_jump) and not blocked:
   vel.y=7.5
  var in_rush:bool=is_instance_valid(combat) and combat.rush_active
- var v: Vector2=Vector2.ZERO if blocked or in_rush else Input.get_vector("left","right","forward","back")
+ var v:Vector2=Vector2.ZERO if blocked or in_rush else Input.get_vector("left","right","forward","back")
  if not blocked and is_instance_valid(hud_menu):
-  var touch_move: Vector2=hud_menu.call("get_movement_vector")
+  var touch_move:Vector2=hud_menu.call("get_movement_vector")
   if touch_move.length()>0.08 and not in_rush:v=touch_move
- var dir: Vector3=camera_arm.global_basis.x*v.x+camera_arm.global_basis.z*v.y
- dir.y=0
- dir=dir.normalized()
- var sprinting: bool=Input.is_action_pressed("run") or (is_instance_valid(hud_menu) and hud_menu.run_pressed)
+ var manual_moving:bool=v.length_squared()>0.015
+ # Player input takes priority: no forced auto-run against WASD/joystick.
+ if is_instance_valid(combat):
+  if blocked:combat.stop_auto_attack()
+  elif manual_moving and not in_rush:combat.cancel_auto_for_manual_input()
+ var auto_dir:Vector3=Vector3.ZERO
+ if not blocked and not manual_moving and not in_rush and is_instance_valid(combat):
+  auto_dir=combat.auto_run_direction()
+ var auto_running:bool=auto_dir.length_squared()>0.01
+ var dir:Vector3=camera_arm.global_basis.x*v.x+camera_arm.global_basis.z*v.y
+ dir.y=0.0
+ dir=auto_dir if auto_running else dir.normalized()
+ var sprinting:bool=Input.is_action_pressed("run") or (is_instance_valid(hud_menu) and hud_menu.run_pressed) or auto_running
  var visual_direction:Vector3=dir
  if in_rush and is_instance_valid(combat.rush_target):
   visual_direction=combat.rush_target.global_position-character.global_position
   visual_direction.y=0.0
   visual_direction=visual_direction.normalized()
- var speed: float=8.0 if sprinting else 5.0
+ var speed:float=combat.AUTO_RUN_SPEED if auto_running else (8.0 if sprinting else 5.0)
  vel.x=dir.x*speed
  vel.z=dir.z*speed
  character.velocity=vel
+ # Auto-running uses exactly the same CharacterBody3D collision + slide
+ # as ordinary movement, never teleporting or ignoring a blocked path.
  character.move_and_slide()
  if in_rush:combat.advance_rush(delta)
- var female_visual: Node3D = character.get_node_or_null("FemalePlayerVisual") as Node3D
- if female_visual != null and female_visual.visible and female_visual.has_method("animate_motion"):
-  female_visual.call("animate_motion", visual_direction, sprinting or in_rush, delta)
+ if is_instance_valid(combat):combat.advance_auto_attack(delta,blocked)
+ var female_visual:Node3D=character.get_node_or_null("FemalePlayerVisual") as Node3D
+ if female_visual!=null and female_visual.visible and female_visual.has_method("animate_motion"):
+  female_visual.call("animate_motion",visual_direction,sprinting or in_rush,delta)
+  # Face a nearby locked target while STANDING, without falsely playing
+  # the locomotion cycle when the sword is swinging in place.
+  if is_instance_valid(combat) and combat.is_auto_attacking() and not auto_running and not manual_moving and not in_rush:
+   var face:Vector3=combat.auto_target.global_position-character.global_position
+   face.y=0.0
+   if face.length_squared()>0.05:
+    female_visual.rotation.y=lerp_angle(female_visual.rotation.y,atan2(-face.x,-face.z),clampf(delta*15.0,0.0,1.0))
  camera_arm.global_position=character.global_position+Vector3(0,0.2,0)
 
 func _cast_hotbar_slot(slot_index:int) -> bool:
@@ -609,10 +628,11 @@ func _cast_hotbar_slot(slot_index:int) -> bool:
  return bool(store.activate_hotbar_slot(slot_index))
 
 func _normal_attack() -> bool:
- # ATK is an independent basic melee action, never hotbar skill slot 4.
+ # ATK (or J) toggles auto-run + repeating real sword swings; it is NOT
+ # skill slot 4, and still does not consume skill cooldown or stamina.
  if open or (is_instance_valid(hud_menu) and hud_menu.is_gameplay_blocked()):return false
  if not is_instance_valid(combat):return false
- return bool(combat.basic_attack())
+ return bool(combat.toggle_basic_auto_attack())
 
 func _unhandled_input(event: InputEvent) -> void:
  # Use existing game input (1/2/3) for an ACTUAL equipped, castable skill.
