@@ -61,7 +61,7 @@ DOCUMENT = """<!doctype html>
     #game-frame {
       display: block; width: 100%; height: 100%;
       border: 0; margin: 0; padding: 0;
-      background: #0c0a0e; border-radius: 17px; touch-action: auto;
+      background: #0c0a0e; border-radius: 17px; touch-action: none;
     }
     #rotate-prompt {
       display: none;
