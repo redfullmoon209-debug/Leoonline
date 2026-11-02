@@ -269,7 +269,11 @@ func _attach_training_sword_to_right_hand() -> void:
  # FBX import scales the skeleton to 1.62m in world space. Keep sword
  # world-size consistent regardless of that auto-fit factor.
  var rig_scale:Vector3=skeleton.global_transform.basis.get_scale()
- sword_visual.scale=Vector3.ONE/maxf(0.001,rig_scale.x)
+ # The sword must shrink with the avatar as a whole. Previously the inverse
+ # rig scale forced a full-sized weapon on a half-sized Bangkok NPC.
+ var avatar_parent_scale:float=global_transform.basis.get_scale().x
+ var avatar_scale_ratio:float=(target_height_m/1.62)*avatar_parent_scale
+ sword_visual.scale=Vector3.ONE*avatar_scale_ratio/maxf(0.001,rig_scale.x)
  print("FemaleLeo sword attached to RightHand: ",sword_attachment.bone_name," world sword scale=",sword_visual.scale.x)
 
 func _attack_phase_value() -> float:
