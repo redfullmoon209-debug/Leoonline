@@ -577,6 +577,16 @@ func _physics_process(delta: float) -> void:
  camera_arm.global_position=character.global_position+Vector3(0,0.2,0)
 
 func _unhandled_input(event: InputEvent) -> void:
+ # Use existing game input (1/2/3) for an ACTUAL equipped, castable skill.
+ # This adds no on-screen button and cannot activate a permanent passive.
+ if event is InputEventKey and event.pressed and not event.echo:
+  var key_slots:Array=[KEY_1,KEY_2,KEY_3]
+  var skill_index:int=key_slots.find(event.keycode)
+  if skill_index>=0:
+   if not open and (not is_instance_valid(hud_menu) or not hud_menu.is_gameplay_blocked()):
+    store.activate_hotbar_slot(skill_index)
+   get_viewport().set_input_as_handled()
+   return
  if event.is_action_pressed("target") and not event.is_echo():
   _toggle_target_lock()
   get_viewport().set_input_as_handled()
