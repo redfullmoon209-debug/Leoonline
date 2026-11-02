@@ -8,6 +8,7 @@ const INVENTORY = "res://assets/ui/inventory/"
 const ButtonStyle = preload("res://scripts/ui_button_style.gd")
 const JobCatalog = preload("res://scripts/job_catalog.gd")
 const SkillCatalog = preload("res://scripts/skill_catalog.gd")
+# Shader is loaded as a visual resource at runtime, not a script dependency.
 const MAX_SLOTS := 14
 const NOVICE_SLOTS := 3
 
@@ -40,6 +41,7 @@ var page_label: Label
 var slot_numbers: Array[Label] = []
 var equipped_numbers: Array[Label] = []
 var selected_skill: String = ""
+var last_shown_job: String = ""
 var preview_loadout: Array[String] = ["novice_slash","novice_rush","novice_guard"]
 
 func initialize(p_store: Node,p_font: Font,p_locale: String = "th") -> void:
@@ -62,13 +64,22 @@ func _png(folder: String,name: String) -> Texture2D:
  return load(path) as Texture2D if ResourceLoader.exists(path) else null
 
 func _panel(name: String,parent: Node,x: float,y: float,w: float,h: float) -> ColorRect:
- # A visually clean, flat dark-maroon surface with ZERO painted lines.
- # The old inner_panel.png had TWO unwanted nested gold borders.
- # No NinePatch texture or additional decoration is used in Skill UI.
+ # Same ColorRect / geometry / draw order: ONLY the surface finish changes.
+ # No outline, border, NinePatch, new hitbox or interaction.
  var panel:=ColorRect.new()
  panel.name=name
- panel.color=Color(0.115,0.013,0.032,0.50) if name=="SkillPreviewFrame" else Color(0.10,0.008,0.024,0.20)
+ panel.color=Color.WHITE
  panel.mouse_filter=Control.MOUSE_FILTER_IGNORE
+ var finish:=ShaderMaterial.new()
+ finish.shader=load("res://shaders/skill_surface.gdshader") as Shader
+ var preview:bool=name=="SkillPreviewFrame"
+ var header:bool=name=="SkillRightTopPanel"
+ var foot:bool=name=="SkillCurrentStatsFrame" or name=="SkillNextStatsFrame"
+ finish.set_shader_parameter("upper_tint",Color("#300d19") if preview else (Color("#481021") if header else (Color("#41101b") if foot else Color("#380c1a"))))
+ finish.set_shader_parameter("lower_tint",Color("#14070d") if preview else Color("#17060e"))
+ finish.set_shader_parameter("flare_tint",Color("#ff5f35") if preview else Color("#ff3449"))
+ finish.set_shader_parameter("warmth",1.55 if preview else (1.35 if header else 1.0))
+ panel.material=finish
  parent.add_child(panel)
  _rect(panel,x,y,w,h)
  return panel
@@ -81,7 +92,7 @@ func _label(name: String,parent: Node,x: float,y: float,w: float,h: float,font_s
  label.clip_text=true
  label.mouse_filter=Control.MOUSE_FILTER_IGNORE
  label.add_theme_font_size_override("font_size",font_size)
- label.add_theme_color_override("font_color",Color("#ffe1a1") if gold else Color("#f4e9df"))
+ label.add_theme_color_override("font_color",Color("#ffe6aa") if gold else Color("#fff4f0"))
  label.add_theme_color_override("font_shadow_color",Color(0,0,0,0.75))
  label.add_theme_constant_override("shadow_offset_y",1)
  if ui_font!=null:label.add_theme_font_override("font",ui_font)
@@ -130,7 +141,8 @@ func _slot(parent: Node,name: String,x:float,y:float,size_px:float,locked:bool) 
  cell.custom_minimum_size=Vector2(size_px,size_px)
  if not locked:
   ButtonStyle.image_overlay(cell)
-  cell.pressed.connect(_skill_cell_selected.bind(name))
+ # Existing callback on the same original button; reserved cells stay disabled.
+ cell.pressed.connect(_skill_cell_selected.bind(name))
  return cell
 
 func _skill_cell_selected(cell_name: String) -> void:
@@ -184,7 +196,7 @@ func _update_skill_icons() -> void:
  for i in range(skill_slots.size()):
   _paint_skill(skill_slots[i],str(skills[i]["icon"]) if i<skills.size() else "")
  for i in range(active_slots.size()):
-  var found:Dictionary=SkillCatalog.info(preview_loadout[i]) if job_id=="Novice" else {}
+  var found:Dictionary=SkillCatalog.info(preview_loadout[i]) if SkillCatalog.belongs_to_job(job_id,preview_loadout[i]) else {}
   _paint_skill(active_slots[i],str(found.get("icon","")))
 
 func _equip_to(index:int) -> void:
@@ -273,11 +285,10 @@ func _build() -> void:
  exp_bar.mouse_filter=Control.MOUSE_FILTER_IGNORE
  var exp_back:=StyleBoxFlat.new()
  exp_back.bg_color=Color("#1e080d")
- exp_back.border_color=Color("#c49a60")
- exp_back.set_border_width_all(1)
+ # Existing EXP bar now has no line around it.
  exp_back.set_corner_radius_all(2)
  var exp_fill:=StyleBoxFlat.new()
- exp_fill.bg_color=Color("#e9a44b")
+ exp_fill.bg_color=Color("#ff7550")
  exp_fill.set_corner_radius_all(2)
  exp_bar.add_theme_stylebox_override("background",exp_back)
  exp_bar.add_theme_stylebox_override("fill",exp_fill)
@@ -359,11 +370,24 @@ func refresh() -> void:
  if not is_instance_valid(level_label) or game_store==null:return
  var profile:Dictionary=game_store.profile
  var profession:Dictionary=game_store.effective_job_info()
+ var current_job:String=str(profession.get("id","Novice"))
+ # GM can inspect a temporary loadout, never affecting saved equipment.
+ if current_job!=last_shown_job:
+  selected_skill=""
+  _paint_skill(get_node("SelectedSkillIcon") as TextureButton,"")
+  slot_label.text=_tr("ยังไม่ได้เลือกสกิล","No skill selected")
+  description_label.text=_tr("กดไอคอนเพื่อดูข้อมูลสกิล","Tap an icon to inspect a skill")
+  var class_skills:Array=SkillCatalog.skills_for_job(current_job)
+  for i in range(3):
+   preview_loadout[i]=str(class_skills[i]["id"]) if i<class_skills.size() else ""
+  last_shown_job=current_job
  if str(game_store.gm_preview_job_id)=="":
   var saved_hotbar:Variant=game_store.skill_hotbar
   if saved_hotbar is Array and saved_hotbar.size()==3:
-   for i in range(3):preview_loadout[i]=str(saved_hotbar[i])
- var current_job:String=str(profession.get("id","Novice"))
+   for i in range(3):
+    var saved_id:String=str(saved_hotbar[i])
+    if saved_id=="" or SkillCatalog.belongs_to_job(current_job,saved_id):
+     preview_loadout[i]=saved_id
  if selected_skill!="" and not SkillCatalog.belongs_to_job(current_job,selected_skill):
   selected_skill=""
   _paint_skill(get_node("SelectedSkillIcon") as TextureButton,"")
@@ -400,7 +424,7 @@ func refresh() -> void:
  elif tier==1:
   current_skills_tab.text=_tr("สกิลอาชีพขั้น 1 (14 ช่อง)","Tier 1 skills (14 slots)")
   next_job_tab.text=_tr("อาชีพขั้น 2 (ยังไม่ปลดล็อก)","Tier 2 (not unlocked)")
-  page_label.text=_tr("ช่องว่าง 14 ช่องสำหรับสกิลอาชีพนี้ · ยังไม่มี PNG","14 empty slots for this job · PNGs not yet added")
+  page_label.text=_tr("ไอคอนสกิลเฉพาะสาย 14 ท่า · รออนิเมชั่นต่อสู้","14 unique class skills · combat animation pending")
  else:
   current_skills_tab.text=_tr("สกิลอาชีพขั้น 2 (14 ช่อง)","Tier 2 skills (14 slots)")
   next_job_tab.text=_tr("อาชีพขั้น 2 · เปิดแล้ว","Tier 2 · Available")

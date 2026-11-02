@@ -23,6 +23,8 @@ jobs:
           curl -fL --retry 3 https://github.com/godotengine/godot-builds/releases/download/4.4.1-stable/Godot_v4.4.1-stable_export_templates.tpz -o templates.tpz
           mkdir -p "$HOME/.local/share/godot/export_templates/4.4.1.stable"
           unzip -j -q templates.tpz 'templates/*' -d "$HOME/.local/share/godot/export_templates/4.4.1.stable"
+      - name: Generate individual first-tier profession skill PNGs
+        run: python3 tools/create_profession_skill_pngs.py
       - name: Import and run complete Godot smoke test
         run: |
           set -euo pipefail
