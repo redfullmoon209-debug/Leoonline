@@ -20,6 +20,8 @@ on:
       - 'tools/check_female_asset.gd'
       - 'tools/prepare_female_character.py'
       - 'tools/prepare_bangkok_map.py'
+      - 'tools/verify_camera_controls.gd'
+      - 'tools/test_release_camera_controls.cjs'
       - 'tools/verify_bangkok_map.gd'
 permissions:
   contents: read
@@ -66,8 +68,10 @@ jobs:
           ./Godot_v4.4.1-stable_linux.x86_64 --headless --path . --script res://scripts/smoke_test.gd 2>&1 | tee smoke.log
           ./Godot_v4.4.1-stable_linux.x86_64 --headless --path . --script res://tools/check_female_asset.gd 2>&1 | tee female-model-qa.log
           ./Godot_v4.4.1-stable_linux.x86_64 --headless --path . --script res://tools/verify_bangkok_map.gd 2>&1 | tee bangkok-map-qa.log
+          ./Godot_v4.4.1-stable_linux.x86_64 --headless --path . --script res://tools/verify_camera_controls.gd 2>&1 | tee camera-controls-qa.log
           if grep -E '(SCRIPT ERROR:|ERROR:|Parse Error:|Failed to load script)' female-model-qa.log; then exit 1; fi
           if grep -E '(SCRIPT ERROR:|ERROR:|Parse Error:|Failed to load script)' bangkok-map-qa.log; then exit 1; fi
+          if grep -E '(SCRIPT ERROR:|ERROR:|Parse Error:|Failed to load script)' camera-controls-qa.log; then exit 1; fi
           if grep -E '(SCRIPT ERROR:|ERROR:|Parse Error:|Failed to load script)' smoke.log; then exit 1; fi
           mkdir -p build/web
           # Each deployment has its own Godot entry point and PCK/JS/WASM paths.
@@ -125,6 +129,7 @@ jobs:
           # Keep the critical gate: live browser must start and prove
           # CharacterBody actually RUNS after pressing ATK and Slash.
           timeout 120s node tools/test_release_combat_boot.cjs
+          timeout 120s node tools/test_release_camera_controls.cjs
       - name: Preserve browser QA evidence
         if: always()
         uses: actions/upload-artifact@v4
