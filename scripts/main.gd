@@ -143,7 +143,7 @@ func _make_character() -> void:
  camera_arm = Node3D.new()
  add_child(camera_arm)
  camera = Camera3D.new()
- camera.position = Vector3(0,2.0,6.5)
+ camera.position = Vector3(0,1.4,7.8)
  camera.current = true
  camera_arm.add_child(camera)
 
@@ -548,7 +548,7 @@ func _physics_process(delta: float) -> void:
  var female_visual: Node3D = character.get_node_or_null("FemalePlayerVisual") as Node3D
  if female_visual != null and female_visual.visible and female_visual.has_method("animate_motion"):
   female_visual.call("animate_motion", dir, sprinting, delta)
- camera_arm.global_position=character.global_position+Vector3(0,0.5,0)
+ camera_arm.global_position=character.global_position+Vector3(0,0.2,0)
 
 func _unhandled_input(event: InputEvent) -> void:
  if event.is_action_pressed("target") and not event.is_echo():
