@@ -63,6 +63,8 @@ var profile: Dictionary = PROFILE_DEFAULTS.duplicate(true)
 var gm_preview_job_id: String = ""
 # Three authentic equipped Novice skills, persisted with the existing save.
 var skill_hotbar: Array[String] = ["novice_slash","novice_rush","novice_guard"]
+# Runtime-only, non-saved PvE combat controller for the starter profession.
+var novice_combat:Node=null
 # Purchased permanent passive levels are saved; time-limited buffs are NOT saved.
 var skill_levels:Dictionary={}
 # Local GM previews may demonstrate stat changes; never serialized or charged.
@@ -305,8 +307,14 @@ func activate_skill(skill_id:String) -> bool:
   changed.emit()
   notice.emit("Timed buff active: "+str(duration)+" seconds")
   return true
- # Non-buff combat effects require the real combat/animation system.
- notice.emit("Combat skill casting is not installed yet")
+ if skill_id.begins_with("novice_"):
+  if not is_instance_valid(novice_combat):
+   notice.emit("Novice combat controller is unavailable")
+   return false
+  return bool(novice_combat.cast(skill_id))
+ # Remaining careers are data and buff previews until authored combat
+ # animations are implemented for those specific weapon types.
+ notice.emit("Class combat animation is not installed yet")
  return false
 
 func activate_hotbar_slot(slot_index:int) -> bool:
