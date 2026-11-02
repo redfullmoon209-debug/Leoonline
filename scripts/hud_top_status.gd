@@ -1,4 +1,5 @@
 extends Control
+const RedButtonStyle = preload("res://scripts/ui_button_style.gd")
 ## Lightweight responsive overlays for the player, real-world minimap and target.
 ## Values come only from the current save, live game or an explicit target node.
 const MiniMapScript = preload("res://scripts/hud_minimap.gd")
@@ -128,8 +129,9 @@ func _make_map() -> void:
  minimap_button.mouse_filter=Control.MOUSE_FILTER_STOP
  minimap_button.focus_mode=Control.FOCUS_NONE
  minimap_button.add_theme_stylebox_override("normal",StyleBoxEmpty.new())
- minimap_button.add_theme_stylebox_override("hover",StyleBoxEmpty.new())
- minimap_button.add_theme_stylebox_override("pressed",StyleBoxEmpty.new())
+ minimap_button.add_theme_stylebox_override("hover",RedButtonStyle.hover_style())
+ minimap_button.add_theme_stylebox_override("pressed",RedButtonStyle.pressed_style())
+  minimap_button.add_theme_stylebox_override("hover_pressed",RedButtonStyle.pressed_style())
  minimap_button.add_theme_stylebox_override("focus",StyleBoxEmpty.new())
  add_child(minimap_button)
  minimap=MiniMapScript.new()
@@ -152,8 +154,9 @@ func _make_map() -> void:
   style.set_border_width_all(2)
   style.set_corner_radius_all(16)
   button.add_theme_stylebox_override("normal",style)
-  button.add_theme_stylebox_override("hover",style)
-  button.add_theme_stylebox_override("pressed",style)
+  button.add_theme_stylebox_override("hover",RedButtonStyle.hover_style())
+  button.add_theme_stylebox_override("pressed",RedButtonStyle.pressed_style())
+   button.add_theme_stylebox_override("hover_pressed",RedButtonStyle.pressed_style())
   minimap_button.add_child(button)
   button.pressed.connect(_change_zoom.bind(0.15 if key=="in" else -0.15))
   if key=="in": zoom_in=button
