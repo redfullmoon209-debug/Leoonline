@@ -699,9 +699,9 @@ func validate() -> void:
    "GM selects correct job and career stage: "+str(entry["id"]))
   check(skills.class_label.text==str(entry["th"]) and top.player_job.text==("Novice" if profession_index==0 else str(entry["th"])),
    "Skill page and world HUD reflect GM selected profession: "+str(entry["id"]))
-  var available_count:int=3 if profession_index==0 else 14
+  var available_count:int=3 if profession_index==0 else (14 if int(entry["tier"])==1 else 0)
   check(skills.skill_slots.filter(func(cell):return not cell.disabled).size()==available_count,
-   "Skill grid shows 3 starter slots or 14 job slots: "+str(entry["id"]))
+   "Skill grid unlocks only real defined skill slots, never missing stage-2 skills: "+str(entry["id"]))
   # All first-tier job icons are independently generated PNGs and reuse
   # the SAME Godot controls/positions with no line/border decorations.
   if int(entry["tier"])==1:
@@ -721,6 +721,32 @@ func validate() -> void:
    skills._skill_cell_selected("NoviceSkillSlot09")
    check(skills.selected_skill==str(class_skills[8]["id"]) and skills.slot_label.text==str(class_skills[8]["th"]),
     "Existing skill slot selects skill specific to chosen profession: "+str(entry["id"]))
+   var preserved_preview:Array=skills.preview_loadout.duplicate()
+   var preserved_real:Array=store.skill_hotbar.duplicate()
+   var passive_id:String=str(class_skills[7]["id"])
+   var timed_id:String=str(class_skills[12]["id"])
+   check(class_catalog.skill_kind(passive_id)=="passive" and class_catalog.skill_kind(str(class_skills[11]["id"]))=="passive",
+    "Each first-tier profession explicitly defines permanent, noncastable body passives")
+   check(class_catalog.skill_kind(timed_id)=="timed_buff" and int(class_skills[12]["duration_seconds"])>=60 and int(class_skills[12]["duration_seconds"])<=180,
+    "Each first-tier profession includes one castable buff lasting 1 to 3 minutes")
+   skills._skill_cell_selected("NoviceSkillSlot08")
+   check(skills.selected_skill==passive_id and skills.hint_label.text.contains("ห้ามใส่ช่อง"),
+    "A passive shows clear permanent-stat/non-equippable details")
+   skills._equip_to(0)
+   check(skills.preview_loadout==preserved_preview and store.skill_hotbar==preserved_real,
+    "Clicking a passive then hotbar never equips it, even in GM preview")
+   check(not store.activate_skill(passive_id),"Neither direct casting nor GM can activate a passive")
+   skills._skill_cell_selected("NoviceSkillSlot13")
+   skills._equip_to(0)
+   check(skills.preview_loadout[0]==timed_id and store.skill_hotbar==preserved_real,
+    "A timed buff equips on existing GM preview hotbar without changing saved loadout")
+   skills._skill_cell_selected("NoviceSkillSlot13")
+   check(skills.selected_skill=="","Tapping the chosen skill again clears selection to cast")
+   skills._equip_to(0)
+   check(store.buff_seconds_left(timed_id)>0,"Clicking a timed buff hotbar cell starts its real countdown")
+   store._process(181.0)
+   check(store.buff_seconds_left(timed_id)==0,"Timed buff expires automatically and cannot become permanent")
+   skills._skill_cell_selected("NoviceSkillSlot09")
   check(skills.preview_anchor.get_child_count()==0 and skills.upgrade_button.disabled,
    "GM cannot fake animation or deduct currency for blank skills")
  check(store.profile==real_career_before,"GM preview does not overwrite career, EXP, gold or skill points")
@@ -736,8 +762,8 @@ func validate() -> void:
  gm._open_skill_view()
  check(not gm.is_open() and game.open and ui.visible and ui.current_tab==2 and skills.visible,
   "GM opens matching Skill page without an in-Skill profession selector")
- check(skills.skill_slots.filter(func(cell):return not cell.disabled).size()==14,
-  "Tier 2 job has fourteen empty inventory PNG slots for testing")
+ check(skills.skill_slots.filter(func(cell):return not cell.disabled).size()==0,
+  "Unimplemented Tier 2 has no fake equippable skills, keeping original grid intact")
  game._toggle()
  check(not game.open and not ui.visible,"GM preview Skill closes using the regular Inventory controller")
  gm._toggle()
@@ -771,6 +797,54 @@ func validate() -> void:
   "Disabling local GM clears test profession and all debug controls")
  check(store.profile==real_career_before and skills.class_label.text=="อาชีพเริ่มต้น",
   "Novice Skill and original saved profile return unchanged after GM preview")
+ # Real player purchase/attributes/casting regression: no permanent passive
+ # can slip into a hotbar via UI, API, or a forged legacy save.
+ var profile_backup:Dictionary=store.profile.duplicate(true)
+ var levels_backup:Dictionary=store.skill_levels.duplicate(true)
+ var hotbar_backup:Array=store.skill_hotbar.duplicate()
+ var gold_backup:String=str(store.currency.gold)
+ store.profile["job"]="earth_1"
+ store.profile["class_tier"]=1
+ store.profile["skill_points"]=3
+ store.currency.gold="1500"
+ store.skill_levels.clear()
+ store.active_buffs.clear()
+ store.changed.emit()
+ var stat_base:Dictionary=store.profile["attributes"].duplicate(true)
+ check(not store.equip_skill_to_hotbar(0,"earth_1_08"),
+  "A real player cannot equip a permanent passive directly")
+ check(not store.activate_skill("earth_1_08"),"A real player cannot cast a permanent body buff")
+ check(store.upgrade_passive_skill("earth_1_08"),"Permanent passive consumes actual skill points and gold")
+ check(int(store.skill_levels.get("earth_1_08",0))==1 and int(store.profile["skill_points"])==2 and str(store.currency.gold)=="1300",
+  "Passive level +1 costs exactly 1 SP and 200 Gold")
+ check(int(store.character_snapshot()["profile"]["attributes"]["strength"])==int(stat_base["strength"])+2,
+  "Passive gives permanent +2 STR without equipping or casting")
+ store.skill_hotbar[0]="earth_1_08"
+ check(store.save_data(),"Save test with stale passive hotbar")
+ store.load_data()
+ check(store.skill_hotbar[0]=="" and int(store.skill_levels.get("earth_1_08",0))==1,
+  "Reload removes illegally equipped passives but preserves valid upgrades")
+ check(int(store.character_snapshot()["profile"]["attributes"]["strength"])==int(stat_base["strength"])+2,
+  "Passive stat remains after loading save")
+ check(store.equip_skill_to_hotbar(0,"earth_1_13"),"Timed buff can be equipped normally")
+ check(store.activate_hotbar_slot(0) and store.buff_seconds_left("earth_1_13")==180,
+  "Castable buff grants a real 180-second timer")
+ check(int(store.character_snapshot()["profile"]["attributes"]["vitality"])==int(stat_base["vitality"])+5,
+  "Timed buff boosts attributes only while running")
+ check(store.save_data(),"Timed buff can be running during save")
+ store.load_data()
+ check(store.buff_seconds_left("earth_1_13")==0 and int(store.character_snapshot()["profile"]["attributes"]["vitality"])==int(stat_base["vitality"],
+  "Reload never converts a temporary buff into a permanent one")
+ check(int(store.skill_levels.get("earth_1_08",0))==1,
+  "Passive upgrade persists independently of temporary buff")
+ store.profile=profile_backup
+ store.skill_levels=levels_backup
+ store.skill_hotbar.clear()
+ for old_skill in hotbar_backup:store.skill_hotbar.append(str(old_skill))
+ store.currency.gold=gold_backup
+ store.active_buffs.clear()
+ check(store.save_data(),"Restore original player after passive regression test")
+ store.changed.emit()
  var wide_target_bounds:Rect2=top.target_panel.get_global_rect()
  var wide_menu_bounds:Rect2=hud_menu.controls["bag"].get_global_rect()
  check(absf(wide_target_bounds.get_center().x-720.0)<2.0,
