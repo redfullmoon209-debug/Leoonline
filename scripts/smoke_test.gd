@@ -520,7 +520,7 @@ func validate() -> void:
  test_target.queue_free()
  check(not top.target_panel.visible and not top.target_cancel.visible and not top.target_bar.visible and top.target_label.text.contains("ยังไม่ได้เลือก"),"Clearing target removes card and unlock button instantly")
  check(not top.target_mana_bar.visible and not top.target_portrait.visible,"No selected target hides HP/MP values and portrait without fake monster information")
- check(top.target_decor.get_script()!=null,"Center golden frame is native Godot vector drawing, not a crop")
+ check(top.target_decor.get_script()!=null and not top.target_decor.visible,"Target HUD has NO inner medallion or decorative lines")
  check(ResourceLoader.exists("res://assets/ui/hud/target_training_golem.svg"),"Standalone golem portrait is an original asset, not a cropped reference image")
  check(game.training_target != null and is_instance_valid(game.training_target),"Actual targetable training golem exists in the 3D test world")
  check(game.training_target.get_meta("hp")==3240.0 and game.training_target.get_meta("mp")==670.0,

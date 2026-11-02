@@ -108,6 +108,7 @@ func _process(delta: float) -> void:
   "hud_target_portrait_visible":menu.top_status.target_portrait.visible,
   "hud_target_portrait_asset":menu.top_status.target_portrait.texture.resource_path if menu.top_status.target_portrait.texture!=null else "",
   "hud_target_frame_custom":menu.top_status.target_decor.get_script()!=null,
+  "hud_target_inner_ornament_visible":menu.top_status.target_decor.visible,
   "hud_training_target_present":is_instance_valid(host.get("training_target")),
   "hud_training_target_name":str(host.get("training_target").get_meta("target_name","")) if is_instance_valid(host.get("training_target")) else "",
   "hud_target_entities":target_screens,

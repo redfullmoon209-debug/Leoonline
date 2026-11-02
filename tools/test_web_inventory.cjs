@@ -79,7 +79,7 @@ async function swipe(dx,dy){
   check(hud.hud_row[0][0]>hud.hud_profile_bounds[0]+hud.hud_profile_bounds[2],'Desktop icon row leaves room for character portrait');
   check(hud.hud_row[9][0]+hud.hud_row[9][2]<hud.hud_minimap_bounds[0],'Desktop icon row leaves room for the minimap');
   await snap('web-premium-ten-icon-row');
-  check(hud.hud_target_frame_custom===true&&hud.hud_player_outer_frame_simple===true,'Profile has a clean outer frame; target medallion remains native Godot art');
+  check(hud.hud_target_inner_ornament_visible===false&&hud.hud_player_outer_frame_simple===true,'Player and target UI keep clean outer frames with NO internal portrait ornament');
   check(hud.hud_caption_visible.every(Boolean)&&hud.hud_caption_font_sizes.every(n=>n>=11),'Desktop icon captions are visible, live and readable');
   check(hud.hud_caption_bounds.every((r,i)=>r[1]>=hud.hud_row[i][1]+hud.hud_row[i][3]*0.9),'Desktop menu captions sit BELOW the independent PNGs');
   check(hud.hud_training_target_present&&hud.hud_training_target_name==='อสูรหินฝึก','Real training golem is available for interactive target testing');

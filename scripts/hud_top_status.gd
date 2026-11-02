@@ -190,8 +190,8 @@ func _target_progress(parent: Node,name: String,fill_color: Color) -> ProgressBa
  return bar
 
 func _make_target() -> void:
- # All UI pieces are independent Godot controls, with a hand-drawn ornament
- # layer behind the portrait and real HP/MP bars. No reference-image crop.
+ # Independent controls and true HP/MP data. No internal rings, ornaments,
+ # separator lines or screenshot crops behind the target portrait.
  target_panel=PanelContainer.new()
  target_panel.name="LiveTargetHUD"
  target_panel.mouse_filter=Control.MOUSE_FILTER_IGNORE
@@ -215,7 +215,8 @@ func _make_target() -> void:
  target_body.mouse_filter=Control.MOUSE_FILTER_IGNORE
  target_panel.add_child(target_body)
  target_decor=TargetDecorationScript.new() as Control
- target_decor.name="HandDrawnOrnament"
+ target_decor.name="TargetNoInnerOrnament"
+ target_decor.visible=false
  target_body.add_child(target_decor)
  target_portrait=TextureRect.new()
  target_portrait.name="LiveTargetPortrait"
