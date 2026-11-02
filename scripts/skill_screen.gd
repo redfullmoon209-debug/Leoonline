@@ -158,7 +158,18 @@ func _skill_cell_selected(cell_name: String) -> void:
  if index>=skills.size():
   _empty_skill_selected(cell_name)
   return
- selected_skill=str(skills[index]["id"])
+ var chosen_id:String=str(skills[index]["id"])
+ if selected_skill==chosen_id:
+  # Second tap cancels selection; the original equipped button may then
+  # cast a timed buff without creating any new input buttons.
+  selected_skill=""
+  slot_label.text=_tr("ยังไม่ได้เลือกสกิล","No skill selected")
+  description_label.text=_tr("กดช่องใช้งานเพื่อเปิดบัฟที่ติดตั้ง","Press an equipped slot to cast its buff")
+  _paint_skill(get_node("SelectedSkillIcon") as TextureButton,"")
+  upgrade_button.disabled=true
+  hint_label.text=_tr("ยกเลิกการเลือก · กดช่อง 1–3 เพื่อใช้บัฟ","Selection cleared · press slot 1–3 to cast")
+  return
+ selected_skill=chosen_id
  _show_selected()
  _update_skill_icons()
 
