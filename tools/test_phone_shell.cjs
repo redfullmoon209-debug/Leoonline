@@ -44,6 +44,7 @@ async function runScenario(browser,{width,height,mobile}){
     const state=()=>page.evaluate(()=>document.getElementById('game-frame').contentWindow.__leoQA);
     const hud=await state();
     check(hud.hud_row.length===10,'Real Godot game still renders ten individually clickable ring-free vector icons');
+    check(hud.hud_target_panel_visible===false,'Phone has no empty target card before lock');
     check(hud.hud_joystick_visible===true,'Mobile-look viewport shows the actual movement joystick even on PC');
     check(hud.hud_touch_jump_visible===true,'Mobile-look viewport shows the real jump button');
     check(hud.hud_touch_pickup_visible===true,'Mobile-look viewport shows the real pickup button');
