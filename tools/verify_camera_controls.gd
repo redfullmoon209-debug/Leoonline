@@ -25,12 +25,12 @@ func _validate() -> void:
  print("BANGKOK_CAMERA_QA_STAGE: SCENE_READY")
  var hero_shape:CollisionShape3D=game.character.get_node("CollisionShape3D") as CollisionShape3D
  var female:Node3D=game.character.get_node("FemalePlayerVisual") as Node3D
- _check(hero_shape.shape is CapsuleShape3D and is_equal_approx((hero_shape.shape as CapsuleShape3D).height,1.05),
+ _check(hero_shape.shape is CapsuleShape3D and is_equal_approx((hero_shape.shape as CapsuleShape3D).height,0.525),
   "Scaled player's physical capsule stays aligned with Bangkok ground")
- _check(is_equal_approx(float(female.get("target_height_m")),0.81) and is_equal_approx(game.training_target.scale.x,0.50),
+ _check(is_equal_approx(float(female.get("target_height_m")),0.405) and is_equal_approx(game.training_target.scale.x,0.25),
   "Player/monster world geometry uses the same 50% size factor")
  for target in game.test_targets:
-  _check(is_equal_approx(target.scale.x,0.50),"All test NPCs and monsters are scaled: "+target.name)
+  _check(is_equal_approx(target.scale.x,0.25),"All test NPCs and monsters are scaled: "+target.name)
  _check(Input.mouse_mode==Input.MOUSE_MODE_VISIBLE,"Desktop pointer is not captured permanently")
  _check(is_equal_approx(game.camera.position.z,5.4),"Follow camera starts with street-friendly zoom")
  var original_yaw:float=game.camera_arm.rotation.y
