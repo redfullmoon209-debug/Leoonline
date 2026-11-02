@@ -736,6 +736,15 @@ func validate() -> void:
    check(skills.preview_loadout==preserved_preview and store.skill_hotbar==preserved_real,
     "Clicking a passive then hotbar never equips it, even in GM preview")
    check(not store.activate_skill(passive_id),"Neither direct casting nor GM can activate a passive")
+   var stat_key:String=str(class_skills[7]["stat_key"])
+   var before_preview_stat:int=int(store.character_snapshot()["profile"]["attributes"][stat_key])
+   var before_persistent_levels:Dictionary=store.skill_levels.duplicate(true)
+   check(not skills.upgrade_button.disabled and store.upgrade_passive_skill(passive_id),
+    "GM can preview a passive upgrade in the same original button without spending")
+   check(int(store.character_snapshot()["profile"]["attributes"][stat_key])==before_preview_stat+2,
+    "GM passive preview adds +2 to actual displayed character stats")
+   check(store.skill_levels==before_persistent_levels and store.profile==real_career_before,
+    "GM preview passive levels never change the persistent character or purchased levels")
    skills._skill_cell_selected("NoviceSkillSlot13")
    skills._equip_to(0)
    check(skills.preview_loadout[0]==timed_id and store.skill_hotbar==preserved_real,
