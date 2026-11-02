@@ -1,4 +1,5 @@
 extends Control
+const RedButtonStyle = preload("res://scripts/ui_button_style.gd")
 ## Separate GM TEST control for the local playtest, not an online privilege.
 ## The menu changes ONLY this client-side demo scene. A real GM account
 ## must be authorized server-side before any multiplayer deployment.
@@ -44,9 +45,7 @@ func _make_action(parent: Node,text_value: String,fn: Callable) -> Button:
  # Apply the packaged Thai font to every separate GM action.
  if ResourceLoader.exists("res://assets/fonts/NotoSansThai.ttf"):
   button.add_theme_font_override("font",load("res://assets/fonts/NotoSansThai.ttf"))
- button.add_theme_stylebox_override("normal",_style(Color("#2c0b13"),Color("#c78a3e")))
- button.add_theme_stylebox_override("hover",_style(Color("#5c1d24"),Color("#ffe0a0")))
- button.add_theme_stylebox_override("pressed",_style(Color("#851d28"),Color("#ffe0a0")))
+ RedButtonStyle.apply(button)
  parent.add_child(button)
  button.pressed.connect(fn)
  return button
@@ -71,8 +70,9 @@ func _build() -> void:
  gm_button.add_theme_font_size_override("font_size",16)
  gm_button.add_theme_color_override("font_color",Color("#fff5be"))
  gm_button.add_theme_stylebox_override("normal",_style(Color("#a31727"),Color("#ffce70"),24))
- gm_button.add_theme_stylebox_override("hover",_style(Color("#e53236"),Color("#fff0bc"),24))
- gm_button.add_theme_stylebox_override("pressed",_style(Color("#640e22"),Color("#f5d690"),24))
+ gm_button.add_theme_stylebox_override("hover",RedButtonStyle.hover_style())
+ gm_button.add_theme_stylebox_override("pressed",RedButtonStyle.pressed_style())
+ gm_button.add_theme_stylebox_override("hover_pressed",RedButtonStyle.pressed_style())
  add_child(gm_button)
  gm_button.pressed.connect(_toggle)
  gm_popup=PanelContainer.new()
@@ -124,7 +124,7 @@ func _build() -> void:
   var thai_font:Font=load("res://assets/fonts/NotoSansThai.ttf") as Font
   target_picker.add_theme_font_override("font",thai_font)
   target_picker.get_popup().add_theme_font_override("font",thai_font)
- target_picker.add_theme_stylebox_override("normal",_style(Color("#341823"),Color("#bd8746")))
+ RedButtonStyle.apply(target_picker)
  content.add_child(target_picker)
  var choose:=_make_action(content,"เลือกเป้าหมายที่ชี้",_choose_target)
  choose.name="GMSelectTarget"
