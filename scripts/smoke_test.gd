@@ -1130,8 +1130,13 @@ func validate() -> void:
  # consuming stamina or interfering with the skill's cooldown.
  check(combat.is_auto_attacking() and combat.auto_target==real_training_target,
   "Pressing skill 1 starts automatic follow-up normal attacks")
+ check(combat.basic_attack_left()>=0.50,
+  "Basic ATK waits until the full Slash sword animation finishes")
  var basic_stamina_before:float=float(combat.stamina)
+ # Still inside the 0.8s Slash cooldown, but the sword swing is clear.
+ combat._process(0.53)
  var slash_cd_before:float=float(combat.cooldown_left("novice_slash"))
+ check(slash_cd_before>0.0,"Normal sword auto-attacks can occur during remaining skill cooldown")
  combat.advance_auto_attack(0.016)
  var after_basic_atk:float=float(real_training_target.get_meta("hp"))
  check(after_basic_atk<after_slash and is_equal_approx(float(combat.stamina),basic_stamina_before),
