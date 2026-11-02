@@ -210,6 +210,10 @@ func validate() -> void:
  var skills:Control=ui.skill_panel
  check(skills.skill_slots.size()==14 and skills.active_slots.size()==3,"Novice screen reserves 14 numbered cells and 3 empty hotbar cells")
  check(skills.preview_anchor.get_child_count()==0,"Skill preview is truly empty until 3D animations exist")
+ check(skills.get_children().all(func(node):return not (node is NinePatchRect)),"All Novice skill panels are frameless; no double gold PNG borders remain")
+ for flat_name in ["SkillLeftPanel","SkillRightTopPanel","SkillRightSkillsPanel","SkillHotbarPanel","SkillUpgradePanel","SkillPreviewFrame","SkillCurrentStatsFrame","SkillNextStatsFrame"]:
+  var flat:Control=skills.get_node_or_null(flat_name) as Control
+  check(flat is ColorRect and (flat as ColorRect).color.a>0.0,"Skill section is a dark-maroon flat surface with no lines: "+flat_name)
  check(skills.class_label.text=="อาชีพเริ่มต้น","Novice class reads actual character job; skill screen cannot change professions")
  check(skills.level_label.text=="Lv. "+str(store.profile["level"]) and skills.gold_label.text.contains(store.pretty(str(store.currency.gold))) and skills.sp_label.text.contains(str(store.profile["skill_points"])),"Starter screen uses exact current Level, Gold and SP data, even after demo transactions")
  for i in range(14):

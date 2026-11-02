@@ -219,6 +219,8 @@ func _process(delta: float) -> void:
   "skill_current_detail_bounds":bounds(ui.skill_panel.current_level_label),
   "skill_current_detail_frame_bounds":bounds(ui.skill_panel.get_node("SkillCurrentStatsFrame")),
   "skill_preview_empty":ui.skill_panel.preview_anchor.get_child_count()==0,
+  "skill_nested_frame_count":ui.skill_panel.get_children().filter(func(n):return n is NinePatchRect).size(),
+  "skill_preview_flat":ui.skill_panel.get_node("SkillPreviewFrame") is ColorRect,
   "skill_upgrade_disabled":ui.skill_panel.upgrade_button.disabled,
   "skill_point_balance":ui.skill_panel.sp_label.text,
   "skill_gold_balance":ui.skill_panel.gold_label.text,

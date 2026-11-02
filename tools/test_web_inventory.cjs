@@ -220,13 +220,14 @@ async function swipe(dx,dy){
   await until(()=>window.__leoQA.tab===2);
   let skills=await state();
   check(skills.skill_visible&&skills.skill_preview_empty,'Real Novice Skill tab loads with intentionally empty animation preview');
+  check(skills.skill_nested_frame_count===0&&skills.skill_preview_flat,'Skill page has NO nested gold NinePatch borders around preview or side panels');
   check(skills.skill_class_name==='Novice','Current character job, not a job selection sidebar, determines Skill page');
   check(skills.skill_cell_count===14&&skills.skill_available_cells===3&&skills.skill_hotbar_count===3,'Novice has 3 available starter slots in reserved 14-cell PNG grid plus 3 hotbar slots');
   check(skills.skill_slot_pngs.slice(0,3).every(p=>p.endsWith('/red_matte/slot_empty.png'))&&skills.skill_slot_pngs.slice(3).every(p=>p.endsWith('/red_matte/slot_locked.png')),'Every skill slot reuses the original inventory PNG rather than cropping a mockup');
   check(skills.skill_upgrade_disabled,'No fake skill upgrade/payment without authoring real skill data');
   const inside=(inner,outer)=>inner[0]>=outer[0]&&inner[1]>=outer[1]&&inner[0]+inner[2]<=outer[0]+outer[2]+1&&inner[1]+inner[3]<=outer[1]+outer[3]+1;
-  check(skills.skill_hotbar_bounds.every(b=>inside(b,skills.skill_hotbar_frame_bounds)),'All three equipped slots stay completely inside the gold-framed hotbar');
-  check(inside(skills.skill_current_detail_bounds,skills.skill_current_detail_frame_bounds),'Current skill level detail text stays within its PNG frame');
+  check(skills.skill_hotbar_bounds.every(b=>inside(b,skills.skill_hotbar_frame_bounds)),'All three equipped slots fit within the frameless hotbar area');
+  check(inside(skills.skill_current_detail_bounds,skills.skill_current_detail_frame_bounds),'Current skill level text stays within its borderless dark-maroon area');
   await snap('web-skill-novice-en');
   await clickRect((await state()).language);
   await until(()=>window.__leoQA.locale==='th');

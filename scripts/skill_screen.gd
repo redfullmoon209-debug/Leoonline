@@ -1,7 +1,7 @@
 extends Control
-## Novice Skill screen. Every framed surface and empty cell uses the game's
-## own independent red-matte/inventory PNG assets; NO mockup screenshots,
-## cropped composite art, baked labels, or substitute character images.
+## Novice Skill screen uses original, independent PNGs for all skill cells.
+## The large layout sections have FLAT burgundy fills and NO outlined
+## NinePatch frames, nested gold lines, borders or screenshot crops.
 ## The preview anchor is intentionally empty until authored animations exist.
 const ROOT = "res://assets/ui/red_matte/"
 const INVENTORY = "res://assets/ui/inventory/"
@@ -57,14 +57,13 @@ func _png(folder: String,name: String) -> Texture2D:
  var path:String=folder+name+".png"
  return load(path) as Texture2D if ResourceLoader.exists(path) else null
 
-func _panel(name: String,parent: Node,x: float,y: float,w: float,h: float) -> NinePatchRect:
- var panel:=NinePatchRect.new()
+func _panel(name: String,parent: Node,x: float,y: float,w: float,h: float) -> ColorRect:
+ # A visually clean, flat dark-maroon surface with ZERO painted lines.
+ # The old inner_panel.png had TWO unwanted nested gold borders.
+ # No NinePatch texture or additional decoration is used in Skill UI.
+ var panel:=ColorRect.new()
  panel.name=name
- panel.texture=_png(ROOT,"inner_panel")
- panel.patch_margin_left=29
- panel.patch_margin_right=29
- panel.patch_margin_top=29
- panel.patch_margin_bottom=29
+ panel.color=Color(0.115,0.013,0.032,0.50) if name=="SkillPreviewFrame" else Color(0.10,0.008,0.024,0.20)
  panel.mouse_filter=Control.MOUSE_FILTER_IGNORE
  parent.add_child(panel)
  _rect(panel,x,y,w,h)
@@ -151,8 +150,8 @@ func _build() -> void:
  class_subtitle=_label("SkillClassSubtitle",self,151,254,420,22,14,false)
  future_label=_label("SkillFutureTitle",self,500,225,174,25,17)
  
- # The preview rectangle is a real empty Control reserved for later 3D
- # animation playback. No still image, animated impostor or sample model.
+ # This frameless area is reserved for a future 3D animation preview.
+ # No picture, sample model, decorative rings or golden lines.
  _panel("SkillPreviewFrame",self,73,292,604,232)
  preview_anchor=Control.new()
  preview_anchor.name="SkillPreviewAnimationAnchor"
@@ -174,7 +173,7 @@ func _build() -> void:
  next_level_label.add_theme_constant_override("line_spacing",0)
  _panel("SkillCurrentStatsFrame",self,83,644,283,81)
  _panel("SkillNextStatsFrame",self,380,644,290,81)
- # Recreate the text on top of the PNG frames rather than baking it.
+ # Keep the text above the flat surfaces; never paint inner borders.
  current_level_label.move_to_front()
  next_level_label.move_to_front()
 
