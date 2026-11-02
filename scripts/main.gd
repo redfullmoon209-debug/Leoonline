@@ -286,7 +286,7 @@ func _make_training_target() -> void:
  training_target.collision_mask=0
  # Place the training golem far enough from the new Bangkok road spawn
  # to keep the ATK chase/stop regression realistic and deterministic.
- training_target.position=Vector3(3.0,1.35*ACTOR_SCALE,-13.0)
+ training_target.position=Vector3(6.0,1.35*ACTOR_SCALE,-1.0)
  training_target.scale=Vector3.ONE*ACTOR_SCALE
  training_target.set_meta("target_name","อสูรหินฝึก")
  training_target.set_meta("target_type","Monster")
