@@ -6,7 +6,7 @@ const MODEL_PATH := "res://assets/characters/female/FemaleLeo.fbx"
 const RUN_TRACKS_PATH := "res://assets/characters/female/run_tracks.json"
 const WALK_TRACKS_PATH := "res://assets/characters/female/walk_tracks.json"
 
-var target_height_m: float = 1.76
+var target_height_m: float = 1.62
 var feet_y: float = -1.05
 var visual_loaded: bool = false
 var rendered_mesh_count: int = 0
@@ -68,16 +68,52 @@ func _ready() -> void:
         model_fit.queue_free()
         push_warning("FemaleLeo.fbx has no usable visible meshes")
         return
-    var scalar: float = clampf(target_height_m / box.size.y, 0.0001, 1000.0)
-    model_fit.scale = Vector3.ONE * scalar
-    model_fit.position = Vector3(
-        -box.get_center().x * scalar,
-        feet_y - box.position.y * scalar,
-        -box.get_center().z * scalar
-    )
+
+    # FemaleLeo.fbx's source mesh and its Mixamo armature use different
+    # coordinate units (the FBX mesh node has an explicit 100x transform).
+    # A skinned mesh can therefore be visually much larger than the static
+    # MeshInstance3D AABB. Fit the larger of mesh and bone extents so the
+    # camera cannot end up inside an oversized leg.
     for n in instance.find_children("*", "Skeleton3D", true, false):
         skeleton = n as Skeleton3D
         break
+    var bone_box := AABB()
+    var bones_found := false
+    if skeleton != null:
+        var bone_to_fit: Transform3D = inv * skeleton.global_transform
+        for i in range(skeleton.get_bone_count()):
+            var bone_point: Vector3 = bone_to_fit * skeleton.get_bone_global_pose(i).origin
+            if not bone_point.is_finite():
+                continue
+            if not bones_found:
+                bone_box = AABB(bone_point, Vector3.ZERO)
+                bones_found = true
+            else:
+                bone_box = bone_box.expand(bone_point)
+
+    var fit_box: AABB = box
+    if bones_found and bone_box.size.y > box.size.y * 1.10:
+        fit_box = bone_box
+    elif bones_found and bone_box.size.y > box.size.y * 0.70:
+        # When both representations agree, preserve both feet and head tips.
+        fit_box = fit_box.expand(bone_box.position)
+        fit_box = fit_box.expand(bone_box.end)
+
+    if fit_box.size.y <= 0.001:
+        model_fit.queue_free()
+        push_warning("FemaleLeo.fbx has no usable avatar height")
+        return
+    var scalar: float = clampf(target_height_m / fit_box.size.y, 0.000001, 1000.0)
+    model_fit.scale = Vector3.ONE * scalar
+    model_fit.position = Vector3(
+        -fit_box.get_center().x * scalar,
+        feet_y - fit_box.position.y * scalar,
+        -fit_box.get_center().z * scalar
+    )
+    print("FemaleLeo visual fit: mesh=", box.size,
+        " skeleton=", bone_box.size if bones_found else Vector3.ZERO,
+        " selected=", fit_box.size, " scale=", scalar,
+        " final_height=", fit_box.size.y * scalar)
     _load_uploaded_run_tracks()
     visual_loaded = true
 
