@@ -162,6 +162,40 @@ func _make_world() -> void:
  _spawn_loot("scroll",Vector3(-4,0.65,-5),Color.MEDIUM_PURPLE)
  _spawn_loot("shirt",Vector3(5,0.65,-4),Color.WHITE)
 
+ 
+# Read only solid geometry from the real map (collision layer 1).
+func _ground_surface_at(x:float,z:float,around_y:float=0.0) -> Dictionary:
+ return BangkokCollisions.ground_hit(get_world_3d(),Vector3(x,around_y,z),0.9,3.8)
+
+func _snap_target_to_terrain(target:StaticBody3D,around_y:float=0.0) -> bool:
+ if not is_instance_valid(target):return false
+ var point:Vector3=target.global_position
+ var hit:Dictionary=_ground_surface_at(point.x,point.z,around_y)
+ if hit.is_empty():return false
+ var col:CollisionShape3D=target.get_node_or_null("TargetHitbox") as CollisionShape3D
+ if col==null:col=target.get_node_or_null("ClickableTargetCollider") as CollisionShape3D
+ if col==null or col.shape==null:return false
+ var height:float=0.6
+ if col.shape is BoxShape3D:height=(col.shape as BoxShape3D).size.y
+ elif col.shape is CapsuleShape3D:height=(col.shape as CapsuleShape3D).height
+ elif col.shape is SphereShape3D:height=(col.shape as SphereShape3D).radius*2.0
+ var surface:Vector3=hit["position"]
+ target.global_position.y=surface.y+height*target.scale.y*0.5+0.012
+ return true
+
+func _align_spawned_entities_to_terrain() -> void:
+ if world_collision_count==0:return
+ await get_tree().physics_frame
+ if not is_inside_tree():return
+ for target in test_targets:
+  if is_instance_valid(target):_snap_target_to_terrain(target,0.0)
+ for item in loot:
+  if not is_instance_valid(item):continue
+  var hit:Dictionary=_ground_surface_at(item.global_position.x,item.global_position.z,0.0)
+  if not hit.is_empty():
+   var surface:Vector3=hit["position"]
+   item.global_position.y=surface.y+0.12
+
 func _spawn_loot(id: String,pos: Vector3,color: Color) -> void:
  var item := Area3D.new()
  item.position = pos
