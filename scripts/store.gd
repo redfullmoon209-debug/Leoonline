@@ -7,6 +7,7 @@ signal notice(message: String)
 const PROFILE_DEFAULTS: Dictionary = {
  "name":"Adventurer","level":1,"experience":0,"class_tier":0,
  "job":"Novice","path":"Unchosen","faction":"None","stat_points":0,
+ "skill_points":0,
  "attributes":{"strength":10,"vitality":10,"agility":10,"intelligence":10,"dexterity":10,"luck":10},
  "pve_kills":0,"pvp_wins":0,"pvp_losses":0
 }
@@ -160,6 +161,7 @@ func experience_required(level: int) -> int:
 func grant_experience(amount: int) -> void:
  if amount <= 0: return
  var level: int = clampi(int(profile.get("level",1)),1,999)
+ var starting_level: int=level
  var exp: int = maxi(0,int(profile.get("experience",0))) + amount
  while level < 999 and exp >= experience_required(level):
   exp -= experience_required(level)
@@ -167,6 +169,9 @@ func grant_experience(amount: int) -> void:
  if level == 999: exp = mini(exp,experience_required(level)-1)
  profile["level"] = level
  profile["experience"] = exp
+ # Persist earned points; never deduct anything while the starter skill
+ # slots have no genuine skill definitions/upgrade costs attached.
+ profile["skill_points"] = clampi(int(profile.get("skill_points",0))+level-starting_level,0,99999)
  changed.emit()
  save_data()
 
@@ -475,6 +480,7 @@ func load_data() -> void:
   profile["experience"] = clampi(int(saved_profile.get("experience",0)),0,experience_required(int(profile["level"]))-1)
   profile["class_tier"] = clampi(int(saved_profile.get("class_tier",0)),0,10)
   profile["stat_points"] = clampi(int(saved_profile.get("stat_points",0)),0,99999)
+  profile["skill_points"] = clampi(int(saved_profile.get("skill_points",0)),0,99999)
   for key in ["job","path","faction"]:
    profile[key]=str(saved_profile.get(key,PROFILE_DEFAULTS[key])).substr(0,36)
   var attributes: Dictionary = profile["attributes"]

@@ -9,6 +9,7 @@ const RedAssets = "res://assets/ui/red_matte/"
 const StoreScript = preload("res://scripts/store.gd")
 const ShopCatalog = preload("res://scripts/shop_catalog.gd")
 const ShopScript = preload("res://scripts/shop_service.gd")
+const SkillScreen = preload("res://scripts/skill_screen.gd")
 const ShopAssets = "res://assets/ui/shop/"
 const W := 1448.0
 const H := 910.0
@@ -238,6 +239,7 @@ var storage_money_notice: Label
 var equipment_panel: Control
 var bag_panel: Control
 var waiting_panel: Control
+var skill_panel: Control
 var bag_grid: GridContainer
 var main_equip_list: Control
 var extra_equip_list: Control
@@ -608,6 +610,14 @@ func _build() -> void:
  waiting_text = _label("",waiting_panel,39,115,615,180,24)
  waiting_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
  waiting_panel.visible = false
+ # The Skill tab is now a real independent Godot Control, built from
+ # original red_matte PNG frames/slots (not a cropped screenshot).
+ skill_panel = SkillScreen.new() as Control
+ skill_panel.name="NoviceSkillScreen"
+ stage.add_child(skill_panel)
+ _rect(skill_panel,0,0,W,H)
+ skill_panel.call("initialize",game_store,ui_font,locale)
+ skill_panel.visible=false
  notice_text = _label("",stage,317,775,814,25,16)
  trash_dialog = ConfirmationDialog.new()
  if ui_font != null:
@@ -1310,10 +1320,15 @@ func _adapt_layout() -> void:
  bag_panel.position = Vector2(-655.0,0.0) if current_tab==3 else Vector2.ZERO
  bag_panel.visible = current_tab==0 or current_tab==3 or current_tab==4
  shop_panel.visible = current_tab==3
- waiting_panel.visible = current_tab==2
- if waiting_panel.visible:
-  waiting_text.text = _tr("Skills are not available yet")
- header_label.text = _tr("Storage & Inventory") if storage_mode else (_tr("Inventory & Shop") if current_tab==3 else (_tr("Character Information") if current_tab==1 else "LEOONLINE · INVENTORY"))
+ waiting_panel.visible = false
+ skill_panel.visible = current_tab==2
+ if skill_panel.visible:
+  skill_panel.call("refresh")
+ # Hide equipment-only footer actions on the Skill page. The standard
+ # Close action remains visible and every other tab keeps its existing UI.
+ for i in range(footer_buttons.size()):
+  footer_buttons[i].visible = current_tab!=2 or i==5
+ header_label.text = _tr("Storage & Inventory") if storage_mode else (_tr("Inventory & Shop") if current_tab==3 else (_tr("Character Information") if current_tab==1 else (_tr("LEOONLINE · หน้าสกิล","LEOONLINE · SKILL") if current_tab==2 else "LEOONLINE · INVENTORY")))
  for i in range(tab_buttons.size()):
   tab_buttons[i].add_theme_color_override("font_color",Color.WHITE if i==current_tab else Color("#ffde93"))
   _red_button(tab_buttons[i],"tab_active" if i==current_tab else "tab_idle")
@@ -1332,6 +1347,7 @@ func refresh() -> void:
  _fill_bag()
  _refresh_storage()
  _refresh_character_panel()
+ if is_instance_valid(skill_panel): skill_panel.call("refresh")
  if is_instance_valid(shop_grid): _refresh_shop()
  footer_buttons[4].text = _tr("Unequip" if selected_equipment != "" else "Equip")
 
@@ -1339,6 +1355,7 @@ func set_language(value: String) -> void:
  locale="th" if value.begins_with("th") else "en"
  _translate(self)
  if is_built:
+  skill_panel.call("set_language",locale)
   refresh()
   _adapt_layout()
   storage_money_amount_input.placeholder_text = _tr("Enter amount")

@@ -140,6 +140,7 @@ func validate() -> void:
  store.changed.emit()
  check(ui.character_values["strength"].text=="37","Character stats refresh when saved profile values change")
  check(ui.character_values["level"].text=="2" and ui.character_values["experience"].text=="50 / 150","Character Level and EXP reflect real model progression")
+ check(int(store.profile["skill_points"])==1,"Level-up grants one real persistent Skill Point without any fabricated skills")
  check(ui.character_values["currency_gold"].text=="999,999,999,999,999,999,999","No precision loss for 21-digit Gold on Character page")
  check(store.save_data(),"Character save writes profile and 21-digit balance")
  store.profile["attributes"]["strength"]=10
@@ -147,6 +148,7 @@ func validate() -> void:
  store.currency.gold="0"
  store.load_data()
  check(int(store.profile["attributes"]["strength"])==37 and int(store.profile["level"])==2,"Character profile persists across save/load")
+ check(int(store.profile["skill_points"])==1,"Saved Skill Points restore after save/load")
  check(ui.character_values["currency_gold"].text=="999,999,999,999,999,999,999","Character UI preserves exact large numbers after load")
  ui.set_language("en")
  check(ui.character_values["name"].text=="Adventurer" and ui.character_values["pve_rank"].text=="Unranked","Character labels and values switch to English without PNG changes")
@@ -204,11 +206,32 @@ func validate() -> void:
  for row in [ui.bag_grid,ui.main_equip_list,ui.extra_equip_list,ui.fashion_weapon_row,ui.fashion_side_row,ui.accessory_row,ui.fashion_row]:
   for button in row.get_children(): check(not popup.intersects(button.get_global_rect()),"Details never cover a slot")
  ui._switch_tab(2)
- check(ui.waiting_panel.visible and ui.waiting_text.text.contains("ยังไม่"),"Skill unavailable truthfully")
+ check(ui.skill_panel.visible and not ui.waiting_panel.visible,"Skill tab renders real Novice UI, not the placeholder")
+ var skills:Control=ui.skill_panel
+ check(skills.skill_slots.size()==14 and skills.active_slots.size()==3,"Novice screen reserves 14 numbered cells and 3 empty hotbar cells")
+ check(skills.preview_anchor.get_child_count()==0,"Skill preview is truly empty until 3D animations exist")
+ check(skills.class_label.text=="อาชีพเริ่มต้น","Novice class reads actual character job; skill screen cannot change professions")
+ check(skills.level_label.text=="Lv. 1" and skills.gold_label.text.contains("0") and skills.sp_label.text.contains("0"),"Starter screen uses real Level, Gold and SP data")
+ for i in range(14):
+  var slot:TextureButton=skills.skill_slots[i]
+  var expected:String="slot_empty" if i<3 else "slot_locked"
+  check(slot.texture_normal.resource_path=="res://assets/ui/red_matte/"+expected+".png","Novice skill slot is reused from standalone inventory PNG, no screenshot crop: "+str(i+1))
+  check(slot.disabled==(i>=3),"Only three starter skill cells are available; others are reserved")
+ for hotbar in skills.active_slots:
+  check(hotbar.texture_normal.resource_path=="res://assets/ui/red_matte/slot_empty.png","Empty hotbar reuses unchanged inventory slot PNG")
+ check(skills.upgrade_button.disabled and skills.preview_buttons.all(func(b):return b.disabled),"Absent skill data cannot consume real money/SP or play fake animations")
+ check(not ui.footer_buttons[0].visible and ui.footer_buttons[5].visible,"Only the real Close action remains in Skill screen footer")
+ var before_sp:int=int(store.profile["skill_points"])
+ var before_gold:String=str(store.currency.gold)
+ skills._empty_skill_selected("NoviceSkillSlot01")
+ check(int(store.profile["skill_points"])==before_sp and str(store.currency.gold)==before_gold,"Empty skill cell cannot silently upgrade or charge")
+ ui.set_language("en")
+ check(skills.class_label.text=="Novice" and skills.current_skills_tab.text.contains("Novice"),"Novice Skill headings translate dynamically, no baked text")
+ ui.set_language("th")
  ui._switch_tab(3)
  check(ui.shop_panel.visible and ui.bag_panel.visible and not ui.equipment_panel.visible,"Shop shows player bag on the LEFT and shop stock on the RIGHT")
  check(ui.shop_panel.get_children().all(func(n): return not (n is NinePatchRect)),"Shop panel has no decorative perimeter border")
- check(not ui.waiting_panel.visible,"Shop is usable, not a placeholder")
+ check(not ui.waiting_panel.visible and not ui.skill_panel.visible,"Shop stays isolated from Novice Skill UI")
  check(ui.bag_panel.position==Vector2(-655,0),"Existing 200-slot bag is reused on the left in Shop")
  check(ui.shop_grid.columns==10 and ui.shop_grid.get_child_count()==50,"Shop has 10x5 sellable stock slots")
  check(ui.shop_stock_label.text=="21 / 500","Shop catalog reserves 500 future item slots")
@@ -439,6 +462,9 @@ func validate() -> void:
   ui._switch_tab(0)
   ui._switch_tab(1)
   check(ui.character_panel.visible and ui.character_values["strength"].text!="","Character data still available on resized mobile viewport")
+  ui._switch_tab(2)
+  check(ui.skill_panel.visible and ui.skill_panel.skill_slots[0].get_global_rect().size.x>=44,"Novice skill cells are touch-friendly at portrait and landscape screen sizes")
+  check(ui.skill_panel.active_slots[0].get_global_rect().size.x>=44,"Starter quick-skill slots are touch-friendly on mobile")
   ui._switch_tab(0)
  root.size = Vector2i(1440,1100)
  await process_frame

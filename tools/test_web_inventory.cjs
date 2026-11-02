@@ -218,7 +218,13 @@ async function swipe(dx,dy){
   await snap('web-character-en');
   await clickRect((await state()).tabs[2]);
   await until(()=>window.__leoQA.tab===2);
-  check((await state()).waiting==='Skills are not available yet','Skill placeholder is truthful');
+  let skills=await state();
+  check(skills.skill_visible&&!skills.skill_preview_empty===false,'Real Novice Skill tab loads with intentionally empty animation preview');
+  check(skills.skill_class_name==='Novice','Current character job, not a job selection sidebar, determines Skill page');
+  check(skills.skill_cell_count===14&&skills.skill_available_cells===3&&skills.skill_hotbar_count===3,'Novice has 3 available starter slots in reserved 14-cell PNG grid plus 3 hotbar slots');
+  check(skills.skill_slot_pngs.slice(0,3).every(p=>p.endsWith('/red_matte/slot_empty.png'))&&skills.skill_slot_pngs.slice(3).every(p=>p.endsWith('/red_matte/slot_locked.png')),'Every skill slot reuses the original inventory PNG rather than cropping a mockup');
+  check(skills.skill_upgrade_disabled,'No fake skill upgrade/payment without authoring real skill data');
+  await snap('web-skill-novice-en');
   await clickRect((await state()).tabs[3]);
   await until(()=>window.__leoQA.tab===3&&window.__leoQA.shop_visible);
   q=await state();
