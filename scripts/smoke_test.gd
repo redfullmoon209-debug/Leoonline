@@ -1109,6 +1109,8 @@ func validate() -> void:
  store.skill_hotbar[2]="novice_guard"
  combat.stamina=combat.max_stamina
  combat.cooldowns.clear()
+ combat.stop_auto_attack()
+ combat.basic_attack_seconds=0.0
  game.character.global_position=real_training_target.global_position+Vector3(0,0,2.8)
  game._set_test_target(real_training_target)
  check(game._cast_hotbar_slot(0),"Real starter Slash casts with T/click locked target at 2.8m")
@@ -1120,44 +1122,84 @@ func validate() -> void:
   "Existing target HP card updates after a real slash, not a test-only GM slider")
  check(not game._cast_hotbar_slot(0) and is_equal_approx(float(real_training_target.get_meta("hp")),after_slash),
   "Novice Slash cooldown prevents spam, with no phantom second damage")
- # Normal ATK has independent timing and never consumes Skill 1/2/3
- # cooldown or stamina, so it is usable WHILE Slash is recharging.
+ # Pressing Slash now activates persistent ATK pursuit. The initial
+ # Slash deals its own skill damage, then ordinary hits resume without
+ # consuming stamina or interfering with the skill's cooldown.
+ check(combat.is_auto_attacking() and combat.auto_target==real_training_target,
+  "Pressing skill 1 starts automatic follow-up normal attacks")
  var basic_stamina_before:float=float(combat.stamina)
  var slash_cd_before:float=float(combat.cooldown_left("novice_slash"))
- check(game._normal_attack(),"Basic ATK hits the same real target while skill 1 is on cooldown")
+ combat.advance_auto_attack(0.016)
  var after_basic_atk:float=float(real_training_target.get_meta("hp"))
  check(after_basic_atk<after_slash and is_equal_approx(float(combat.stamina),basic_stamina_before),
-  "Ordinary ATK lowers actual enemy HP without consuming stamina")
+  "Auto-ATK lowers real target HP during a skill cooldown, for ZERO stamina")
  check(is_equal_approx(float(combat.cooldown_left("novice_slash")),slash_cd_before)
   and combat.basic_attack_left()>0.0,
-  "ATK has only a short independent sword-swing interval, not a skill cooldown")
- check(not game._normal_attack() and is_equal_approx(float(real_training_target.get_meta("hp")),after_basic_atk),
-  "One tap cannot duplicate an ATK hit during the same sword swing")
+  "Normal ATK swings every 0.52 seconds without affecting skill cooldown")
+ check(not combat.basic_attack() and is_equal_approx(float(real_training_target.get_meta("hp")),after_basic_atk),
+  "Repeated auto tick during one sword swing cannot double-hit")
+ novice_touch._process(0.0)
+ check(atk_button.text=="หยุด" and not atk_button.disabled,
+  "Auto-ATK button changes to Stop and can cancel DURING a swing cooldown")
+ check(game._normal_attack() and not combat.is_auto_attacking(),
+  "Second ATK/J press toggles off chasing and continuous slashes")
+ novice_touch._process(0.0)
+ check(atk_button.text=="ATK","ATK label returns after stopping continuous attack")
  combat._process(0.53)
  novice_touch._process(0.0)
  var before_button_hit:float=float(real_training_target.get_meta("hp"))
  atk_button.pressed.emit()
- check(float(real_training_target.get_meta("hp"))<before_button_hit,
-  "Pressing visible ATK button invokes real normal combat, not a dead UI placeholder")
+ check(combat.is_auto_attacking() and float(real_training_target.get_meta("hp"))<before_button_hit,
+  "Visible ATK button starts real automatic sword combat immediately when nearby")
+ combat._process(0.55)
+ var before_auto_repeat:float=float(real_training_target.get_meta("hp"))
+ combat.advance_auto_attack(0.016)
+ check(float(real_training_target.get_meta("hp"))<before_auto_repeat
+  and is_equal_approx(float(combat.stamina),basic_stamina_before),
+  "ATK repeatedly damages a living enemy every swing without any extra button taps")
  combat._process(0.85)
  check(float(combat.cooldown_left("novice_slash"))<=0.01,
-  "Starter Slash recovers exactly after its 0.8-second cooldown")
- # No-target/out-of-range skill attempts must not spend stamina or trigger cooldowns.
+  "Starter Slash independently recovers after its 0.8-second cooldown")
  hud_menu.clear_target()
+ combat.advance_auto_attack(0.016)
+ check(not combat.is_auto_attacking(),
+  "Clearing the locked target cancels automatic pursuit and attacks")
  var before_failed_stamina:float=float(combat.stamina)
  combat._process(0.54)
  check(not game._normal_attack() and combat.basic_attack_left()<=0.0,
-  "Normal ATK requires a real locked, living target")
+  "ATK without a locked target is rejected without charging resources")
  check(not game._cast_hotbar_slot(0) and is_equal_approx(float(combat.stamina),before_failed_stamina),
-  "No-target Slash is rejected without consuming resources")
+  "A targeted skill without a living locked enemy cannot start a chase")
+ # Both ATK and targeted skills should follow via actual CharacterBody
+ # movement at run speed, without spending stamina/cooldown while far.
  game._set_test_target(real_training_target)
  game.character.global_position=real_training_target.global_position+Vector3(0,0,7.5)
  var far_hp:float=float(real_training_target.get_meta("hp"))
- check(not game._normal_attack() and is_equal_approx(float(real_training_target.get_meta("hp")),far_hp)
-  and combat.basic_attack_left()<=0.0,
-  "Out-of-range ATK deals no damage and does not lock a cooldown")
- check(not game._cast_hotbar_slot(0) and float(combat.cooldown_left("novice_slash"))<=0.01,
-  "Novice Slash rejects distant target without starting cooldown")
+ check(game._normal_attack() and combat.is_auto_attacking()
+  and is_equal_approx(float(real_training_target.get_meta("hp")),far_hp)
+  and combat.auto_run_direction().length_squared()>0.1,
+  "Out-of-range ATK starts running to the target rather than dealing phantom damage")
+ var cost_before_queue:float=float(combat.stamina)
+ check(game._cast_hotbar_slot(0) and combat.queued_combat_skill=="novice_slash"
+  and combat.cooldown_left("novice_slash")<=0.01
+  and is_equal_approx(float(combat.stamina),cost_before_queue),
+  "Out-of-range Slash queues an approach without consuming cooldown or stamina")
+ for auto_frame in range(100):
+  await physics_frame
+ check(combat._distance_to(real_training_target)<=combat.BASIC_ATTACK_RANGE
+  and float(real_training_target.get_meta("hp"))<far_hp and combat.queued_combat_skill=="",
+  "Character RUNS into sword range, casts queued Slash once and continues basic attacks")
+ var repeat_after_queued:float=float(real_training_target.get_meta("hp"))
+ for auto_repeat_frame in range(45):
+  await physics_frame
+ check(float(real_training_target.get_meta("hp"))<repeat_after_queued and combat.is_auto_attacking(),
+  "After completing a requested skill, normal ATK continues until stopped or target death")
+ # The player's actual movement input always overrides the automated run.
+ combat.cancel_auto_for_manual_input()
+ check(not combat.is_auto_attacking() and combat.queued_combat_skill=="",
+  "Manual WASD/joystick movement cancels both pursuit and queued skill")
+ game.character.global_position=real_training_target.global_position+Vector3(0,0,7.5)
+ combat.cooldowns.clear()
  var before_rush_health:float=float(real_training_target.get_meta("hp"))
  var stamina_before_rush:float=float(combat.stamina)
  var start_rush_pos:Vector3=game.character.global_position
@@ -1198,9 +1240,35 @@ func validate() -> void:
  game.character.global_position=real_training_target.global_position+Vector3(0,0,2.7)
  game._set_test_target(real_training_target)
  var zero_stamina_enemy_hp:float=float(real_training_target.get_meta("hp"))
+ combat.stop_auto_attack()
  check(game._normal_attack() and float(real_training_target.get_meta("hp"))<zero_stamina_enemy_hp
   and is_equal_approx(float(combat.stamina),0.0),
   "Ordinary ATK needs zero stamina even when all stamina-consuming skills are exhausted")
+ # Retargeting while ATK is active must keep the auto-mode on, but
+ # never execute an old queued skill on a newly selected enemy.
+ combat.stop_auto_attack()
+ combat.basic_attack_seconds=0.0
+ game.character.global_position=real_training_target.global_position+Vector3(0,0,7.5)
+ game._set_test_target(real_training_target)
+ combat.cooldowns.clear()
+ check(game._cast_hotbar_slot(0) and combat.queued_combat_skill=="novice_slash",
+  "An out-of-range skill remains pending until the player reaches its range")
+ var next_target:StaticBody3D=game.test_targets[1]
+ var next_hp:float=float(next_target.get_meta("hp"))
+ game._set_test_target(next_target)
+ combat.auto_run_direction()
+ check(combat.is_auto_attacking() and combat.auto_target==next_target
+  and combat.queued_combat_skill=="",
+  "Changing targets automatically transfers ATK chase without miscasting queued skills")
+ next_target.set_meta("hp",0.0)
+ combat.advance_auto_attack(0.016)
+ check(not combat.is_auto_attacking(),
+  "A dead locked target always STOPS attacks; no phantom hits or unexpected new targets")
+ next_target.set_meta("hp",next_hp)
+ # A resurrected enemy never starts attacking by itself.
+ combat.advance_auto_attack(0.016)
+ check(not combat.is_auto_attacking(),
+  "Respawn does not silently restart auto combat")
  real_training_target.set_meta("hp",1.0)
  combat.cooldowns.clear()
  combat.basic_attack_seconds=0.0
@@ -1212,6 +1280,7 @@ func validate() -> void:
  check(is_equal_approx(float(real_training_target.get_meta("hp")),float(real_training_target.get_meta("max_hp"))),
   "Defeated training monsters recover after 8 seconds so combat can be tested repeatedly")
  combat.reset_training_targets()
+ check(not combat.is_auto_attacking(),"GM reset cannot preserve an invisible automated attack")
  combat.cooldowns.clear()
  combat.basic_attack_seconds=0.0
  combat.guard_seconds=0.0
