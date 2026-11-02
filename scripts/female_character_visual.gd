@@ -21,6 +21,13 @@ var bone_bind_pose: Dictionary = {}
 var bone_indices: Dictionary = {}
 var frame_count: int = 0
 var stride_clock: float = 0.0
+# A brief additive swing on the actual Mixamo arm, layered over the
+# user's untouched Walk/Run FBX bone tracks. No fake attack asset.
+var basic_attack_time:float=0.0
+const BASIC_ATTACK_DURATION:float=0.34
+
+func play_basic_attack() -> void:
+ basic_attack_time=BASIC_ATTACK_DURATION
 
 func _ready() -> void:
     if not ResourceLoader.exists(MODEL_PATH):
@@ -166,6 +173,7 @@ func _load_uploaded_run_tracks() -> void:
 func animate_motion(direction: Vector3, is_sprinting: bool, delta: float) -> void:
     if not visual_loaded:
         return
+    basic_attack_time=maxf(0.0,basic_attack_time-delta)
     var moving: bool = direction.length_squared() > 0.01
     if moving:
         var yaw: float = atan2(-direction.x, -direction.z)
@@ -205,5 +213,16 @@ func animate_motion(direction: Vector3, is_sprinting: bool, delta: float) -> voi
                         lerpf(float(a[2]), float(b[2]), fraction)
                     ) * (PI / 180.0)
                     pose = rest * Quaternion.from_euler(euler)
+        # Real, short right-arm swing on the imported Mixamo skeleton.
+        # Only the arm bones are affected; every original mesh/texture and
+        # walking animation track remains exactly as loaded from the FBX.
+        if basic_attack_time>0.0:
+            var phase:float=1.0-basic_attack_time/BASIC_ATTACK_DURATION
+            var swing:float=sinf(phase*PI)
+            var bone_name:String=str(name).to_lower()
+            if bone_name.contains("rightarm") and not bone_name.contains("forearm"):
+                pose=pose*Quaternion(Vector3.RIGHT,-1.25*swing)
+            elif bone_name.contains("rightforearm"):
+                pose=pose*Quaternion(Vector3.RIGHT,-0.35*swing)
         var current: Quaternion = skeleton.get_bone_pose_rotation(idx)
-        skeleton.set_bone_pose_rotation(idx, current.slerp(pose, clampf(delta * 12.0, 0.0, 1.0)))
+        skeleton.set_bone_pose_rotation(idx, current.slerp(pose, clampf(delta * 19.0 if basic_attack_time>0.0 else delta * 12.0, 0.0, 1.0)))
