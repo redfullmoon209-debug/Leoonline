@@ -55,7 +55,7 @@ async function runLiveGame(browser,{width,height,mobile}){
   let data=await state();
   check(data.hud_landscape_preview===true,'Runtime accepts landscape test UI flag: '+scenario);
   check(data.hud_row.length===10,'All ten independent menu controls retained: '+scenario);
-  check(data.hud_icon_paths.every(x=>x.endsWith('.svg')),'All ten menu pictograms are individually sourced ring-free vectors: '+scenario);
+  check(data.hud_png_paths.every(x=>x.endsWith('.png')),'All ten menu buttons use their original PNG art unchanged: '+scenario);
   check(data.hud_joystick_visible&&data.hud_touch_jump_visible&&data.hud_touch_pickup_visible&&data.hud_touch_run_visible&&data.hud_touch_target_visible,
     'Joystick, Jump, Pickup, Run and TARGET work in landscape mode: '+scenario);
   check(data.hud_profile_bounds[2]>100&&data.hud_minimap_bounds[2]>=88,
