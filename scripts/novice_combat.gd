@@ -191,6 +191,13 @@ func receive_damage(raw:float) -> float:
  _update_feedback()
  return dealt
 
+func reset_training_targets() -> void:
+ # GM reset also cancels any pending auto-respawn from previous defeats.
+ _defeated.clear()
+ rush_active=false
+ rush_target=null
+ rush_remaining=0.0
+
 func _player_defeated() -> void:
  # Local training respawn, no deletion or mutation of saved progression.
  rush_active=false
