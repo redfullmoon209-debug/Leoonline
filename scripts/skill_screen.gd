@@ -75,7 +75,7 @@ func _panel(name: String,parent: Node,x: float,y: float,w: float,h: float) -> Co
  var preview:bool=name=="SkillPreviewFrame"
  var header:bool=name=="SkillRightTopPanel"
  var foot:bool=name=="SkillCurrentStatsFrame" or name=="SkillNextStatsFrame"
- finish.set_shader_parameter("upper_tint",Color("#300d19") if preview else (Color("#481021") if header else (Color("#41101b") if foot else Color("#380c1a")))
+ finish.set_shader_parameter("upper_tint",Color("#300d19") if preview else (Color("#481021") if header else (Color("#41101b") if foot else Color("#380c1a"))))
  finish.set_shader_parameter("lower_tint",Color("#14070d") if preview else Color("#17060e"))
  finish.set_shader_parameter("flare_tint",Color("#ff5f35") if preview else Color("#ff3449"))
  finish.set_shader_parameter("warmth",1.55 if preview else (1.35 if header else 1.0))
