@@ -699,25 +699,49 @@ func validate() -> void:
    "GM selects correct job and career stage: "+str(entry["id"]))
   check(skills.class_label.text==str(entry["th"]) and top.player_job.text==("Novice" if profession_index==0 else str(entry["th"])),
    "Skill page and world HUD reflect GM selected profession: "+str(entry["id"]))
-  var available_count:int=3 if profession_index==0 else (14 if int(entry["tier"])==1 else 0)
+  var available_count:int=3 if profession_index==0 else 14
   check(skills.skill_slots.filter(func(cell):return not cell.disabled).size()==available_count,
-   "Skill grid unlocks only real defined skill slots, never missing stage-2 skills: "+str(entry["id"]))
+   "All 12 careers use the original fourteen slot positions: "+str(entry["id"]))
   # All first-tier job icons are independently generated PNGs and reuse
   # the SAME Godot controls/positions with no line/border decorations.
-  if int(entry["tier"])==1:
+  if int(entry["tier"])>=1:
    var class_catalog=load("res://scripts/skill_catalog.gd")
    var class_skills:Array=class_catalog.skills_for_job(str(entry["id"]))
-   check(class_skills.size()==14,"First-tier profession has 14 authored skill entries: "+str(entry["id"]))
+   check(class_skills.size()==14,"All twelve professions define fourteen skills: "+str(entry["id"]))
+   var count_active:int=0
+   var count_passive:int=0
+   var count_buff:int=0
    for skill_index in range(class_skills.size()):
     var skill_def:Dictionary=class_skills[skill_index]
+    var skill_id:String=str(skill_def["id"])
+    var kind:String=str(skill_def["kind"])
     var skill_path:String=str(skill_def["icon"])
     var painted:TextureRect=skills.skill_slots[skill_index].get_node_or_null("SkillArt") as TextureRect
-    check(ResourceLoader.exists(skill_path),"Separate PNG exists: "+str(skill_def["id"]))
-    check(painted!=null and painted.texture!=null and painted.texture.resource_path==skill_path,
-     "Original skill slot shows correct individual icon: "+str(skill_def["id"]))
+    if kind=="active":count_active+=1
+    elif kind=="passive":
+     count_passive+=1
+     check(class_catalog.is_passive(str(entry["id"]),skill_id) and not class_catalog.is_equippable(str(entry["id"]),skill_id),
+      "Passive is uncastable and cannot be equipped: "+skill_id)
+    elif kind=="timed_buff":
+     count_buff+=1
+     check(class_catalog.is_equippable(str(entry["id"]),skill_id) and int(skill_def["duration_seconds"])>=60 and int(skill_def["duration_seconds"])<=180,
+      "Timed buff lasts 1–3 minutes and can equip: "+skill_id)
+    if int(entry["tier"])==1:
+     check(ResourceLoader.exists(skill_path),"Separate Tier-1 PNG preserved: "+skill_id)
+     check(painted!=null and painted.texture!=null and painted.texture.resource_path==skill_path,
+      "Original skill slot keeps its PNG without cropping: "+skill_id)
+    else:
+     check(skill_path=="" and painted!=null and painted.texture==null,
+      "Tier-2 art remains empty until each independent PNG exists: "+skill_id)
+   check(count_active==8 and count_passive==4 and count_buff==2,
+    "Exactly 8 Active + 4 Passive + 2 timed Buff per profession: "+str(entry["id"]))
    var first_equipped:TextureRect=skills.active_slots[0].get_node_or_null("SkillArt") as TextureRect
-   check(first_equipped!=null and first_equipped.texture!=null,
-    "GM preview reuses original three-slot skill hotbar: "+str(entry["id"]))
+   check(first_equipped!=null and (first_equipped.texture!=null if int(entry["tier"])==1 else first_equipped.texture==null),
+    "GM hotbar original slots preserved, Tier-2 art is pending: "+str(entry["id"]))
+   check(not skills.previous_page_button.visible and not skills.next_page_button.visible and skills.skill_page==0,
+    "No extra button visible while 14 skill slots fit the original layout")
+   check(skills._page_count(14)==1 and skills._page_count(15)==2 and skills._page_count(29)==3,
+    "Additional skills automatically create page 2, page 3 as necessary")
    skills._skill_cell_selected("NoviceSkillSlot09")
    check(skills.selected_skill==str(class_skills[8]["id"]) and skills.slot_label.text==str(class_skills[8]["th"]),
     "Existing skill slot selects skill specific to chosen profession: "+str(entry["id"]))
@@ -725,10 +749,14 @@ func validate() -> void:
    var preserved_real:Array=store.skill_hotbar.duplicate()
    var passive_id:String=str(class_skills[7]["id"])
    var timed_id:String=str(class_skills[12]["id"])
-   check(class_catalog.skill_kind(passive_id)=="passive" and class_catalog.skill_kind(str(class_skills[11]["id"]))=="passive",
-    "Each first-tier profession explicitly defines permanent, noncastable body passives")
-   check(class_catalog.skill_kind(timed_id)=="timed_buff" and int(class_skills[12]["duration_seconds"])>=60 and int(class_skills[12]["duration_seconds"])<=180,
-    "Each first-tier profession includes one castable buff lasting 1 to 3 minutes")
+   for passive_index in [7,9,10,11]:
+    check(class_catalog.skill_kind(str(class_skills[passive_index]["id"]))=="passive",
+     "All four body skills are always passive: "+str(class_skills[passive_index]["id"]))
+   for timed_index in [3,12]:
+    check(class_catalog.skill_kind(str(class_skills[timed_index]["id"]))=="timed_buff",
+     "Both active timed buffs have real cooldown timers: "+str(class_skills[timed_index]["id"]))
+   check(class_catalog.skill_kind(passive_id)=="passive" and class_catalog.skill_kind(timed_id)=="timed_buff",
+    "Existing skill IDs and purchased upgrades keep their previous category")
    skills._skill_cell_selected("NoviceSkillSlot08")
    check(skills.selected_skill==passive_id and skills.hint_label.text.contains("ห้ามใส่ช่อง"),
     "A passive shows clear permanent-stat/non-equippable details")
@@ -771,8 +799,8 @@ func validate() -> void:
  gm._open_skill_view()
  check(not gm.is_open() and game.open and ui.visible and ui.current_tab==2 and skills.visible,
   "GM opens matching Skill page without an in-Skill profession selector")
- check(skills.skill_slots.filter(func(cell):return not cell.disabled).size()==0,
-  "Unimplemented Tier 2 has no fake equippable skills, keeping original grid intact")
+ check(skills.skill_slots.filter(func(cell):return not cell.disabled).size()==14,
+  "Tier-2 careers now preview 14 metadata-only skills with no fake PNG art")
  game._toggle()
  check(not game.open and not ui.visible,"GM preview Skill closes using the regular Inventory controller")
  gm._toggle()
@@ -846,6 +874,18 @@ func validate() -> void:
   "Reload never converts a temporary buff into a permanent one")
  check(int(store.skill_levels.get("earth_1_08",0))==1,
   "Passive upgrade persists independently of temporary buff")
+ # Second (new) body passive upgrades VIT without casting or hotbar use.
+ check(store.upgrade_passive_skill("earth_1_10"),"New third body passive is independently learnable")
+ check(int(store.skill_levels.get("earth_1_10",0))==1 and int(store.profile["skill_points"])==1 and str(store.currency.gold)=="1100",
+  "A second passive costs its own point and exact gold amount")
+ check(int(store.character_snapshot()["profile"]["attributes"]["vitality"])==int(stat_base["vitality"])+2,
+  "A new body passive permanently increases VIT")
+ check(not store.equip_skill_to_hotbar(1,"earth_1_10") and not store.activate_skill("earth_1_10"),
+  "New passive cannot bypass hotbar or skill-casting restrictions")
+ check(store.save_data(),"Save two independent learned passive levels")
+ store.load_data()
+ check(int(store.skill_levels.get("earth_1_08",0))==1 and int(store.skill_levels.get("earth_1_10",0))==1,
+  "Both previously learned and new passives survive real save/load")
  store.profile=profile_backup
  store.skill_levels=levels_backup
  store.skill_hotbar.clear()
