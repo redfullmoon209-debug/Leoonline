@@ -134,7 +134,7 @@ func _make_character() -> void:
  var female_visual := load("res://scripts/female_character_visual.gd").new() as Node3D
  female_visual.name = "FemalePlayerVisual"
  character.add_child(female_visual)
- if female_visual.visual_loaded:
+ if female_visual.get("visual_loaded") == true:
   mesh.visible = false
  else:
   mesh.visible = true
@@ -334,9 +334,9 @@ func _make_demo_targets() -> void:
    if node is MeshInstance3D: node.visible = false
   var preview := load("res://scripts/female_character_visual.gd").new() as Node3D
   preview.name = "FemaleBotVisual"
-  preview.feet_y = -1.05
+  preview.set("feet_y", -1.05)
   luna.add_child(preview)
-  if not preview.visual_loaded:
+  if preview.get("visual_loaded") != true:
    for node in luna.get_children():
     if node is MeshInstance3D: node.visible = true
 
