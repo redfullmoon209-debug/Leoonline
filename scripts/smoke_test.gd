@@ -477,7 +477,7 @@ func validate() -> void:
    check(game.hud.get_node("OpenInventory").texture_normal.resource_path==icon_path,"Bag button loads standalone ring-free SVG instead of gold medallion PNG")
   else:
    check((control.get_node("Glyph") as TextureRect).texture.resource_path==icon_path,"HUD renders vector pictogram without ring or base: "+key)
-    check(control.get_node_or_null("GlyphShadow")!=null,"The independent ring-free symbol has a legibility shadow: "+key)
+   check(control.get_node_or_null("GlyphShadow")!=null,"The independent ring-free symbol has a legibility shadow: "+key)
  check(prior_rect.end.x<game.hud_menu.size.x-150.0,"Ten-icon row leaves free space for the right-hand minimap")
  check(hud_menu.controls["bag"].position.x>265.0,"Ten-icon row leaves room for the left-hand character portrait")
  check(hud_menu.controls["events"].get_global_rect().end.x < hud_menu.top_status.minimap_button.get_global_rect().position.x,
