@@ -1,4 +1,5 @@
 extends Node3D
+const RedButtonStyle = preload("res://scripts/ui_button_style.gd")
 const StoreScript = preload("res://scripts/store.gd")
 var store: Node
 var character: CharacterBody3D
@@ -427,8 +428,7 @@ func _style(bg: String,border: String) -> StyleBoxFlat:
 func _button(label: String,call: Callable,parent: Node) -> Button:
  var b := Button.new()
  b.text = label
- b.add_theme_stylebox_override("normal",_style("#102e52","#43b5e9"))
- b.add_theme_stylebox_override("hover",_style("#225685","#f4ca70"))
+ RedButtonStyle.apply(b)
  b.add_theme_color_override("font_color",Color.WHITE)
  b.add_theme_font_size_override("font_size",14)
  b.pressed.connect(call)
