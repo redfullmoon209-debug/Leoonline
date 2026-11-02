@@ -159,7 +159,7 @@ func _show_selected() -> void:
  (get_node("SkillTypeCaption") as Label).text=_tr("ประเภท","Type")+" : "+str(item["type_en" if is_en else "type_th"])
  (get_node("SkillCooldownCaption") as Label).text=_tr("คูลดาวน์","Cooldown")+" : "+str(item["cooldown"])
  (get_node("SkillStaminaCaption") as Label).text=_tr("ใช้สตามินา","Stamina")+" : "+str(item["stamina"])
- var selected:TextureButton=get_node("SelectedSkillIcon")
+ var selected:TextureButton=get_node("SelectedSkillIcon") as TextureButton
  var art:String=str(item["icon"])
  _paint_skill(selected,art)
  current_level_label.text=_tr("เลือกแล้ว · พร้อมติดตั้ง","Selected · ready to equip")
@@ -174,8 +174,8 @@ func _paint_skill(cell:TextureButton,path:String) -> void:
   overlay.mouse_filter=Control.MOUSE_FILTER_IGNORE
   overlay.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
   overlay.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-  overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
   cell.add_child(overlay)
+  overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  overlay.texture=load(path) as Texture2D if ResourceLoader.exists(path) else null
 
 func _update_skill_icons() -> void:
@@ -191,13 +191,18 @@ func _equip_to(index:int) -> void:
  if index<0 or index>=active_slots.size() or selected_skill=="":return
  var id:String=str(game_store.effective_job_info().get("id","Novice"))
  if not SkillCatalog.belongs_to_job(id,selected_skill):return
+ # Local GM class-switching is a read-only preview of future professions.
+ if str(game_store.gm_preview_job_id)=="": 
+  if not bool(game_store.equip_skill_to_hotbar(index,selected_skill)):
+   hint_label.text=_tr("ไม่สามารถบันทึกช่องสกิลได้","Could not save equipped skill")
+   return
  preview_loadout[index]=selected_skill
  _update_skill_icons()
- hint_label.text=_tr("ติดตั้งในช่อง "+str(index+1)+" แล้ว (ทดสอบ UI)","Assigned to slot "+str(index+1)+" (UI preview)")
+ hint_label.text=_tr("ติดตั้งสกิลช่อง "+str(index+1)+" แล้ว","Skill equipped in slot "+str(index+1))
 
 func _empty_skill_selected(_name: String) -> void:
- # This stage has deliberately NO skill icons, stats, or fake attack effects.
- hint_label.text=_tr("รอเพิ่มรูป PNG และข้อมูลสกิลจริง","Awaiting real skill PNGs and definitions")
+ # Unimplemented advanced professions have deliberately empty slots.
+ hint_label.text=_tr("ช่องนี้ยังไม่มีสกิลที่อนุมัติ","This skill slot has no approved ability yet")
 
 func _empty_preview() -> void:
  hint_label.text=_tr("เพิ่มอนิเมชันท่าสกิลภายหลัง","Animations will be added after skill moves are authored")
@@ -354,6 +359,16 @@ func refresh() -> void:
  if not is_instance_valid(level_label) or game_store==null:return
  var profile:Dictionary=game_store.profile
  var profession:Dictionary=game_store.effective_job_info()
+ if str(game_store.gm_preview_job_id)=="":
+  var saved_hotbar:Variant=game_store.skill_hotbar
+  if saved_hotbar is Array and saved_hotbar.size()==3:
+   for i in range(3):preview_loadout[i]=str(saved_hotbar[i])
+ var current_job:String=str(profession.get("id","Novice"))
+ if selected_skill!="" and not SkillCatalog.belongs_to_job(current_job,selected_skill):
+  selected_skill=""
+  _paint_skill(get_node("SelectedSkillIcon") as TextureButton,"")
+  slot_label.text=_tr("ยังไม่ได้เลือกสกิล","No skill selected")
+  description_label.text=_tr("เลือกไอคอนสกิลเพื่อดูข้อมูล","Choose a skill icon for details")
  var tier:int=int(profession.get("tier",0))
  var novice:bool=tier==0
  var label_key:String="en" if locale=="en" else "th"
