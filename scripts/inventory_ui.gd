@@ -1328,7 +1328,7 @@ func _adapt_layout() -> void:
  # Close action remains visible and every other tab keeps its existing UI.
  for i in range(footer_buttons.size()):
   footer_buttons[i].visible = current_tab!=2 or i==5
- header_label.text = _tr("Storage & Inventory") if storage_mode else (_tr("Inventory & Shop") if current_tab==3 else (_tr("Character Information") if current_tab==1 else (_tr("LEOONLINE · หน้าสกิล","LEOONLINE · SKILL") if current_tab==2 else "LEOONLINE · INVENTORY")))
+ header_label.text = _tr("Storage & Inventory") if storage_mode else (_tr("Inventory & Shop") if current_tab==3 else (_tr("Character Information") if current_tab==1 else (("LEOONLINE · หน้าสกิล" if locale=="th" else "LEOONLINE · SKILL") if current_tab==2 else "LEOONLINE · INVENTORY")))
  for i in range(tab_buttons.size()):
   tab_buttons[i].add_theme_color_override("font_color",Color.WHITE if i==current_tab else Color("#ffde93"))
   _red_button(tab_buttons[i],"tab_active" if i==current_tab else "tab_idle")
