@@ -16,6 +16,8 @@ on:
       - 'tools/create_mobile_shell.py'
       - 'tools/create_landscape_shell.py'
       - 'tools/test_landscape_shell.cjs'
+      - 'tools/check_female_asset.gd'
+      - 'tools/prepare_female_character.py'
 permissions:
   contents: read
   pages: write
