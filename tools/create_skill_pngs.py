@@ -55,5 +55,10 @@ def write(path,pixels):
  path.write_bytes(hdr)
 
 for i,name in enumerate(("novice_slash.png","novice_rush.png","novice_guard.png")):
- write(OUT/name,pixel_image(i))
- print(OUT/name)
+ target=OUT/name
+ if target.exists():
+  # Never overwrite the three original hand-authored independent PNG icons.
+  print("Keep shipped skill icon:",target)
+  continue
+ write(target,pixel_image(i))
+ print("Fallback skill icon:",target)
