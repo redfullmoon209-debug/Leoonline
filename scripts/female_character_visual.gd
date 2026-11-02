@@ -250,9 +250,12 @@ func _attach_training_sword_to_right_hand() -> void:
  if is_instance_valid(sword_attachment):return
  sword_attachment=BoneAttachment3D.new()
  sword_attachment.name="RightHandSwordSocket"
- sword_attachment.bone_name=str(skeleton.get_bone_name(right_hand_index))
- sword_attachment.bone_idx=right_hand_index
+ # BoneAttachment3D finds its Skeleton3D WHEN it enters the tree.
+ # Resolve the actual RightHand bone only after parenting the socket.
  skeleton.add_child(sword_attachment)
+ sword_attachment.bone_idx=right_hand_index
+ sword_attachment.bone_name=str(skeleton.get_bone_name(right_hand_index))
+ sword_attachment.on_skeleton_update()
  sword_visual=load("res://scripts/novice_sword_visual.gd").new() as Node3D
  sword_visual.name="NoviceTrainingSword"
  sword_attachment.add_child(sword_visual)
@@ -370,3 +373,7 @@ func animate_motion(direction: Vector3, is_sprinting: bool, delta: float) -> voi
   var current:Quaternion=skeleton.get_bone_pose_rotation(idx)
   var target:Quaternion=poses[idx]
   skeleton.set_bone_pose_rotation(idx,current.slerp(target,clampf(delta*speed,0.0,1.0)))
+ # Match the sword socket to the fully updated right-hand transform in
+ # this same movement frame (do not rely on a deferred skin update).
+ if is_instance_valid(sword_attachment):
+  sword_attachment.on_skeleton_update()
