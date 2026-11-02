@@ -34,4 +34,38 @@ func _check() -> void:
         push_error("Female GLB has no Skeleton3D")
         quit(1)
         return
+    # Prove not just that the GLB exists: verify bones can actually be
+    # matched to the sampled Mixamo walk/run animation tracks. This test
+    # catches a fully rendered but completely frozen T-pose character.
+    var visual: Node3D = load("res://scripts/female_character_visual.gd").new() as Node3D
+    root.add_child(visual)
+    var matched: Dictionary = visual.get("bone_indices")
+    var walk_data: Dictionary = visual.get("walk_bone_tracks")
+    var run_data: Dictionary = visual.get("bone_tracks")
+    print("FEMALE ANIMATION QA: matched bones=", matched.size(),
+          " walk tracks=", walk_data.size(), " run tracks=", run_data.size())
+    if visual.get("visual_loaded") != true or matched.size() < 8:
+        push_error("Female character animation bones did not retarget to the actual GLB rig")
+        quit(1)
+        return
+    if walk_data.size() < 8 or run_data.size() < 8:
+        push_error("Run/Walk animation curves are missing")
+        quit(1)
+        return
+    visual.call("animate_motion", Vector3.FORWARD, false, 0.1)
+    if visual.get("active_motion") != "walk":
+        push_error("Female character walking state is not reachable")
+        quit(1)
+        return
+    visual.call("animate_motion", Vector3.FORWARD, true, 0.1)
+    if visual.get("active_motion") != "run":
+        push_error("Female character sprinting state is not reachable")
+        quit(1)
+        return
+    visual.call("animate_motion", Vector3.ZERO, false, 0.1)
+    if visual.get("active_motion") != "idle":
+        push_error("Female character idle state is not reachable")
+        quit(1)
+        return
+    print("FEMALE ANIMATION QA PASSED: idle/walk/run")
     quit(0)
