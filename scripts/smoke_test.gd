@@ -833,7 +833,7 @@ func validate() -> void:
   "Timed buff boosts attributes only while running")
  check(store.save_data(),"Timed buff can be running during save")
  store.load_data()
- check(store.buff_seconds_left("earth_1_13")==0 and int(store.character_snapshot()["profile"]["attributes"]["vitality"])==int(stat_base["vitality"],
+ check(store.buff_seconds_left("earth_1_13")==0 and int(store.character_snapshot()["profile"]["attributes"]["vitality"])==int(stat_base["vitality"]),
   "Reload never converts a temporary buff into a permanent one")
  check(int(store.skill_levels.get("earth_1_08",0))==1,
   "Passive upgrade persists independently of temporary buff")
