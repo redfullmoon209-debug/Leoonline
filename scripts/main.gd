@@ -601,7 +601,7 @@ func _physics_process(delta: float) -> void:
   visual_direction=combat.rush_target.global_position-character.global_position
   visual_direction.y=0.0
   visual_direction=visual_direction.normalized()
- var speed:float=combat.AUTO_RUN_SPEED if auto_running else (8.0 if sprinting else 5.0)
+ var speed:float=8.0 if auto_running else (8.0 if sprinting else 5.0)
  vel.x=dir.x*speed
  vel.z=dir.z*speed
  character.velocity=vel
