@@ -32,6 +32,8 @@ var last_target_pointer_msec: int = -10000
 var last_target_pointer_position: Vector2 = Vector2(-1000.0,-1000.0)
 var last_target_pointer_kind: int = 0
 var gm_menu: Control
+var combat:Node
+var novice_touch_bar:Control
 
 func _ready() -> void:
  _register_keys()
@@ -43,6 +45,13 @@ func _ready() -> void:
  _make_character()
  _make_training_target()
  _make_demo_targets()
+ # Local Novice combat is initialized before HUD, so the original status
+ # cards and skill hotbar may observe real health, stamina and cooldowns.
+ combat=load("res://scripts/novice_combat.gd").new()
+ combat.name="NoviceCombat"
+ add_child(combat)
+ combat.initialize(self,store)
+ store.novice_combat=combat
  _make_ui()
  var ui911: Node = load("res://scripts/ui911.gd").new()
  add_child(ui911)
@@ -398,6 +407,7 @@ func _reset_gm_test_entities() -> void:
   if not is_instance_valid(target):continue
   if target.has_meta("max_hp"):target.set_meta("hp",target.get_meta("max_hp"))
   if target.has_meta("max_mp"):target.set_meta("mp",target.get_meta("max_mp"))
+ if is_instance_valid(combat):combat.reset_training_targets()
 
 func _toggle_target_lock() -> void:
  if not is_instance_valid(hud_menu) or hud_menu.is_gameplay_blocked():return
@@ -500,6 +510,10 @@ func _make_ui() -> void:
  hud.add_child(hud_menu)
  hud_menu.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  hud_menu.call("initialize",self,store,inventory,bag_button)
+ novice_touch_bar=load("res://scripts/novice_touch_skills.gd").new() as Control
+ novice_touch_bar.name="NoviceWorldSkillHotbar"
+ hud.add_child(novice_touch_bar)
+ novice_touch_bar.call("initialize",self,store,hud_menu)
  # GM remains a completely separate button. It exists only when the
  # opt-in landscape TEST page sets gm_test=1; it is not an online role.
  gm_menu=load("res://scripts/gm_test_panel.gd").new() as Control
@@ -558,23 +572,35 @@ func _physics_process(delta: float) -> void:
   vel.y-=19.6*delta
  elif (Input.is_action_just_pressed("jump") or touch_jump) and not blocked:
   vel.y=7.5
- var v: Vector2=Vector2.ZERO if blocked else Input.get_vector("left","right","forward","back")
+ var in_rush:bool=is_instance_valid(combat) and combat.rush_active
+ var v: Vector2=Vector2.ZERO if blocked or in_rush else Input.get_vector("left","right","forward","back")
  if not blocked and is_instance_valid(hud_menu):
   var touch_move: Vector2=hud_menu.call("get_movement_vector")
-  if touch_move.length()>0.08: v=touch_move
+  if touch_move.length()>0.08 and not in_rush:v=touch_move
  var dir: Vector3=camera_arm.global_basis.x*v.x+camera_arm.global_basis.z*v.y
  dir.y=0
  dir=dir.normalized()
  var sprinting: bool=Input.is_action_pressed("run") or (is_instance_valid(hud_menu) and hud_menu.run_pressed)
+ var visual_direction:Vector3=dir
+ if in_rush and is_instance_valid(combat.rush_target):
+  visual_direction=combat.rush_target.global_position-character.global_position
+  visual_direction.y=0.0
+  visual_direction=visual_direction.normalized()
  var speed: float=8.0 if sprinting else 5.0
  vel.x=dir.x*speed
  vel.z=dir.z*speed
  character.velocity=vel
  character.move_and_slide()
+ if in_rush:combat.advance_rush(delta)
  var female_visual: Node3D = character.get_node_or_null("FemalePlayerVisual") as Node3D
  if female_visual != null and female_visual.visible and female_visual.has_method("animate_motion"):
-  female_visual.call("animate_motion", dir, sprinting, delta)
+  female_visual.call("animate_motion", visual_direction, sprinting or in_rush, delta)
  camera_arm.global_position=character.global_position+Vector3(0,0.2,0)
+
+func _cast_hotbar_slot(slot_index:int) -> bool:
+ if slot_index<0 or slot_index>=3:return false
+ if open or (is_instance_valid(hud_menu) and hud_menu.is_gameplay_blocked()):return false
+ return bool(store.activate_hotbar_slot(slot_index))
 
 func _unhandled_input(event: InputEvent) -> void:
  # Use existing game input (1/2/3) for an ACTUAL equipped, castable skill.
@@ -584,7 +610,7 @@ func _unhandled_input(event: InputEvent) -> void:
   var skill_index:int=key_slots.find(event.keycode)
   if skill_index>=0:
    if not open and (not is_instance_valid(hud_menu) or not hud_menu.is_gameplay_blocked()):
-    store.activate_hotbar_slot(skill_index)
+    _cast_hotbar_slot(skill_index)
    get_viewport().set_input_as_handled()
    return
  if event.is_action_pressed("target") and not event.is_echo():
