@@ -218,7 +218,7 @@ func animate_motion(direction: Vector3, is_sprinting: bool, delta: float) -> voi
         # walking animation track remains exactly as loaded from the FBX.
         if basic_attack_time>0.0:
             var phase:float=1.0-basic_attack_time/BASIC_ATTACK_DURATION
-            var swing:float=sinf(phase*PI)
+            var swing:float=sin(phase*PI)
             var bone_name:String=str(name).to_lower()
             if bone_name.contains("rightarm") and not bone_name.contains("forearm"):
                 pose=pose*Quaternion(Vector3.RIGHT,-1.25*swing)
