@@ -125,8 +125,12 @@ func _process(_delta:float) -> void:
  var combat:Node=game.combat
  if is_instance_valid(atk_button):
   atk_button.visible=true
-  # A half-second physical swing is NOT any of the three skill cooldowns.
-  atk_button.disabled=not is_instance_valid(combat) or float(combat.basic_attack_left())>0.01
+  # ATK must remain clickable between swings: pressing again STOPS pursuit,
+  # even while the 0.52-second attack animation is still recovering.
+  atk_button.disabled=not is_instance_valid(combat)
+  var auto_mode:bool=is_instance_valid(combat) and bool(combat.is_auto_attacking())
+  atk_button.text="หยุด" if auto_mode else "ATK"
+  atk_button.tooltip_text="หยุดวิ่งและโจมตีอัตโนมัติ" if auto_mode else "วิ่งเข้าหาเป้าหมายและตีต่อเนื่อง · กดซ้ำเพื่อหยุด · J"
  for i in range(3):
   skill_buttons[i].visible=touch
   if not touch:continue

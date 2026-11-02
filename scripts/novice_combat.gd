@@ -9,6 +9,9 @@ const SLASH_RANGE:float=3.6
 # a skill cooldown or stamina, and remain usable while skills recharge.
 const BASIC_ATTACK_RANGE:float=3.6
 const BASIC_ATTACK_INTERVAL:float=0.52
+const AUTO_RUN_SPEED:float=8.0
+const AUTO_STOP_MARGIN:float=0.38
+const AUTO_STUCK_SECONDS:float=2.7
 const RUSH_RANGE:float=12.0
 const HIT_RANGE:float=2.55
 const GUARD_DURATION:float=5.0
@@ -38,6 +41,13 @@ var max_stamina:float=100.0
 var guard_seconds:float=0.0
 var cooldowns:Dictionary={}
 var basic_attack_seconds:float=0.0
+# ATK is a toggled combat state, not an additional hotbar skill.
+# A selected monster can be approached, swung at and pursued after skills.
+var auto_attack_enabled:bool=false
+var auto_target:StaticBody3D
+var queued_combat_skill:String=""
+var _auto_stuck_seconds:float=0.0
+var _last_auto_distance:float=INF
 var rush_active:bool=false
 var rush_target:StaticBody3D
 var rush_remaining:float=0.0
@@ -68,19 +78,127 @@ func guard_active() -> bool:
 func basic_attack_left() -> float:
  return maxf(0.0,basic_attack_seconds)
 
-func basic_attack() -> bool:
- # This is NOT a fourth equippable skill: it never uses skill hotbar
- # slots, cooldowns or skill points and has zero stamina cost.
+func is_auto_attacking() -> bool:
+ return auto_attack_enabled
+
+func stop_auto_attack(show_notice:bool=false) -> void:
+ if not auto_attack_enabled and queued_combat_skill=="":return
+ auto_attack_enabled=false
+ auto_target=null
+ queued_combat_skill=""
+ _auto_stuck_seconds=0.0
+ _last_auto_distance=INF
+ if show_notice:game_store.notice.emit("หยุดโจมตีอัตโนมัติ")
+ changed.emit()
+
+func cancel_auto_for_manual_input() -> void:
+ # Player WASD/joystick overrides auto-running immediately and safely.
+ if auto_attack_enabled:stop_auto_attack()
+
+func _set_auto_target(target:StaticBody3D) -> void:
+ auto_attack_enabled=true
+ auto_target=target
+ _auto_stuck_seconds=0.0
+ _last_auto_distance=INF
+ changed.emit()
+
+func _synchronize_auto_target() -> bool:
+ if not auto_attack_enabled:return false
+ if str(game_store.effective_job_info().get("id","Novice"))!="Novice":
+  stop_auto_attack()
+  return false
+ var locked:StaticBody3D=_locked_target()
+ if locked==null:
+  # Dead, deselected, deleted, or otherwise invalid target:
+  # never keep swinging and never auto-select a replacement.
+  stop_auto_attack()
+  return false
+ if locked!=auto_target:
+  # Switching target means retarget ordinary ATK; a skill requested for
+  # the previous enemy must NOT be cast on an unintended new enemy.
+  auto_target=locked
+  queued_combat_skill=""
+  _auto_stuck_seconds=0.0
+  _last_auto_distance=INF
+  changed.emit()
+ return true
+
+func toggle_basic_auto_attack() -> bool:
+ # The ATK key/button toggles pursuit and repeated normal slashes.
+ # It must remain clickable during the 0.52-second swing interval.
+ if auto_attack_enabled:
+  stop_auto_attack(true)
+  return true
  if str(game_store.effective_job_info().get("id","Novice"))!="Novice":return false
- if rush_active:return false
- if basic_attack_left()>0.0:return false
  var target:StaticBody3D=_locked_target()
  if target==null:
-  game_store.notice.emit("ล็อกเป้าหมายที่มี HP ก่อนกด ATK")
+  game_store.notice.emit("ล็อกสไลม์หรือเป้าหมายก่อนกด ATK")
   return false
- if _distance_to(target)>BASIC_ATTACK_RANGE:
-  game_store.notice.emit("เป้าหมายไกลเกินระยะตีธรรมดา")
-  return false
+ _set_auto_target(target)
+ # A close-range press still strikes instantly, preserving the old feel.
+ # From far away, physics drives an ordinary run to weapon range.
+ if not rush_active and _distance_to(target)<=BASIC_ATTACK_RANGE and basic_attack_left()<=0.0:
+  basic_attack()
+ return true
+
+func _desired_auto_range() -> float:
+ if queued_combat_skill=="novice_rush" and cooldown_left("novice_rush")<=0.0 and stamina+0.001>=float(SKILL_COSTS["novice_rush"]):return RUSH_RANGE
+ return BASIC_ATTACK_RANGE
+
+func auto_run_direction() -> Vector3:
+ if not _synchronize_auto_target() or rush_active:return Vector3.ZERO
+ var target:StaticBody3D=auto_target
+ var to_target:Vector3=target.global_position-game.character.global_position
+ to_target.y=0.0
+ var distance:float=to_target.length()
+ # Stop early enough that the sword is inside the allowed attack range,
+ # without placing the character in the enemy's collision geometry.
+ if distance<=_desired_auto_range()-AUTO_STOP_MARGIN or distance<0.01:return Vector3.ZERO
+ return to_target/distance
+
+func advance_auto_attack(delta:float,blocked:bool=false) -> void:
+ if blocked:
+  stop_auto_attack()
+  return
+ if not _synchronize_auto_target() or rush_active:return
+ var target:StaticBody3D=auto_target
+ var distance:float=_distance_to(target)
+ var required_range:float=_desired_auto_range()
+ # In-world collisions can prevent the player from crossing a wall:
+ # stop chasing instead of running forever against the obstacle.
+ if distance>required_range:
+  if _last_auto_distance<INF and distance>_last_auto_distance-0.015:
+   _auto_stuck_seconds+=delta
+  else:
+   _auto_stuck_seconds=0.0
+  _last_auto_distance=distance
+  if _auto_stuck_seconds>=AUTO_STUCK_SECONDS:
+   stop_auto_attack()
+   game_store.notice.emit("ทางไปหาเป้าหมายถูกขวาง หยุดวิ่งอัตโนมัติ")
+  return
+ _auto_stuck_seconds=0.0
+ _last_auto_distance=INF
+ if queued_combat_skill!="":
+  var desired:String=queued_combat_skill
+  if cooldown_left(desired)<=0.0 and stamina+0.001>=float(SKILL_COSTS[desired]):
+   if distance<=_skill_range(desired):
+    queued_combat_skill=""
+    _execute_skill(desired,target)
+    # A rush already handles its own collision-safe movement.
+    if rush_active or not _synchronize_auto_target():return
+ # If a skill has a pending cooldown, basic sword hits continue until
+ # the skill becomes ready. No cooldown, skill points or stamina are
+ # consumed by these ordinary sword hits.
+ if basic_attack_left()<=0.0 and _distance_to(target)<=BASIC_ATTACK_RANGE:
+  basic_attack()
+
+func basic_attack() -> bool:
+ # One actual physical hit. Auto pursuit calls this once per swing.
+ if str(game_store.effective_job_info().get("id","Novice"))!="Novice":return false
+ if rush_active or basic_attack_left()>0.0:return false
+ var target:StaticBody3D=_locked_target()
+ if target==null:return false
+ if _distance_to(target)>BASIC_ATTACK_RANGE:return false
  basic_attack_seconds=BASIC_ATTACK_INTERVAL
  _attack_visual()
  _damage_target(target,_basic_damage())
@@ -113,32 +231,58 @@ func _attack_visual() -> void:
  if female!=null and female.visible and female.has_method("play_basic_attack"):
   female.call("play_basic_attack")
 
+func _skill_range(skill_id:String) -> float:
+ return RUSH_RANGE if skill_id=="novice_rush" else SLASH_RANGE
+
 func cast(skill_id:String) -> bool:
  if not SKILL_COOLDOWNS.has(skill_id):return false
- # Temporary GM job switches cannot make a different profession cast Novice.
  if str(game_store.effective_job_info().get("id","Novice"))!="Novice":return false
- if cooldown_left(skill_id)>0.0:
-  game_store.notice.emit("สกิลคูลดาวน์: %.1f วินาที" % cooldown_left(skill_id))
+ if skill_id=="novice_guard":
+  # Guard is an instant self-buff; do not drag the player across the map
+  # when there is no enemy. If ATK is active, normal hits keep going.
+  if cooldown_left(skill_id)>0.0:
+   game_store.notice.emit("สกิลคูลดาวน์: %.1f วินาที" % cooldown_left(skill_id))
+   return false
+  if stamina+0.001<float(SKILL_COSTS[skill_id]):
+   game_store.notice.emit("สตามินาไม่พอสำหรับสกิลนี้")
+   return false
+  return _execute_skill(skill_id,null)
+ var target:StaticBody3D=_locked_target()
+ if target==null:
+  game_store.notice.emit("เลือกเป้าหมายที่ยังมี HP ก่อนกดสกิล")
   return false
+ if rush_active:
+  # No second dash can interrupt the first hit, but follow-up skill
+  # input will still be used once the current rush finishes.
+  queued_combat_skill=skill_id
+  _set_auto_target(target)
+  return true
+ _set_auto_target(target)
+ var in_range:bool=_distance_to(target)<=_skill_range(skill_id)
+ var can_cast_now:bool=cooldown_left(skill_id)<=0.0 and stamina+0.001>=float(SKILL_COSTS[skill_id])
+ if in_range and can_cast_now:
+  queued_combat_skill=""
+  return _execute_skill(skill_id,target)
+ # Chase first and cast ONCE within range. Stamina/cooldown are spent
+ # only when the skill actually fires. A cooling skill is queued while
+ # ordinary ATK continues at sword range in the meantime.
+ queued_combat_skill=skill_id
+ game_store.notice.emit("กำลังเข้าระยะสกิล: "+("พุ่งจู่โจม" if skill_id=="novice_rush" else "ฟันโจมตี"))
+ changed.emit()
+ return true
+
+func _execute_skill(skill_id:String,target:StaticBody3D) -> bool:
+ if cooldown_left(skill_id)>0.0:return false
  var cost:float=float(SKILL_COSTS[skill_id])
- if stamina+0.001<cost:
-  game_store.notice.emit("สตามินาไม่พอสำหรับสกิลนี้")
-  return false
- var target:StaticBody3D=null
+ if stamina+0.001<cost:return false
  if skill_id!="novice_guard":
-  target=_locked_target()
-  if target==null:
-   game_store.notice.emit("เลือกเป้าหมายที่ยังมี HP ก่อนกดสกิล")
-   return false
-  var distance:float=_distance_to(target)
-  var allowed:float=RUSH_RANGE if skill_id=="novice_rush" else SLASH_RANGE
-  if distance>allowed:
-   game_store.notice.emit("เป้าหมายอยู่นอกระยะสกิล")
-   return false
- # No stamina or cooldown is spent on a failed range/target check.
+  if not _target_is_valid(target) or _distance_to(target)>_skill_range(skill_id):return false
  stamina=maxf(0.0,stamina-cost)
  cooldowns[skill_id]=float(SKILL_COOLDOWNS[skill_id])
  if skill_id=="novice_slash":
+  # Finish the actual authored sword slash before another ordinary hit,
+  # rather than restarting the same arm animation in the next frame.
+  basic_attack_seconds=maxf(basic_attack_seconds,BASIC_ATTACK_INTERVAL)
   _attack_visual()
   _damage_target(target,_attack_damage(false))
  elif skill_id=="novice_rush":
@@ -171,6 +315,9 @@ func _damage_target(target:StaticBody3D,raw_damage:float) -> float:
  _float_text(target.global_position+Vector3(0,1.6,0),"-"+str(int(damage)),Color("#ffb45a"))
  if float(target.get_meta("hp",0.0))<=0.0:
   _defeated[target]=RESPAWN_SECONDS
+  # Explicitly stop on death. The respawned monster does NOT trigger
+  # unwanted automatic combat until the user presses ATK again.
+  if auto_attack_enabled and auto_target==target:stop_auto_attack()
   game_store.notice.emit(str(target.get_meta("target_name","ศัตรู"))+" ล้มแล้ว · ฟื้นใน 8 วินาที")
  if is_instance_valid(game.hud_menu):
   game.hud_menu.top_status._refresh_target()
@@ -183,6 +330,7 @@ func _finish_rush(try_hit:bool) -> void:
  rush_remaining=0.0
  rush_target=null
  if try_hit and _target_is_valid(target) and _distance_to(target)<=3.1:
+  basic_attack_seconds=maxf(basic_attack_seconds,BASIC_ATTACK_INTERVAL)
   _attack_visual()
   _damage_target(target,_attack_damage(true))
  elif try_hit:
@@ -226,7 +374,8 @@ func receive_damage(raw:float) -> float:
  return dealt
 
 func reset_training_targets() -> void:
- # GM reset also cancels any pending auto-respawn from previous defeats.
+ # GM reset also cancels pending auto-respawn and auto combat.
+ stop_auto_attack()
  _defeated.clear()
  rush_active=false
  rush_target=null
@@ -234,6 +383,7 @@ func reset_training_targets() -> void:
 
 func _player_defeated() -> void:
  # Local training respawn, no deletion or mutation of saved progression.
+ stop_auto_attack()
  rush_active=false
  rush_target=null
  guard_seconds=0.0
@@ -264,6 +414,9 @@ func _enemy_attack() -> void:
 
 func _process(delta:float) -> void:
  if not is_instance_valid(game_store) or not is_instance_valid(game):return
+ # Target selection and GM job changes must cancel or retarget auto combat
+ # even if the CharacterBody physics frame has not yet advanced.
+ if auto_attack_enabled:_synchronize_auto_target()
  var old_max:float=max_health
  max_health=_max_health()
  if not is_equal_approx(max_health,old_max):
