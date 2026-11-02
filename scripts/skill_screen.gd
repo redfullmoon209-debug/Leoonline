@@ -8,7 +8,7 @@ const INVENTORY = "res://assets/ui/inventory/"
 const ButtonStyle = preload("res://scripts/ui_button_style.gd")
 const JobCatalog = preload("res://scripts/job_catalog.gd")
 const SkillCatalog = preload("res://scripts/skill_catalog.gd")
-const SkillSurface = preload("res://shaders/skill_surface.gdshader")
+# Shader is loaded as a visual resource at runtime, not a script dependency.
 const MAX_SLOTS := 14
 const NOVICE_SLOTS := 3
 
@@ -71,7 +71,7 @@ func _panel(name: String,parent: Node,x: float,y: float,w: float,h: float) -> Co
  panel.color=Color.WHITE
  panel.mouse_filter=Control.MOUSE_FILTER_IGNORE
  var finish:=ShaderMaterial.new()
- finish.shader=SkillSurface
+ finish.shader=load("res://shaders/skill_surface.gdshader") as Shader
  var preview:bool=name=="SkillPreviewFrame"
  var header:bool=name=="SkillRightTopPanel"
  var foot:bool=name=="SkillCurrentStatsFrame" or name=="SkillNextStatsFrame"
