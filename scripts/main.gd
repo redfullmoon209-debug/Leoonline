@@ -129,6 +129,15 @@ func _make_character() -> void:
  mesh.mesh = body
  mesh.material_override = _mat(Color("4bb9ec"))
  character.add_child(mesh)
+ # Replace the placeholder capsule with an actual rigged female visual.
+ # The collision capsule stays as a physics-only controller.
+ var female_visual := load("res://scripts/female_character_visual.gd").new() as Node3D
+ female_visual.name = "FemalePlayerVisual"
+ character.add_child(female_visual)
+ if female_visual.has_method("animate_motion"):
+  mesh.visible = false
+ else:
+  mesh.visible = true
  camera_arm = Node3D.new()
  add_child(camera_arm)
  camera = Camera3D.new()
@@ -317,6 +326,16 @@ func _make_demo_targets() -> void:
  _build_test_entity(
   "TestPlayerLuna","Luna [BOT]","player",24,3800.0,2250.0,
   Vector3(5.3,1.1,0.3),"res://assets/ui/hud/target_bot_female.svg",Color("#9c57ab"))
+ # Visual replacement for female test bot, preserving its HP, targeting,
+ # world collision and the other demo entities.
+ var luna: StaticBody3D = test_targets.back()
+ if luna != null and luna.name == "TestPlayerLuna":
+  for node in luna.get_children():
+   if node is MeshInstance3D: node.visible = false
+  var preview := load("res://scripts/female_character_visual.gd").new() as Node3D
+  preview.name = "FemaleBotVisual"
+  preview.feet_y = -1.05
+  luna.add_child(preview)
 
 func _spawn_gm_test_entity(kind: String) -> StaticBody3D:
  if not is_instance_valid(gm_menu) or not gm_menu.active:return null
@@ -506,6 +525,9 @@ func _physics_process(delta: float) -> void:
  vel.z=dir.z*speed
  character.velocity=vel
  character.move_and_slide()
+ var female_visual: Node3D = character.get_node_or_null("FemalePlayerVisual") as Node3D
+ if female_visual != null and female_visual.has_method("animate_motion"):
+  female_visual.call("animate_motion", dir, sprinting, delta)
  camera_arm.global_position=character.global_position+Vector3(0,0.5,0)
 
 func _unhandled_input(event: InputEvent) -> void:
