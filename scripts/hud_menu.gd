@@ -207,7 +207,7 @@ func _build_buttons() -> void:
  bag_button.texture_hover=bag_button.texture_normal
  bag_button.texture_pressed=bag_button.texture_normal
  bag_button.ignore_texture_size=true
- RedButtonStyle.image_overlay(bag_button)
+ RedButtonStyle.image_overlay(bag_button,RedButtonStyle.BAG_DOWN_IMAGE)
  var bag_caption:=Label.new()
  bag_caption.name="Caption"
  bag_caption.text=_label_for("bag")
@@ -230,6 +230,7 @@ func _build_buttons() -> void:
   _dress(icon_button)
   # Do not paint any gold ring, base or frame behind icon-only menu buttons.
   icon_button.add_theme_stylebox_override("normal",StyleBoxEmpty.new())
+  icon_button.add_theme_stylebox_override("hover",StyleBoxEmpty.new())
   icon_button.add_theme_stylebox_override("disabled",StyleBoxEmpty.new())
   add_child(icon_button)
   controls[key]=icon_button
@@ -276,6 +277,8 @@ func _build_buttons() -> void:
   button.name="Touch_"+key
   button.mouse_filter=Control.MOUSE_FILTER_STOP
   _dress(button)
+  # Mobile action pictograms also remain untouched on pointer hover.
+  button.add_theme_stylebox_override("hover",StyleBoxEmpty.new())
   add_child(button)
   controls[key]=button
   var image:=TextureRect.new()
