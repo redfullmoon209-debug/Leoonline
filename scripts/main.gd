@@ -2,6 +2,8 @@ extends Node3D
 const StoreScript = preload("res://scripts/store.gd")
 var store: Node
 var character: CharacterBody3D
+var player_placeholder: MeshInstance3D
+var player_female_enabled: bool = true
 var camera_arm: Node3D
 var camera: Camera3D
 var hud: CanvasLayer
@@ -129,21 +131,36 @@ func _make_character() -> void:
  mesh.mesh = body
  mesh.material_override = _mat(Color("4bb9ec"))
  character.add_child(mesh)
+ player_placeholder = mesh
  # Replace the placeholder capsule with an actual rigged female visual.
  # The collision capsule stays as a physics-only controller.
  var female_visual := load("res://scripts/female_character_visual.gd").new() as Node3D
  female_visual.name = "FemalePlayerVisual"
  character.add_child(female_visual)
- if female_visual.get("visual_loaded") == true:
-  mesh.visible = false
- else:
-  mesh.visible = true
+ # Enable the real female model by default once it has been imported.
+ # The GM test menu can switch back to the old placeholder on demand.
+ set_female_character_enabled(true)
  camera_arm = Node3D.new()
  add_child(camera_arm)
  camera = Camera3D.new()
  camera.position = Vector3(0,2.0,6.5)
  camera.current = true
  camera_arm.add_child(camera)
+
+func set_female_character_enabled(enabled: bool) -> bool:
+ if not is_instance_valid(character):
+  return false
+ var model: Node3D = character.get_node_or_null("FemalePlayerVisual") as Node3D
+ if model == null:
+  return false
+ var ready: bool = model.get("visual_loaded") == true
+ if enabled and not ready:
+  return false
+ player_female_enabled = enabled and ready
+ model.visible = player_female_enabled
+ if is_instance_valid(player_placeholder):
+  player_placeholder.visible = not player_female_enabled
+ return true
 
 func _make_training_target() -> void:
  # An actual selectable entity so that the HP/MP portrait panel can display
@@ -529,7 +546,7 @@ func _physics_process(delta: float) -> void:
  character.velocity=vel
  character.move_and_slide()
  var female_visual: Node3D = character.get_node_or_null("FemalePlayerVisual") as Node3D
- if female_visual != null and female_visual.has_method("animate_motion"):
+ if female_visual != null and female_visual.visible and female_visual.has_method("animate_motion"):
   female_visual.call("animate_motion", dir, sprinting, delta)
  camera_arm.global_position=character.global_position+Vector3(0,0.5,0)
 
