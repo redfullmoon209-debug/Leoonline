@@ -174,9 +174,38 @@ func _show_selected() -> void:
  var selected:TextureButton=get_node("SelectedSkillIcon") as TextureButton
  var art:String=str(item["icon"])
  _paint_skill(selected,art)
- current_level_label.text=_tr("เลือกแล้ว · พร้อมติดตั้ง","Selected · ready to equip")
- next_level_label.text=_tr("อนิเมชั่น: ยังไม่ติดตั้ง","Animation: pending")
- hint_label.text=_tr("แตะช่องสกิลใช้งานด้านขวาเพื่อติดตั้ง","Tap an equipped slot to assign")
+ var kind:String=str(item.get("kind","active"))
+ if kind=="passive":
+  var level:int=int(game_store.skill_levels.get(selected_skill,0))
+  var amount:int=int(item.get("stat_amount",0))
+  var key:String=str(SkillCatalog.STAT_LABEL.get(str(item.get("stat_key","")),""))
+  var max_level:int=int(item.get("max_level",SkillCatalog.PASSIVE_LEVEL_CAP))
+  current_level_label.text="Lv."+str(level)+" / "+str(max_level)+"  "+key+" +"+str(level*amount)
+  next_level_label.text=_tr("ขั้นถัดไป : ","Next level: ")+key+" +"+str((level+1)*amount) if level<max_level else _tr("ระดับสูงสุดแล้ว","MAX LEVEL")
+  var costs:Dictionary=game_store.passive_upgrade_cost(selected_skill)
+  price_label.text=_tr("ใช้แต้มสกิล : ","Skill Points: ")+str(costs["sp"])
+  cost_label.text=_tr("ใช้เงิน : ","Gold: ")+str(costs["gold"])
+  upgrade_button.text=_tr("อัปเกรดสกิลติดตัว","Upgrade Passive")
+  upgrade_button.disabled=level>=max_level or str(game_store.gm_preview_job_id)!="" or str(game_store.profile.get("job","Novice"))!=str(game_store.effective_job_info().get("id","Novice")) or int(game_store.profile.get("skill_points",0))<int(costs["sp"]) or game_store.compare(str(game_store.currency.get("gold","0")),str(costs["gold"]))<0
+  hint_label.text=_tr("สกิลติดตัว: เพิ่มค่าสถานะถาวร ห้ามใส่ช่องใช้งาน","PASSIVE: permanent stats, never equippable")
+ elif kind=="timed_buff":
+  var duration:int=int(item.get("duration_seconds",60))
+  var remaining:int=int(game_store.buff_seconds_left(selected_skill))
+  current_level_label.text=_tr("บัฟกดใช้ : ","Timed buff: ")+str(duration/60)+_tr(" นาที"," min")
+  next_level_label.text=_tr("เหลือเวลา : ","Remaining: ")+str(remaining)+_tr(" วินาที"," sec")
+  price_label.text=_tr("ใช้แต้มสกิล : -","Skill points: -")
+  cost_label.text=_tr("ใช้เงิน : -","Gold: -")
+  upgrade_button.disabled=true
+  upgrade_button.text=_tr("บัฟกดใช้ (ไม่ใช่ Passive)","Timed active buff")
+  hint_label.text=_tr("ติดตั้งในช่อง 1–3 แล้วกดช่องนั้นเพื่อใช้บัฟ","Equip in slots 1–3, then press slot to cast")
+ else:
+  current_level_label.text=_tr("สกิลกดใช้ · พร้อมติดตั้ง","Active · can equip")
+  next_level_label.text=_tr("การต่อสู้/อนิเมชั่นยังไม่ติดตั้ง","Combat/animation pending")
+  price_label.text=_tr("ใช้แต้มสกิล : -","Skill points required: -")
+  cost_label.text=_tr("ใช้เงิน : -","Gold cost: -")
+  upgrade_button.disabled=true
+  upgrade_button.text=_tr("ยังไม่เปิดให้อัปสกิล","Upgrade unavailable")
+  hint_label.text=_tr("แตะช่องสกิลใช้งานด้านขวาเพื่อติดตั้ง","Tap a slot at right to equip")
  
 func _paint_skill(cell:TextureButton,path:String) -> void:
  var overlay:TextureRect=cell.get_node_or_null("SkillArt") as TextureRect
@@ -196,21 +225,36 @@ func _update_skill_icons() -> void:
  for i in range(skill_slots.size()):
   _paint_skill(skill_slots[i],str(skills[i]["icon"]) if i<skills.size() else "")
  for i in range(active_slots.size()):
-  var found:Dictionary=SkillCatalog.info(preview_loadout[i]) if SkillCatalog.belongs_to_job(job_id,preview_loadout[i]) else {}
+  var found:Dictionary=SkillCatalog.info(preview_loadout[i]) if SkillCatalog.is_equippable(job_id,preview_loadout[i]) else {}
   _paint_skill(active_slots[i],str(found.get("icon","")))
 
 func _equip_to(index:int) -> void:
- if index<0 or index>=active_slots.size() or selected_skill=="":return
+ if index<0 or index>=active_slots.size():return
  var id:String=str(game_store.effective_job_info().get("id","Novice"))
- if not SkillCatalog.belongs_to_job(id,selected_skill):return
- # Local GM class-switching is a read-only preview of future professions.
- if str(game_store.gm_preview_job_id)=="": 
+ if selected_skill=="":
+  var installed:String=preview_loadout[index]
+  if not SkillCatalog.is_equippable(id,installed):return
+  var applied:bool=bool(game_store.activate_skill(installed))
+  hint_label.text=_tr("เปิดใช้บัฟแล้ว","Buff activated") if applied else _tr("สกิลโจมตีรอระบบต่อสู้","Combat skill not yet available")
+  return
+ # A permanent body passive is NEVER installed, even in GM preview.
+ if not SkillCatalog.is_equippable(id,selected_skill):
+  hint_label.text=_tr("Passive เพิ่มสเตตัสอัตโนมัติ ห้ามใส่ช่องใช้งาน","Permanent passive cannot be equipped")
+  return
+ if str(game_store.gm_preview_job_id)=="":
   if not bool(game_store.equip_skill_to_hotbar(index,selected_skill)):
    hint_label.text=_tr("ไม่สามารถบันทึกช่องสกิลได้","Could not save equipped skill")
    return
  preview_loadout[index]=selected_skill
  _update_skill_icons()
  hint_label.text=_tr("ติดตั้งสกิลช่อง "+str(index+1)+" แล้ว","Skill equipped in slot "+str(index+1))
+
+func _upgrade_selected_passive() -> void:
+ if selected_skill=="" or SkillCatalog.skill_kind(selected_skill)!="passive":return
+ if game_store.upgrade_passive_skill(selected_skill):
+  _show_selected()
+ else:
+  hint_label.text=_tr("อัปเกรดไม่ได้: ตรวจแต้มสกิล เงิน และอาชีพจริง","Cannot upgrade: check SP, Gold, and actual profession")
 
 func _empty_skill_selected(_name: String) -> void:
  # Unimplemented advanced professions have deliberately empty slots.
@@ -330,6 +374,7 @@ func _build() -> void:
  cost_label=_label("SkillCostGold",self,1112,709,258,24,16)
  upgrade_button=_button("SkillUpgradeButton",self,1106,742,261,32,16)
  upgrade_button.disabled=true
+ upgrade_button.pressed.connect(_upgrade_selected_passive)
  hint_label=_label("SkillPreviewNote",self,86,306,570,36,16,false,HORIZONTAL_ALIGNMENT_CENTER)
  hint_label.text=""
  # Static tutorial/help labels are native Godot text for easy translation.
@@ -378,15 +423,18 @@ func refresh() -> void:
   slot_label.text=_tr("ยังไม่ได้เลือกสกิล","No skill selected")
   description_label.text=_tr("กดไอคอนเพื่อดูข้อมูลสกิล","Tap an icon to inspect a skill")
   var class_skills:Array=SkillCatalog.skills_for_job(current_job)
+  var candidates:Array=[]
+  for item in class_skills:
+   if SkillCatalog.is_equippable(current_job,str(item["id"])):candidates.append(str(item["id"]))
   for i in range(3):
-   preview_loadout[i]=str(class_skills[i]["id"]) if i<class_skills.size() else ""
+   preview_loadout[i]=str(candidates[i]) if i<candidates.size() else ""
   last_shown_job=current_job
  if str(game_store.gm_preview_job_id)=="":
   var saved_hotbar:Variant=game_store.skill_hotbar
   if saved_hotbar is Array and saved_hotbar.size()==3:
    for i in range(3):
     var saved_id:String=str(saved_hotbar[i])
-    if saved_id=="" or SkillCatalog.belongs_to_job(current_job,saved_id):
+    if saved_id=="" or SkillCatalog.is_equippable(current_job,saved_id):
      preview_loadout[i]=saved_id
  if selected_skill!="" and not SkillCatalog.belongs_to_job(current_job,selected_skill):
   selected_skill=""
@@ -429,14 +477,23 @@ func refresh() -> void:
   current_skills_tab.text=_tr("สกิลอาชีพขั้น 2 (14 ช่อง)","Tier 2 skills (14 slots)")
   next_job_tab.text=_tr("อาชีพขั้น 2 · เปิดแล้ว","Tier 2 · Available")
   page_label.text=_tr("สกิลต่อยอดจากขั้น 1 · 14 ช่องรอ PNG","Advanced from Tier 1 · 14 slots awaiting PNGs")
+ var class_skills:Array=SkillCatalog.skills_for_job(current_job)
  for i in range(skill_slots.size()):
-  var locked:bool=novice and i>=NOVICE_SLOTS
+  var locked:bool=(novice and i>=NOVICE_SLOTS) or i>=class_skills.size()
   var slot:TextureButton=skill_slots[i]
   slot.disabled=locked
   slot.texture_normal=_png(ROOT,"slot_locked" if locked else "slot_empty")
   slot.texture_hover=slot.texture_normal
   slot.texture_pressed=slot.texture_normal
   slot.set_meta("reserved",locked)
+  var kind:String=str(class_skills[i].get("kind","active")) if i<class_skills.size() else ""
+  # Reuse existing numeric label: P denotes permanent, B timed buff.
+  slot_numbers[i].text=str(i+1)+(" P" if kind=="passive" else (" B" if kind=="timed_buff" else ""))
+  slot.tooltip_text=(_tr("สกิลติดตัว · ไม่ต้องกดใช้","Permanent passive · noncastable") if kind=="passive" else (_tr("บัฟชั่วคราว · กดใช้ได้","Timed buff · castable") if kind=="timed_buff" else ""))
  _update_skill_icons()
- price_label.text=_tr("ใช้แต้มสกิล : -","Skill points required: -")
- cost_label.text=_tr("ใช้เงิน : -","Gold cost: -")
+ if selected_skill!="" and SkillCatalog.belongs_to_job(current_job,selected_skill):
+  _show_selected()
+ else:
+  upgrade_button.disabled=true
+  price_label.text=_tr("ใช้แต้มสกิล : -","Skill points required: -")
+  cost_label.text=_tr("ใช้เงิน : -","Gold cost: -")
