@@ -118,7 +118,10 @@ func _process(_delta:float) -> void:
  var touch:bool=DisplayServer.is_touchscreen_available() or hud_menu.display_mobile_controls or hud_menu.force_touch_preview or (OS.has_feature("web") and size.x<=600.0)
  var is_novice:bool=str(store.effective_job_info().get("id","Novice"))=="Novice"
  visible=is_novice and not game.open and not hud_menu.is_gameplay_blocked()
- if not visible:return
+ if not visible:
+  # Explicitly hide the child as well as the parent, so no modal click-through.
+  if is_instance_valid(atk_button):atk_button.visible=false
+  return
  var combat:Node=game.combat
  if is_instance_valid(atk_button):
   atk_button.visible=true
