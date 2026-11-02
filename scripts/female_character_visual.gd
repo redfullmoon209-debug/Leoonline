@@ -1,8 +1,8 @@
 extends Node3D
-## Displays the artist-owned Mixamo-rigged female FBX from happy-farm.
-## Model and original texture maps are downloaded before Godot imports them.
+## Displays ONLY the exact user-uploaded FemaleLeo.fbx with its embedded textures.
+## Reassembled from verified source fragments before Godot imports the model.
 ## Run cycle is sampled from the user's uploaded Run.fbx (20 frames).
-const MODEL_PATH := "res://assets/characters/female/Female.fbx"
+const MODEL_PATH := "res://assets/characters/female/FemaleLeo.fbx"
 const RUN_TRACKS_PATH := "res://assets/characters/female/run_tracks.json"
 const WALK_TRACKS_PATH := "res://assets/characters/female/walk_tracks.json"
 
@@ -40,7 +40,7 @@ func _ready() -> void:
     model_fit.add_child(instance)
 
     # Calculate the complete mesh bounds in a shared coordinate system.
-    # The source asset has an unwanted helper Cube; hide it, not the body.
+    # Keep every original mesh and the material/texture data authored in FemaleLeo.fbx.
     var box := AABB()
     var found := false
     var queue: Array[Node] = [instance]
@@ -49,27 +49,8 @@ func _ready() -> void:
         var current: Node = queue.pop_back()
         if current is MeshInstance3D:
             var mesh: MeshInstance3D = current as MeshInstance3D
-            if mesh.name == "Cube":
-                mesh.visible = false
-            elif mesh.mesh != null:
-                # Reuse the same author's original PBR texture maps. FBX
-                # stores skin/UV/geometry but these maps are separate PNGs.
-                var color_path := "res://assets/characters/female/female_color.png"
-                if ResourceLoader.exists(color_path):
-                    var material := StandardMaterial3D.new()
-                    material.albedo_texture = load(color_path) as Texture2D
-                    material.roughness = 0.85
-                    var normal_path := "res://assets/characters/female/female_normal.png"
-                    if ResourceLoader.exists(normal_path):
-                        material.normal_enabled = true
-                        material.normal_texture = load(normal_path) as Texture2D
-                    var rough_path := "res://assets/characters/female/female_roughness.png"
-                    if ResourceLoader.exists(rough_path):
-                        material.roughness_texture = load(rough_path) as Texture2D
-                    var metallic_path := "res://assets/characters/female/female_metallic.png"
-                    if ResourceLoader.exists(metallic_path):
-                        material.metallic_texture = load(metallic_path) as Texture2D
-                    mesh.material_override = material
+            if mesh.mesh != null:
+                # No material overrides: use the exact FBX embedded artwork.
                 var bounds: AABB = mesh.get_aabb()
                 var transform: Transform3D = inv * mesh.global_transform
                 for i in range(8):
@@ -85,7 +66,7 @@ func _ready() -> void:
 
     if not found or box.size.y <= 0.001:
         model_fit.queue_free()
-        push_warning("Female GLB has no usable visible meshes")
+        push_warning("FemaleLeo.fbx has no usable visible meshes")
         return
     var scalar: float = clampf(target_height_m / box.size.y, 0.0001, 1000.0)
     model_fit.scale = Vector3.ONE * scalar
@@ -142,7 +123,7 @@ func _load_uploaded_run_tracks() -> void:
         for i in range(mini(25, skeleton.get_bone_count())):
             first_bones.append(String(skeleton.get_bone_name(i)))
         push_warning("Unable to map avatar animation bones. Actual rig names: " + str(first_bones))
-    print("Female character visuals: meshes=", rendered_mesh_count,
+    print("FemaleLeo original model: meshes=", rendered_mesh_count,
         " bones_with_motion=", bone_indices.size(),
         " run=", bone_tracks.size(), " walk=", walk_bone_tracks.size())
 

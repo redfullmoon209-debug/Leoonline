@@ -5,3 +5,5 @@
 build/
 *.uid
 *.import
+# Exact FemaleLeo.fbx is reconstructed from checked-in source_parts during build.
+assets/characters/female/FemaleLeo.fbx

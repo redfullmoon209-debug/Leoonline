@@ -1,49 +1,68 @@
 #!/usr/bin/env python3
-"""Import the user's existing Mixamo-rigged female model, with its PBR textures.
+"""Reassemble the exact user-uploaded FemaleLeo.fbx from versioned binary chunks.
 
-The former Female.glb from NexTgenLeo was a different Japanese/Bip001 rig
-and could NOT use the uploaded Mixamo Run.fbx / Walking(8).fbx motions.
-The happy-farm female is already owned by the same user and uses
-mixamorig:Hips, LeftUpLeg, RightUpLeg, LeftArm, etc.
+The original source is a 14,005,040-byte Mixamo FBX with its own geometry and
+two embedded textures. No assets from another game are substituted.
+Split source chunks are in assets/characters/female/source_parts/ only because
+this upload connector cannot attach a large binary as a single Git blob.
+All bytes and the final SHA-256 are checked before Godot's import.
 """
+from __future__ import annotations
+
+import hashlib
+import os
 from pathlib import Path
-import struct
-import urllib.request
 
-SOURCE_COMMIT = "719fd1737335a9a1bfae85e2b77bb83c793ab8bd"
-BASE = (
-    "https://raw.githubusercontent.com/redfullmoon209-debug/"
-    f"happy-farm/{SOURCE_COMMIT}/assets/characters/"
-)
-OUTPUT = Path("assets/characters/female")
-FILES = {
-    "femalefarmer.fbx": "Female.fbx",
-    "female_color.png": "female_color.png",
-    "female_metallic.png": "female_metallic.png",
-    "female_normal.png": "female_normal.png",
-    "female_roughness.png": "female_roughness.png",
-}
+ROOT = Path(__file__).resolve().parent.parent
+DEST = ROOT / "assets" / "characters" / "female" / "FemaleLeo.fbx"
+PARTS = ROOT / "assets" / "characters" / "female" / "source_parts"
+SOURCE_SHA256 = "53fa7f6b2989b06fe71724b85f6cb0dc713c4a450c9ba97ce8e1b54cf1b17551"
+SOURCE_SIZE = 14_005_040
+PART_SIZE = 1_474_560
+PART_COUNT = 10
 
-def valid(name: str, data: bytes) -> bool:
-    if name.endswith(".fbx"):
-        return len(data) > 1_000_000 and data.startswith(b"Kaydara FBX Binary  ")
-    return len(data) > 10_000 and data[:8] == bytes([137, 80, 78, 71, 13, 10, 26, 10])
 
-def main():
-    OUTPUT.mkdir(parents=True, exist_ok=True)
-    for source, target in FILES.items():
-        dest = OUTPUT / target
-        if dest.is_file() and valid(dest.name, dest.read_bytes()):
-            print("Female source asset OK:", dest)
-            continue
-        req = urllib.request.Request(
-            BASE + source, headers={"User-Agent": "Leoonline-Female-Mixamo-Importer"})
-        with urllib.request.urlopen(req, timeout=90) as response:
-            payload = response.read(40 * 1024 * 1024)
-        if not valid(target, payload):
-            raise RuntimeError("Invalid female source asset: " + source)
-        dest.write_bytes(payload)
-        print("Female Mixamo source ready:", dest, len(payload), "bytes")
+def validate(path: Path) -> bool:
+    if not path.is_file() or path.stat().st_size != SOURCE_SIZE:
+        return False
+    with path.open("rb") as fh:
+        signature = fh.read(27)
+    if not signature.startswith(b"Kaydara FBX Binary  "):
+        return False
+    digest = hashlib.sha256()
+    with path.open("rb") as fh:
+        for block in iter(lambda: fh.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest() == SOURCE_SHA256
+
+
+def main() -> None:
+    DEST.parent.mkdir(parents=True, exist_ok=True)
+    if validate(DEST):
+        print("FemaleLeo.fbx already matches uploaded original:", SOURCE_SHA256)
+        return
+
+    tmp_path = DEST.with_suffix(".fbx.tmp")
+    try:
+        with tmp_path.open("wb") as out:
+            for i in range(PART_COUNT):
+                part = PARTS / f"FemaleLeo.fbx.part{i:02d}"
+                if not part.is_file():
+                    raise FileNotFoundError(f"Missing original-model source part: {part}")
+                data = part.read_bytes()
+                expected = PART_SIZE if i < PART_COUNT - 1 else SOURCE_SIZE - PART_SIZE * (PART_COUNT - 1)
+                if len(data) != expected:
+                    raise ValueError(f"Corrupt FemaleLeo source part {i}: {len(data)} != {expected}")
+                out.write(data)
+        if not validate(tmp_path):
+            raise RuntimeError("FemaleLeo.fbx SHA-256 mismatch; refusing to substitute a different model")
+        os.replace(tmp_path, DEST)
+    finally:
+        if tmp_path.exists():
+            tmp_path.unlink()
+
+    print("FEMALELEO EXACT SOURCE VERIFIED:", DEST.as_posix(), SOURCE_SIZE, SOURCE_SHA256)
+
 
 if __name__ == "__main__":
     main()
