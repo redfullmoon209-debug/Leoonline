@@ -286,7 +286,7 @@ func _make_training_target() -> void:
  training_target.collision_mask=0
  # Place the training golem far enough from the new Bangkok road spawn
  # to keep the ATK chase/stop regression realistic and deterministic.
- training_target.position=Vector3(6.0,1.35*ACTOR_SCALE,-1.0)
+ training_target.position=Vector3(3.0,1.35*ACTOR_SCALE,-13.0)
  training_target.scale=Vector3.ONE*ACTOR_SCALE
  training_target.set_meta("target_name","อสูรหินฝึก")
  training_target.set_meta("target_type","Monster")
@@ -533,7 +533,9 @@ func _select_target_at(screen_point: Vector2) -> bool:
  if not is_instance_valid(hud_menu) or hud_menu.is_gameplay_blocked():return false
  var ray_from:Vector3=camera.project_ray_origin(screen_point)
  var ray_to:Vector3=ray_from+camera.project_ray_normal(screen_point)*100.0
- var query:=PhysicsRayQueryParameters3D.create(ray_from,ray_to)
+ # Selecting actors is independent of city wall collision; walking and attacks
+ # still use the physical world shape to block the character.
+ var query:=PhysicsRayQueryParameters3D.create(ray_from,ray_to,BangkokCollisions.NPC_LAYER)
  var result:Dictionary=get_world_3d().direct_space_state.intersect_ray(query)
  var selected:StaticBody3D=result.get("collider",null) as StaticBody3D
  if not is_instance_valid(selected) or not test_targets.has(selected):return false
