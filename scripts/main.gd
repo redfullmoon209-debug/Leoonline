@@ -176,6 +176,7 @@ func _make_character() -> void:
  character.set_meta("world_actor_scale",ACTOR_SCALE)
  add_child(character)
  var col := CollisionShape3D.new()
+ col.name = "CollisionShape3D"
  var shape := CapsuleShape3D.new()
  shape.height = 2.1*ACTOR_SCALE
  shape.radius = 0.35*ACTOR_SCALE
