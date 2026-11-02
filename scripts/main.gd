@@ -25,6 +25,10 @@ var training_target: StaticBody3D
 var test_targets: Array[StaticBody3D]=[]
 var additional_test_targets: Array[StaticBody3D]=[]
 var test_spawn_count: int=0
+# Mobile browsers may send both a touch and an emulated mouse press.
+# Suppress only the duplicate; a deliberate second tap still unlocks.
+var last_target_touch_msec: int = -10000
+var last_target_touch_position: Vector2 = Vector2(-1000.0,-1000.0)
 var gm_menu: Control
 
 func _ready() -> void:
@@ -562,9 +566,17 @@ func _unhandled_input(event: InputEvent) -> void:
   _toggle_target_lock()
   get_viewport().set_input_as_handled()
  elif event is InputEventScreenTouch and event.pressed:
-  if _select_target_at(event.position):get_viewport().set_input_as_handled()
+  if _select_target_at(event.position):
+   last_target_touch_msec=Time.get_ticks_msec()
+   last_target_touch_position=event.position
+   get_viewport().set_input_as_handled()
  elif event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_LEFT and Input.mouse_mode==Input.MOUSE_MODE_VISIBLE:
-  if _select_target_at(event.position):get_viewport().set_input_as_handled()
+  var age:int=Time.get_ticks_msec()-last_target_touch_msec
+  var is_touch_emulation:bool=age>=0 and age<450 and event.position.distance_to(last_target_touch_position)<28.0
+  if is_touch_emulation:
+   get_viewport().set_input_as_handled()
+  elif _select_target_at(event.position):
+   get_viewport().set_input_as_handled()
  elif event.is_action_pressed("bag") and not event.is_echo():
   if not is_instance_valid(hud_menu) or not hud_menu.edit_mode: _toggle()
   get_viewport().set_input_as_handled()
