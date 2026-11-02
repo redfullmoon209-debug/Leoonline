@@ -31,7 +31,7 @@ func _check_map() -> void:
   push_error("Walkable ground collision missing")
   quit(1)
   return
- if character == null or character.position.distance_to(Vector3(0,1.1,0)) > 0.2:
+ if character == null or character.position.distance_to(Vector3(0,1.1*0.50,0)) > 0.2:
   push_error("Player was not placed at the new Bangkok spawn")
   quit(1)
   return
