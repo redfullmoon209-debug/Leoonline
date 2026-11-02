@@ -230,18 +230,18 @@ const PASSIVE_LEVEL_CAP:int=10
 const PASSIVE_INDICES:Array=[7,9,10,11] # existing 8 and 12 remain passives
 const TIMED_BUFF_INDICES:Array=[3,12] # existing 13 remains a timed buff
 const PASSIVE_BY_JOB:Dictionary={
- "earth_1":[["กำลังพิภพ","Earth Might","strength",2],["กายาหินผา","Stone Body","vitality",2],["ก้าวย่างพิภพ","Earth Agility","agility",2],["หมัดแม่นยำ","Knuckle Precision","dexterity",2]],
- "wind_1":[["ความคล่องวายุ","Wind Agility","agility",2],["สายตาวายุ","Wind Precision","dexterity",2],["แรงดาบวายุ","Gale Might","strength",2],["พรลมโชคดี","Fortunate Wind","luck",2]],
- "water_1":[["จิตวารี","Water Wisdom","intelligence",2],["ชีพจรธารา","Flowing Vitality","vitality",2],["สัมผัสสายน้ำ","Tide Dexterity","dexterity",2],["โชคแห่งวารี","Tide Fortune","luck",2]],
- "fire_1":[["พลังอัคคี","Flame Strength","strength",2],["กายาเพลิง","Flame Body","vitality",2],["ก้าวเพลิง","Ember Agility","agility",2],["ดาบเพลิงชำนาญ","Flame Dexterity","dexterity",2]],
- "lightning_1":[["เนตรอัสนี","Thunder Precision","dexterity",2],["กายาสายฟ้า","Lightning Agility","agility",2],["แรงกระสุนอัสนี","Thunder Strength","strength",2],["ลาภสายฟ้า","Spark Fortune","luck",2]],
- "wood_1":[["ปัญญาพฤกษา","Forest Wisdom","intelligence",2],["ชีวาพฤกษา","Forest Vitality","vitality",2],["ก้าวแห่งไพร","Forest Agility","agility",2],["โชคแห่งพฤกษา","Forest Luck","luck",2]],
- "earth_2":[["จิตภูผา","Mountain Spirit","strength",2],["กายาเหล็กไหล","Iron Body","vitality",2],["แก่นหมัดภูผา","Mountain Precision","dexterity",2],["ก้าวขุนเขา","Mountain Agility","agility",2]],
- "wind_2":[["จิตแห่งพายุ","Storm Soul","intelligence",2],["เนตรพายุ","Storm Eyes","dexterity",2],["ก้าวสายลม","Gale Reflex","agility",2],["โชคจ้าวพายุ","Storm Fortune","luck",2]],
- "water_2":[["จิตมหาสมุทร","Ocean Spirit","intelligence",2],["ชีพจรสมุทร","Ocean Vitality","vitality",2],["มือหอกสมุทร","Ocean Spearmanship","dexterity",2],["เมตตาวารี","Water Luck","luck",2]],
- "fire_2":[["จิตจ้าวอัคคี","Inferno Soul","strength",2],["โลหิตเพลิง","Blazing Vitality","vitality",2],["ความไวอัคคี","Flame Reflex","agility",2],["ดาบอัคคีชำนาญ","Inferno Dexterity","dexterity",2]],
- "lightning_2":[["จิตเทพอัสนี","Thunder Spirit","strength",2],["เนตรกระสุน","Marksman's Eye","dexterity",2],["ฝีเท้าสายฟ้า","Lightning Reflex","agility",2],["โชคแห่งอัสนี","Thunder Fortune","luck",2]],
- "wood_2":[["จิตเจ้าป่า","Forest Spirit","intelligence",2],["กายาไม้พฤกษา","Wooden Body","vitality",2],["มือแส้พริ้วไหว","Whip Agility","agility",2],["โชคแห่งไพร","Forest Fortune","luck",2]]
+ "earth_1":[["กำลังพิภพ","Earth Might","strength",2],["ก้าวย่างพิภพ","Earth Agility","agility",2],["หมัดแม่นยำ","Knuckle Precision","dexterity",2],["กายาหินผา","Stone Body","vitality",2]],
+ "wind_1":[["ความคล่องวายุ","Wind Agility","agility",2],["แรงดาบวายุ","Gale Might","strength",2],["พรลมโชคดี","Fortunate Wind","luck",2],["สายตาวายุ","Wind Precision","dexterity",2]],
+ "water_1":[["จิตวารี","Water Wisdom","intelligence",2],["สัมผัสสายน้ำ","Tide Dexterity","dexterity",2],["โชคแห่งวารี","Tide Fortune","luck",2],["ชีพจรธารา","Flowing Vitality","vitality",2]],
+ "fire_1":[["พลังอัคคี","Flame Strength","strength",2],["ก้าวเพลิง","Ember Agility","agility",2],["ดาบเพลิงชำนาญ","Flame Dexterity","dexterity",2],["กายาเพลิง","Flame Body","vitality",2]],
+ "lightning_1":[["เนตรอัสนี","Thunder Precision","dexterity",2],["แรงกระสุนอัสนี","Thunder Strength","strength",2],["ลาภสายฟ้า","Spark Fortune","luck",2],["กายาสายฟ้า","Lightning Agility","agility",2]],
+ "wood_1":[["ปัญญาพฤกษา","Forest Wisdom","intelligence",2],["ก้าวแห่งไพร","Forest Agility","agility",2],["โชคแห่งพฤกษา","Forest Luck","luck",2],["ชีวาพฤกษา","Forest Vitality","vitality",2]],
+ "earth_2":[["จิตภูผา","Mountain Spirit","strength",2],["แก่นหมัดภูผา","Mountain Precision","dexterity",2],["ก้าวขุนเขา","Mountain Agility","agility",2],["กายาเหล็กไหล","Iron Body","vitality",2]],
+ "wind_2":[["จิตแห่งพายุ","Storm Soul","intelligence",2],["ก้าวสายลม","Gale Reflex","agility",2],["โชคจ้าวพายุ","Storm Fortune","luck",2],["เนตรพายุ","Storm Eyes","dexterity",2]],
+ "water_2":[["จิตมหาสมุทร","Ocean Spirit","intelligence",2],["มือหอกสมุทร","Ocean Spearmanship","dexterity",2],["เมตตาวารี","Water Luck","luck",2],["ชีพจรสมุทร","Ocean Vitality","vitality",2]],
+ "fire_2":[["จิตจ้าวอัคคี","Inferno Soul","strength",2],["ความไวอัคคี","Flame Reflex","agility",2],["ดาบอัคคีชำนาญ","Inferno Dexterity","dexterity",2],["โลหิตเพลิง","Blazing Vitality","vitality",2]],
+ "lightning_2":[["จิตเทพอัสนี","Thunder Spirit","strength",2],["ฝีเท้าสายฟ้า","Lightning Reflex","agility",2],["โชคแห่งอัสนี","Thunder Fortune","luck",2],["เนตรกระสุน","Marksman's Eye","dexterity",2]],
+ "wood_2":[["จิตเจ้าป่า","Forest Spirit","intelligence",2],["มือแส้พริ้วไหว","Whip Agility","agility",2],["โชคแห่งไพร","Forest Fortune","luck",2],["กายาไม้พฤกษา","Wooden Body","vitality",2]]
 }
 const TIMED_BUFF_BY_JOB:Dictionary={
  "earth_1":[["โล่หิน","Stoneguard","strength",5,120],["จิตพิภพ","Spirit of Earth","vitality",5,180]],

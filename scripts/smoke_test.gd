@@ -878,14 +878,25 @@ func validate() -> void:
  check(store.upgrade_passive_skill("earth_1_10"),"New third body passive is independently learnable")
  check(int(store.skill_levels.get("earth_1_10",0))==1 and int(store.profile["skill_points"])==1 and str(store.currency.gold)=="1100",
   "A second passive costs its own point and exact gold amount")
- check(int(store.character_snapshot()["profile"]["attributes"]["vitality"])==int(stat_base["vitality"])+2,
-  "A new body passive permanently increases VIT")
+ check(int(store.character_snapshot()["profile"]["attributes"]["agility"])==int(stat_base["agility"])+2,
+  "A new body passive permanently increases AGI")
  check(not store.equip_skill_to_hotbar(1,"earth_1_10") and not store.activate_skill("earth_1_10"),
   "New passive cannot bypass hotbar or skill-casting restrictions")
  check(store.save_data(),"Save two independent learned passive levels")
  store.load_data()
  check(int(store.skill_levels.get("earth_1_08",0))==1 and int(store.skill_levels.get("earth_1_10",0))==1,
   "Both previously learned and new passives survive real save/load")
+ # Compatibility: the old slot-12 Stone Body still grants VIT after
+ # upgrading; two new passive slots must not re-map past purchases.
+ check(str(load("res://scripts/skill_catalog.gd").info("earth_1_12")["stat_key"])=="vitality",
+  "Existing slot-12 Earth passive remains VIT (never rewritten as DEX)")
+ store.skill_levels["earth_1_12"]=2
+ check(store.save_data(),"Write legacy passive slot-12 level")
+ store.load_data()
+ check(int(store.character_snapshot()["profile"]["attributes"]["vitality"])==int(stat_base["vitality"])+4,
+  "Previously saved slot-12 Passive keeps +4 VIT when loading an older character")
+ check(int(store.character_snapshot()["profile"]["attributes"]["agility"])==int(stat_base["agility"])+2,
+  "New slot-10 passive remains independent of the old slot-12 bonus")
  store.profile=profile_backup
  store.skill_levels=levels_backup
  store.skill_hotbar.clear()
