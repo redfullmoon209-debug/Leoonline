@@ -394,12 +394,15 @@ func _reset_gm_test_entities() -> void:
   if target.has_meta("max_mp"):target.set_meta("mp",target.get_meta("max_mp"))
 
 func _toggle_target_lock() -> void:
- if not is_instance_valid(hud_menu) or not is_instance_valid(training_target):return
- if hud_menu.is_gameplay_blocked():return
- if hud_menu.top_status.current_target==training_target:
+ if not is_instance_valid(hud_menu) or hud_menu.is_gameplay_blocked():return
+ # Both keyboard T and touch TARGET cancel ANY currently selected entity.
+ var active:Node3D=hud_menu.top_status.current_target as Node3D
+ if is_instance_valid(active):
   hud_menu.clear_target()
- elif character.global_position.distance_to(training_target.global_position)<30.0:
-  hud_menu.set_target(training_target)
+  return
+ if is_instance_valid(training_target) and is_instance_valid(character):
+  if character.global_position.distance_to(training_target.global_position)<30.0:
+   hud_menu.set_target(training_target)
 
 func _select_target_at(screen_point: Vector2) -> bool:
  if not is_instance_valid(hud_menu) or hud_menu.is_gameplay_blocked():return false
@@ -410,7 +413,11 @@ func _select_target_at(screen_point: Vector2) -> bool:
  var selected:StaticBody3D=result.get("collider",null) as StaticBody3D
  if not is_instance_valid(selected) or not test_targets.has(selected):return false
  if character.global_position.distance_to(selected.global_position)>30.0:return false
- hud_menu.set_target(selected)
+ # Retapping a selected physical target unlocks it; another one switches.
+ if hud_menu.top_status.current_target==selected:
+  hud_menu.clear_target()
+ else:
+  hud_menu.set_target(selected)
  return true
 
 func _style(bg: String,border: String) -> StyleBoxFlat:
