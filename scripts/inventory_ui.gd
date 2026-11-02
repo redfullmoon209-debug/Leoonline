@@ -357,6 +357,10 @@ func _red_button(button: Button, asset: String = "action_button", pager: bool = 
  # One flat golden outline with NO internal painted stripes.
  # Hover and pressed states: ONLY simple red squares on every inventory page.
  RedButtonStyle.apply(button,asset=="tab_active")
+ # The Inventory/Bag tab uses bright scarlet when selected; other tabs
+ # keep their own existing color. This is a clean flat box, no inner lines.
+ if asset=="tab_active" and str(button.get_meta("l10n",""))=="Inventory":
+  button.add_theme_stylebox_override("normal",RedButtonStyle.bag_selected_style())
  button.add_theme_color_override("font_color",Color("#fff7df") if asset=="tab_active" else Color("#ffde93"))
 
 
