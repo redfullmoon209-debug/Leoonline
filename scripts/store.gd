@@ -65,6 +65,8 @@ var gm_preview_job_id: String = ""
 var skill_hotbar: Array[String] = ["novice_slash","novice_rush","novice_guard"]
 # Purchased permanent passive levels are saved; time-limited buffs are NOT saved.
 var skill_levels:Dictionary={}
+# Local GM previews may demonstrate stat changes; never serialized or charged.
+var gm_preview_passive_levels:Dictionary={}
 var active_buffs:Dictionary={}
 var _buff_tick_accumulator:float=0.0
 var unlocked := 40
@@ -207,7 +209,9 @@ func effective_job_info() -> Dictionary:
 
 func set_gm_job_preview(job_id: String) -> bool:
  if JobCatalog.info(job_id).is_empty():return false
- if gm_preview_job_id!=job_id:active_buffs.clear()
+ if gm_preview_job_id!=job_id:
+  active_buffs.clear()
+  gm_preview_passive_levels.clear()
  gm_preview_job_id=job_id
  changed.emit()
  return true
@@ -233,21 +237,34 @@ func clear_gm_job_preview() -> void:
  if gm_preview_job_id=="":return
  gm_preview_job_id=""
  active_buffs.clear()
+ gm_preview_passive_levels.clear()
  changed.emit()
 
+func passive_level(skill_id:String) -> int:
+ if gm_preview_job_id!="":
+  return clampi(int(gm_preview_passive_levels.get(skill_id,0)),0,SkillCatalog.PASSIVE_LEVEL_CAP)
+ return clampi(int(skill_levels.get(skill_id,0)),0,SkillCatalog.PASSIVE_LEVEL_CAP)
+
 func passive_upgrade_cost(skill_id:String) -> Dictionary:
- var current:int=clampi(int(skill_levels.get(skill_id,0)),0,SkillCatalog.PASSIVE_LEVEL_CAP)
- var next:int=current+1
- return {"sp":1,"gold":str(next*200)}
+ if gm_preview_job_id!="":return {"sp":0,"gold":"0"}
+ var current:int=passive_level(skill_id)
+ return {"sp":1,"gold":str((current+1)*200)}
 
 func upgrade_passive_skill(skill_id:String) -> bool:
- # Only a REAL character may permanently buy a passive. The GM
- # profession picker previews a different class without touching the save.
+ # GM may test a passive, with temporary levels only; player save untouched.
+ if gm_preview_job_id!="":
+  if not SkillCatalog.is_passive(gm_preview_job_id,skill_id):return false
+  var test_level:int=passive_level(skill_id)
+  if test_level>=SkillCatalog.PASSIVE_LEVEL_CAP:return false
+  gm_preview_passive_levels[skill_id]=test_level+1
+  changed.emit()
+  notice.emit("GM passive preview only - no saved progress or cost")
+  return true
  var real_job:String=str(profile.get("job","Novice"))
- if gm_preview_job_id!="" or not SkillCatalog.is_passive(real_job,skill_id):
+ if not SkillCatalog.is_passive(real_job,skill_id):
   notice.emit("Only your real profession can upgrade this passive")
   return false
- var old_level:int=clampi(int(skill_levels.get(skill_id,0)),0,SkillCatalog.PASSIVE_LEVEL_CAP)
+ var old_level:int=passive_level(skill_id)
  if old_level>=SkillCatalog.PASSIVE_LEVEL_CAP:
   notice.emit("Passive already at maximum level")
   return false
@@ -300,15 +317,15 @@ func activate_hotbar_slot(slot_index:int) -> bool:
 func effective_attributes() -> Dictionary:
  var attrs:Dictionary=profile.get("attributes",{}).duplicate(true)
  var effective_id:String=str(effective_job_info().get("id","Novice"))
- # Only learned, paid passives of the REAL profession are permanent.
- if gm_preview_job_id=="":
-  for id in skill_levels.keys():
-   if not SkillCatalog.is_passive(effective_id,str(id)):continue
-   var info:Dictionary=SkillCatalog.info(str(id))
-   var key:String=str(info.get("stat_key",""))
-   if attrs.has(key):
-    var level:int=clampi(int(skill_levels[id]),0,SkillCatalog.PASSIVE_LEVEL_CAP)
-    attrs[key]=int(attrs[key])+level*int(info.get("stat_amount",0))
+ # Paid learned passives are permanent; GM passives are temporary previews.
+ var effective_levels:Dictionary=gm_preview_passive_levels if gm_preview_job_id!="" else skill_levels
+ for id in effective_levels.keys():
+  if not SkillCatalog.is_passive(effective_id,str(id)):continue
+  var info:Dictionary=SkillCatalog.info(str(id))
+  var key:String=str(info.get("stat_key",""))
+  if attrs.has(key):
+   var level:int=clampi(int(effective_levels[id]),0,SkillCatalog.PASSIVE_LEVEL_CAP)
+   attrs[key]=int(attrs[key])+level*int(info.get("stat_amount",0))
  # Timed buff effects disappear automatically when the countdown reaches zero.
  for id in active_buffs.keys():
   if float(active_buffs[id])<=0.0 or not SkillCatalog.belongs_to_job(effective_id,str(id)):continue
@@ -643,6 +660,7 @@ func load_data() -> void:
  # Only valid, capped permanent passive levels from this REAL profession
  # may be loaded; never trust passive data or a client-edited save blindly.
  skill_levels.clear()
+ gm_preview_passive_levels.clear()
  var real_job:String=str(profile.get("job","Novice"))
  var raw_levels:Variant=data.get("skill_levels",{})
  if raw_levels is Dictionary:
