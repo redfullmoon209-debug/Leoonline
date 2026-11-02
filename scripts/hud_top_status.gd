@@ -151,8 +151,10 @@ func _make_map() -> void:
   var style:=StyleBoxFlat.new()
   style.bg_color=Color("#270d19")
   style.border_color=Color("#e4b45e")
-  style.set_border_width_all(2)
-  style.set_corner_radius_all(16)
+  # Minimap zoom +/- are buttons, not medallions: remove their circular
+  # gold base so only the symbol remains. Red square hover/press stays.
+  style.set_border_width_all(0)
+  style.set_corner_radius_all(0)
   button.add_theme_stylebox_override("normal",style)
   button.add_theme_stylebox_override("hover",RedButtonStyle.hover_style())
   button.add_theme_stylebox_override("pressed",RedButtonStyle.pressed_style())
