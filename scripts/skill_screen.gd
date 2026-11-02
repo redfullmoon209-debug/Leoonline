@@ -172,10 +172,11 @@ func _build() -> void:
  # Their text is native Godot (translatable, no image cropping).
  _panel("SkillCurrentStatsFrame",self,83,687,283,37)
  _panel("SkillNextStatsFrame",self,380,687,290,37)
- current_level_label=_label("SkillCurrentStats",self,94,690,266,31,12)
- next_level_label=_label("SkillNextStats",self,391,690,272,31,12)
- current_level_label.vertical_alignment=VERTICAL_ALIGNMENT_TOP
- next_level_label.vertical_alignment=VERTICAL_ALIGNMENT_TOP
+ current_level_label=_label("SkillCurrentStats",self,94,690,266,27,14)
+ next_level_label=_label("SkillNextStats",self,391,690,272,27,14)
+ # Single-line summaries avoid overflowing the compact strip at the bottom.
+ current_level_label.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+ next_level_label.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
  current_level_label.add_theme_constant_override("line_spacing",0)
  next_level_label.add_theme_constant_override("line_spacing",0)
 
@@ -257,8 +258,8 @@ func set_language(p_locale: String) -> void:
  next_job_tab.text=_tr("สกิลขั้นต่อไป (ล็อก)","Next job skills (locked)")
  slot_label.text=_tr("ยังไม่ได้เลือกสกิล","No skill selected")
  description_label.text=_tr("ช่องสกิลยังว่าง รอสร้าง PNG และข้อมูลสกิลจริง","Empty skill cells — waiting for genuine skill art and data")
- current_level_label.text=_tr("ปัจจุบัน Lv.-  ·  พลัง -\nเพิ่มเติม : -","Current Lv.-  ·  Power -\nAdditional: -")
- next_level_label.text=_tr("ถัดไป Lv.-  ·  พลัง -\nเพิ่มเติม : -","Next Lv.-  ·  Power -\nAdditional: -")
+ current_level_label.text=_tr("ปัจจุบัน Lv.-  ·  พลัง -","Current Lv.-  ·  Power -")
+ next_level_label.text=_tr("ถัดไป Lv.-  ·  พลัง -","Next Lv.-  ·  Power -")
  for i in range(3):
   preview_buttons[i].text=(_tr("ทดลองใช้","Preview") if i==0 else (_tr("เล่นซ้ำ","Replay") if i==1 else _tr("หยุด","Stop")))
  for label in slot_numbers:
