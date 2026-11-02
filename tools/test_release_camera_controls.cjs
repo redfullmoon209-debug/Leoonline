@@ -23,9 +23,9 @@ async function cameraCheck(browser, mobile){
       && typeof window.__leoQA?.camera_zoom_distance==='number',null,40000);
     await page.locator('#canvas').focus();
     const initial=await state(page);
-    assert(near(initial.bangkok_actor_scale,0.5),'Actor must use map-relative 50% size');
-    assert(near(initial.bangkok_player_capsule_height,1.05),'Collision capsule should be scaled');
-    assert(near(initial.bangkok_golem_scale,0.5),'NPC collider and mesh should be scaled');
+    assert(near(initial.bangkok_actor_scale,0.25),'Actor must be quarter-size, half the previous build');
+    assert(near(initial.bangkok_player_capsule_height,0.525),'Collision capsule should be scaled');
+    assert(near(initial.bangkok_golem_scale,0.25),'NPC collider and mesh should be scaled');
     assert(near(initial.camera_zoom_distance,5.4),'Initial zoom must match new city scale');
     if(!mobile){
       await page.mouse.move(640,430);
