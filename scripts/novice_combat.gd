@@ -142,7 +142,7 @@ func toggle_basic_auto_attack() -> bool:
  return true
 
 func _desired_auto_range() -> float:
- if queued_combat_skill=="novice_rush":return RUSH_RANGE
+ if queued_combat_skill=="novice_rush" and cooldown_left("novice_rush")<=0.0 and stamina+0.001>=float(SKILL_COSTS["novice_rush"]):return RUSH_RANGE
  return BASIC_ATTACK_RANGE
 
 func auto_run_direction() -> Vector3:
