@@ -25,10 +25,12 @@ var training_target: StaticBody3D
 var test_targets: Array[StaticBody3D]=[]
 var additional_test_targets: Array[StaticBody3D]=[]
 var test_spawn_count: int=0
-# Mobile browsers may send both a touch and an emulated mouse press.
-# Suppress only the duplicate; a deliberate second tap still unlocks.
-var last_target_touch_msec: int = -10000
-var last_target_touch_position: Vector2 = Vector2(-1000.0,-1000.0)
+# A physical touchscreen tap may arrive as mouse THEN touch, or the
+# reverse, depending on browser. Deduplicate only cross-source input;
+# two separate touches (or two mouse clicks) must still lock/unlock.
+var last_target_pointer_msec: int = -10000
+var last_target_pointer_position: Vector2 = Vector2(-1000.0,-1000.0)
+var last_target_pointer_kind: int = 0
 var gm_menu: Control
 
 func _ready() -> void:
@@ -424,6 +426,19 @@ func _select_target_at(screen_point: Vector2) -> bool:
   hud_menu.set_target(selected)
  return true
 
+func _target_pointer_input(screen_point: Vector2,kind: int) -> bool:
+ var elapsed:int=Time.get_ticks_msec()-last_target_pointer_msec
+ if last_target_pointer_kind!=0 and last_target_pointer_kind!=kind:
+  if elapsed>=0 and elapsed<450 and screen_point.distance_to(last_target_pointer_position)<28.0:
+   # The browser's emulated event for the SAME physical tap. Do not
+   # change lock state twice or cancel a fresh mobile target.
+   return true
+ if not _select_target_at(screen_point):return false
+ last_target_pointer_msec=Time.get_ticks_msec()
+ last_target_pointer_position=screen_point
+ last_target_pointer_kind=kind
+ return true
+
 func _style(bg: String,border: String) -> StyleBoxFlat:
  var box := StyleBoxFlat.new()
  box.bg_color = Color(bg)
@@ -566,16 +581,10 @@ func _unhandled_input(event: InputEvent) -> void:
   _toggle_target_lock()
   get_viewport().set_input_as_handled()
  elif event is InputEventScreenTouch and event.pressed:
-  if _select_target_at(event.position):
-   last_target_touch_msec=Time.get_ticks_msec()
-   last_target_touch_position=event.position
+  if _target_pointer_input(event.position,1):
    get_viewport().set_input_as_handled()
  elif event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_LEFT and Input.mouse_mode==Input.MOUSE_MODE_VISIBLE:
-  var age:int=Time.get_ticks_msec()-last_target_touch_msec
-  var is_touch_emulation:bool=age>=0 and age<450 and event.position.distance_to(last_target_touch_position)<28.0
-  if is_touch_emulation:
-   get_viewport().set_input_as_handled()
-  elif _select_target_at(event.position):
+  if _target_pointer_input(event.position,2):
    get_viewport().set_input_as_handled()
  elif event.is_action_pressed("bag") and not event.is_echo():
   if not is_instance_valid(hud_menu) or not hud_menu.edit_mode: _toggle()
