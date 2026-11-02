@@ -22,6 +22,7 @@ var zoom_in: Button
 var zoom_out: Button
 var north: Label
 var target_panel: PanelContainer
+var target_cancel: Button
 var target_label: Label
 var target_level_label: Label
 var target_type_label: Label
@@ -250,6 +251,21 @@ func _make_target() -> void:
  target_mana_value.add_theme_color_override("font_color",Color.WHITE)
  target_hint=_label(target_body,"TargetHint","แตะเป้าหมาย หรือกด T",13)
  target_hint.add_theme_color_override("font_color",Color("#c8af87"))
+ # Compact close/unlock button is a separate interactive control.
+ # It is rendered above the decorative panel, which ignores mouse input.
+ target_cancel=Button.new()
+ target_cancel.name="CancelTargetLock"
+ target_cancel.text="×"
+ target_cancel.tooltip_text="ยกเลิกเป้าหมาย (T / TARGET)"
+ target_cancel.focus_mode=Control.FOCUS_NONE
+ target_cancel.mouse_filter=Control.MOUSE_FILTER_STOP
+ target_cancel.add_theme_font_size_override("font_size",21)
+ RedButtonStyle.apply(target_cancel)
+ target_cancel.add_theme_stylebox_override("normal",StyleBoxEmpty.new())
+ target_cancel.add_theme_stylebox_override("disabled",StyleBoxEmpty.new())
+ add_child(target_cancel)
+ target_cancel.pressed.connect(clear_target)
+ target_cancel.visible=false
  _refresh_target()
 
 func _set_target_rect(control: Control,p: Vector2,wh: Vector2) -> void:
@@ -307,8 +323,8 @@ func _refresh_target() -> void:
  # The target HUD is contextual; no target means no empty center panel.
  # Lock/select a real entity to show it, then hide on unlock or deletion.
  var has_target:bool=is_instance_valid(current_target)
- if is_instance_valid(target_panel):
-  target_panel.visible=has_target
+ if is_instance_valid(target_panel):target_panel.visible=has_target
+ if is_instance_valid(target_cancel):target_cancel.visible=has_target
  if not has_target:
   current_target=null
   target_label.text="ยังไม่ได้เลือก" if size.y>size.x and size.x<620.0 else "เป้าหมาย: ยังไม่ได้เลือก"
@@ -330,6 +346,7 @@ func _refresh_target() -> void:
  var display_name:String=str(current_target.get_meta("target_name",current_target.name))
  if display_name.strip_edges().is_empty(): display_name="เป้าหมาย"
  target_label.text=display_name
+ target_label.tooltip_text=display_name
  var level:int=int(current_target.get_meta("level",0))
  target_level_label.text="Lv."+str(level) if level>0 else ""
  target_level_label.visible=level>0
@@ -467,6 +484,10 @@ func _layout() -> void:
  zoom_out.size=Vector2(zoom_size,zoom_size)
  target_panel.position=Vector2(target_x,target_y)
  target_panel.size=Vector2(target_w,target_h)
+ # The X remains inside the target bounds on portrait and landscape.
+ var cancel_size:float=27.0 if compact else 30.0
+ target_cancel.position=Vector2(target_x+target_w-cancel_size-5.0,target_y+5.0)
+ target_cancel.size=Vector2(cancel_size,cancel_size)
  var inner_w:float=target_w-14.0
  var inner_h:float=target_h-12.0
  target_body.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -481,12 +502,12 @@ func _layout() -> void:
   target_portrait_placeholder.add_theme_font_size_override("font_size",24)
   var text_start:float=50.0 if inner_w>140.0 else 42.0
   # Full target name gets its own line: do not cram it beside Lv.
-  _set_target_rect(target_label,Vector2(text_start,6.0),Vector2(maxf(55.0,inner_w-text_start-4.0),22.0))
+  _set_target_rect(target_label,Vector2(text_start,6.0),Vector2(maxf(35.0,inner_w-text_start-29.0),22.0))
   target_label.add_theme_font_size_override("font_size",10)
   _set_target_rect(target_level_label,Vector2(text_start,27.0),Vector2(44.0,15.0))
   target_level_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT
   target_level_label.add_theme_font_size_override("font_size",9)
-  _set_target_rect(target_type_label,Vector2(inner_w-59.0,9.0),Vector2(55.0,18.0))
+  _set_target_rect(target_type_label,Vector2(inner_w-60.0,27.0),Vector2(50.0,15.0))
   var bar_left:float=text_start+15.0
   var bar_width:float=maxf(45.0,inner_w-bar_left-4.0)
   _set_target_rect(target_health_label,Vector2(text_start,41.0),Vector2(15.0,18.0))
@@ -506,11 +527,11 @@ func _layout() -> void:
   target_portrait_placeholder.add_theme_font_size_override("font_size",29)
   var text_start:float=99.0
   var text_right:float=inner_w-8.0
-  _set_target_rect(target_label,Vector2(text_start,6.0),Vector2(maxf(55.0,inner_w-text_start-104.0),26.0))
+  _set_target_rect(target_label,Vector2(text_start,6.0),Vector2(maxf(55.0,inner_w-text_start-151.0),26.0))
   target_label.add_theme_font_size_override("font_size",15)
-  _set_target_rect(target_level_label,Vector2(inner_w-106.0,8.0),Vector2(46.0,22.0))
+  _set_target_rect(target_level_label,Vector2(inner_w-146.0,8.0),Vector2(46.0,22.0))
   target_level_label.add_theme_font_size_override("font_size",12)
-  _set_target_rect(target_type_label,Vector2(inner_w-64.0,8.0),Vector2(56.0,22.0))
+  _set_target_rect(target_type_label,Vector2(inner_w-95.0,8.0),Vector2(57.0,22.0))
   target_type_label.add_theme_font_size_override("font_size",10)
   var bar_left:float=text_start+43.0
   var bar_width:float=maxf(72.0,text_right-bar_left-5.0)
