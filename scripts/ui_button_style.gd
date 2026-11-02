@@ -7,8 +7,12 @@ const GOLD := Color("#c99c60")
 const HOVER := Color("#af2630")
 const DOWN := Color("#89151e")
 const CLEAR := Color(0.87,0.05,0.13,0.0)
-const HOVER_IMAGE := Color(0.87,0.05,0.13,0.36)
-const DOWN_IMAGE := Color(0.87,0.05,0.13,0.62)
+# Icon-only controls must remain untinted while the cursor hovers.
+const DOWN_IMAGE := Color(0.91,0.07,0.14,0.56)
+# Bright scarlet while actively pressing the bag. Unlike hover,
+# this visual lasts only while the button is held/touched.
+const BAG_DOWN_IMAGE := Color(1.0,0.035,0.09,0.84)
+const BAG_SELECTED := Color("#ed1741")
 
 static func rectangle(fill: Color, border: bool = false) -> StyleBoxFlat:
  var box := StyleBoxFlat.new()
@@ -24,6 +28,9 @@ static func hover_style() -> StyleBoxFlat:
 
 static func pressed_style() -> StyleBoxFlat:
  return rectangle(DOWN)
+
+static func bag_selected_style() -> StyleBoxFlat:
+ return rectangle(BAG_SELECTED,true)
 
 static func apply(button: Button, selected: bool = false, image_base: bool = false) -> void:
  button.flat = false
@@ -43,9 +50,10 @@ static func apply(button: Button, selected: bool = false, image_base: bool = fal
 static func _tint(rect: ColorRect,color: Color) -> void:
  if is_instance_valid(rect):rect.color=color
 
-static func image_overlay(button: BaseButton) -> void:
- # Preserve each existing icon/slot PNG. The only active decoration
- # is a simple transparent red rectangle that never intercepts taps.
+static func image_overlay(button: BaseButton, down_color: Color = DOWN_IMAGE) -> void:
+ # Icon imagery is NEVER washed red on pointer hover. A square red
+ # overlay is shown only while the button is actively pressed/touched.
+ # No new ring, gold base, decorative border or animated effect.
  if button.get_node_or_null("RedHoverRectangle")!=null:return
  var red:=ColorRect.new()
  red.name="RedHoverRectangle"
@@ -54,17 +62,11 @@ static func image_overlay(button: BaseButton) -> void:
  button.add_child(red)
  red.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  button.mouse_entered.connect(func():
-  if not button.disabled:_tint(red,HOVER_IMAGE)
+  # Do not tint on hover, even if this is a touch/mouse hybrid.
+  if not button.button_pressed:_tint(red,CLEAR)
  )
  button.mouse_exited.connect(func():_tint(red,CLEAR))
  button.button_down.connect(func():
-  if not button.disabled:_tint(red,DOWN_IMAGE)
+  if not button.disabled:_tint(red,down_color)
  )
- button.button_up.connect(func():
-  if button.disabled:
-   _tint(red,CLEAR)
-  elif button.get_global_rect().has_point(button.get_global_mouse_position()):
-   _tint(red,HOVER_IMAGE)
-  else:
-   _tint(red,CLEAR)
- )
+ button.button_up.connect(func():_tint(red,CLEAR))
