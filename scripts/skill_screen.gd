@@ -267,7 +267,7 @@ func _equip_to(index:int) -> void:
   var installed:String=preview_loadout[index]
   if not SkillCatalog.is_equippable(id,installed):return
   var applied:bool=bool(game_store.activate_skill(installed))
-  hint_label.text=_tr("เปิดใช้บัฟแล้ว","Buff activated") if applied else _tr("สกิลโจมตีรอระบบต่อสู้","Combat skill not yet available")
+  hint_label.text=_tr("ใช้สกิลสำเร็จ","Skill activated") if applied else _tr("ใช้ไม่สำเร็จ: ตรวจเป้าหมาย ระยะ คูลดาวน์ และสตามินา","Failed: check target, range, cooldown and stamina")
   return
  # A permanent body passive is NEVER installed, even in GM preview.
  if not SkillCatalog.is_equippable(id,selected_skill):
