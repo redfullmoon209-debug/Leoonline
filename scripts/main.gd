@@ -214,7 +214,9 @@ func _make_training_target() -> void:
  # live data rather than a fictional screenshot of a monster.
  training_target=StaticBody3D.new()
  training_target.name="TrainingStoneGolem"
- training_target.position=Vector3(3.0,1.35,-8.0)
+ # Place the training golem far enough from the new Bangkok road spawn
+ # to keep the ATK chase/stop regression realistic and deterministic.
+ training_target.position=Vector3(3.0,1.35,-13.0)
  training_target.set_meta("target_name","อสูรหินฝึก")
  training_target.set_meta("target_type","Monster")
  training_target.set_meta("level",12)
