@@ -1,4 +1,5 @@
 extends Node
+const RedButtonStyle = preload("res://scripts/ui_button_style.gd")
 # Browser-local UI configuration shared with the 911 PWA on the same origin.
 const STORAGE_KEY := "leo911_ui_v1"
 var host: Node3D
@@ -57,7 +58,7 @@ func _build(items: Array) -> void:
   else:
    var button := Button.new()
    button.text = title
-   button.add_theme_stylebox_override("normal", _style())
+   RedButtonStyle.apply(button)
    var action: String = str(entry.get("action", "none"))
    var target: String = str(entry.get("target", ""))
    button.pressed.connect(func(): _activate(action, target))
