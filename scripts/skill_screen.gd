@@ -156,9 +156,9 @@ func _show_selected() -> void:
  var is_en:bool=locale=="en"
  slot_label.text=str(item["en" if is_en else "th"])
  description_label.text=str(item["desc_en" if is_en else "desc_th"])
- get_node("SkillTypeCaption").text=_tr("ประเภท","Type")+" : "+str(item["type_en" if is_en else "type_th"])
- get_node("SkillCooldownCaption").text=_tr("คูลดาวน์","Cooldown")+" : "+str(item["cooldown"])
- get_node("SkillStaminaCaption").text=_tr("ใช้สตามินา","Stamina")+" : "+str(item["stamina"])
+ (get_node("SkillTypeCaption") as Label).text=_tr("ประเภท","Type")+" : "+str(item["type_en" if is_en else "type_th"])
+ (get_node("SkillCooldownCaption") as Label).text=_tr("คูลดาวน์","Cooldown")+" : "+str(item["cooldown"])
+ (get_node("SkillStaminaCaption") as Label).text=_tr("ใช้สตามินา","Stamina")+" : "+str(item["stamina"])
  var selected:TextureButton=get_node("SelectedSkillIcon")
  var art:String=str(item["icon"])
  _paint_skill(selected,art)
