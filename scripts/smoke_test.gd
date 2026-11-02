@@ -662,6 +662,43 @@ func validate() -> void:
  gm._toggle()
  check(gm.is_open() and hud_menu.is_gameplay_blocked(),"Opening GM test panel blocks world movement")
  check(gm.target_picker.item_count==5,"GM picker lists the five actual target entities")
+ # Local test-only career selection must never replace the saved profession.
+ var real_career_before:Dictionary=store.profile.duplicate(true)
+ check(gm.job_picker.item_count==13 and gm.gm_job_open_button!=null and gm.gm_job_next_button!=null,
+  "GM has Novice, six first-stage, six second-stage jobs and an open-Skill action")
+ var job_data=load("res://scripts/job_catalog.gd")
+ for profession_index in range(13):
+  gm.job_picker.select(profession_index)
+  gm._apply_job()
+  var entry:Dictionary=job_data.JOBS[profession_index]
+  check(store.gm_preview_job_id==str(entry["id"]) and int(store.effective_job_info()["tier"])==int(entry["tier"]),
+   "GM selects correct job and career stage: "+str(entry["id"]))
+  check(skills.class_label.text==str(entry["th"]) and top.player_job.text==("Novice" if profession_index==0 else str(entry["th"])),
+   "Skill page and world HUD reflect GM selected profession: "+str(entry["id"]))
+  var available_count:int=3 if profession_index==0 else 14
+  check(skills.skill_slots.filter(func(cell):return not cell.disabled).size()==available_count,
+   "Skill grid shows 3 starter slots or 14 job slots: "+str(entry["id"]))
+  check(skills.preview_anchor.get_child_count()==0 and skills.upgrade_button.disabled,
+   "GM cannot fake animation or deduct currency for blank skills")
+ check(store.profile==real_career_before,"GM preview does not overwrite career, EXP, gold or skill points")
+ check(store.save_data(),"Saving while GM profession preview is active is permitted")
+ var gm_save_file:=FileAccess.open("user://leoonline.json",FileAccess.READ)
+ var gm_saved:Variant=JSON.parse_string(gm_save_file.get_as_text()) if gm_save_file!=null else null
+ check(gm_saved is Dictionary and not gm_saved.has("gm_preview_job_id") and gm_saved["profile"]["job"]==real_career_before["job"],
+  "GM preview is not serialized into real saved profile")
+ gm.job_picker.select(7)
+ gm._apply_job()
+ check(skills.class_label.text=="จอมหมัดภูผา" and skills.class_subtitle.text.contains("นักสู้พิภพ"),
+  "Second-stage fist master is a continuation of first-stage fist profession")
+ gm._open_skill_view()
+ check(not gm.is_open() and game.open and ui.visible and ui.current_tab==2 and skills.visible,
+  "GM opens matching Skill page without an in-Skill profession selector")
+ check(skills.skill_slots.filter(func(cell):return not cell.disabled).size()==14,
+  "Tier 2 job has fourteen empty inventory PNG slots for testing")
+ game._toggle()
+ check(not game.open and not ui.visible,"GM preview Skill closes using the regular Inventory controller")
+ gm._toggle()
+ check(gm.is_open(),"GM panel can reopen after inspecting Skill to continue other tests")
  gm._spawn_monster()
  check(game.additional_test_targets.size()==1 and game.test_targets.size()==6,
   "GM can spawn an additional clickable physical monster in the local scene")
@@ -687,7 +724,10 @@ func validate() -> void:
   "GM Reset removes only GM-spawned targets, restores starter entities and clears target card")
  gm._close()
  gm._set_test_mode(false)
- check(not gm.gm_button.visible and not gm.is_open(),"Leaving GM test revokes all local debug controls")
+ check(not gm.gm_button.visible and not gm.is_open() and store.gm_preview_job_id=="",
+  "Disabling local GM clears test profession and all debug controls")
+ check(store.profile==real_career_before and skills.class_label.text=="อาชีพเริ่มต้น",
+  "Novice Skill and original saved profile return unchanged after GM preview")
  var wide_target_bounds:Rect2=top.target_panel.get_global_rect()
  var wide_menu_bounds:Rect2=hud_menu.controls["bag"].get_global_rect()
  check(absf(wide_target_bounds.get_center().x-720.0)<2.0,

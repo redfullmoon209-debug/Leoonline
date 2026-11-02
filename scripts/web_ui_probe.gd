@@ -125,6 +125,13 @@ func _process(delta: float) -> void:
   "hud_gm_reset":bounds(gm.gm_popup.find_child("GMResetTestTargets",true,false)),
   "hud_gm_spawned_count":host.additional_test_targets.size(),
   "hud_gm_target_picker_items":gm.target_picker.item_count,
+  "hud_gm_job_picker_items":gm.job_picker.item_count,
+  "hud_gm_job_picker_selected":gm.job_picker.selected,
+  "hud_gm_job_jump":bounds(gm.job_jump_button),
+  "hud_gm_job_next":bounds(gm.gm_job_next_button),
+  "hud_gm_job_open_skills":bounds(gm.gm_job_open_button),
+  "hud_gm_selected_job_id":str(store.gm_preview_job_id),
+  "hud_real_saved_job":str(store.profile.get("job","Novice")),
   "hud_gm_status":gm.status_label.text,
   "hud_training_target_screen": [
    host.camera.unproject_position(host.get("training_target").global_position).x,
