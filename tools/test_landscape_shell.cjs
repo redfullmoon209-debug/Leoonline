@@ -98,13 +98,13 @@ async function runLiveGame(browser,{width,height,mobile}){
     try{return document.getElementById('game-frame')?.contentWindow?.__leoQA?.hud_target_name==='อสูรหินฝึก';}
     catch(e){return false;}
   });
-  check((await state()).hud_target_health_visible,'Touch TARGET selects the actual 3D training golem in landscape: '+scenario);
+  check((await state()).hud_target_health_visible&&(await state()).hud_target_panel_visible,'Touch TARGET shows the complete real target card in landscape: '+scenario);
   await tapFrame((await state()).hud_touch_target);
   await page.waitForFunction(()=>{
     try{return document.getElementById('game-frame')?.contentWindow?.__leoQA?.hud_target_name?.includes('ยังไม่ได้เลือก');}
     catch(e){return false;}
   });
-  check(!(await state()).hud_target_health_visible,'Second TARGET touch clears the selected enemy: '+scenario);
+  check(!(await state()).hud_target_health_visible&&!(await state()).hud_target_panel_visible,'Second TARGET touch hides the entire center card: '+scenario);
   await tapFrame(data.hud_gm_button_bounds);
   await page.waitForFunction(()=>{
     try{return document.getElementById('game-frame')?.contentWindow?.__leoQA?.hud_gm_panel_open===true;}
@@ -119,7 +119,7 @@ async function runLiveGame(browser,{width,height,mobile}){
     catch(e){return false;}
   },null,{timeout:12000});
   data=await state();
-  check(data.hud_target_name.includes('มอนทดสอบ'),'GM actually spawns and selects a new physical monster: '+scenario);
+  check(data.hud_target_panel_visible&&data.hud_target_name.includes('มอนทดสอบ'),'GM selection shows the real monster card: '+scenario);
   await tapFrame(data.hud_gm_spawn_player);
   await page.waitForFunction(()=>{
     try{return document.getElementById('game-frame')?.contentWindow?.__leoQA?.hud_gm_spawned_count===2;}
