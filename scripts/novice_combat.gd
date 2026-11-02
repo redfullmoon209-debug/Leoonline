@@ -406,7 +406,7 @@ func _player_defeated() -> void:
  basic_attack_seconds=0.0
  game.character.velocity=Vector3.ZERO
  var spawn_height:float=1.1*float(game.character.get_meta("world_actor_scale",1.0))
- game.character.global_position=Vector3(0,spawn_height,0) if game.has_node("BangkokCityMap") else Vector3(0,spawn_height,5)
+ game.character.global_position=game.get_spawn_position() if game.has_method("get_spawn_position") else Vector3(0,spawn_height,5)
  health=_max_health()
  stamina=max_stamina
  if guard_visual!=null:guard_visual.visible=false
