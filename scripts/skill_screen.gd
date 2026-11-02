@@ -166,8 +166,12 @@ func _build() -> void:
  _label("SkillCooldownCaption",self,308,570,123,23,15).text=_tr("คูลดาวน์","Cooldown")
  _label("SkillStaminaCaption",self,451,570,186,23,15).text=_tr("ใช้สตามินา","Stamina")
  description_label=_label("SkillDescription",self,83,605,590,35,16,false)
- current_level_label=_label("SkillCurrentStats",self,91,649,270,68,17)
- next_level_label=_label("SkillNextStats",self,387,649,272,68,17)
+ current_level_label=_label("SkillCurrentStats",self,99,653,260,64,14)
+ next_level_label=_label("SkillNextStats",self,396,653,260,64,14)
+ current_level_label.vertical_alignment=VERTICAL_ALIGNMENT_TOP
+ next_level_label.vertical_alignment=VERTICAL_ALIGNMENT_TOP
+ current_level_label.add_theme_constant_override("line_spacing",0)
+ next_level_label.add_theme_constant_override("line_spacing",0)
  _panel("SkillCurrentStatsFrame",self,83,644,283,81)
  _panel("SkillNextStatsFrame",self,380,644,290,81)
  # Recreate the text on top of the PNG frames rather than baking it.
@@ -227,16 +231,16 @@ func _build() -> void:
   slot_numbers.append(number)
 
  page_label=_label("SkillGridCaption",self,743,582,638,26,16,true,HORIZONTAL_ALIGNMENT_CENTER)
- _label("SkillHotbarTitle",self,732,644,320,27,19).text=_tr("ช่องติดตั้งสกิล (3 ช่อง)","Equipped skills (3 slots)")
+ _label("SkillHotbarTitle",self,733,640,320,26,18).text=_tr("ช่องติดตั้งสกิล (3 ช่อง)","Equipped skills (3 slots)")
  for i in range(3):
-  var x:float=759.0+float(i)*105.0
-  var n:=_label("SkillHotbarNumber"+str(i+1),self,x,684,77,18,14,true,HORIZONTAL_ALIGNMENT_CENTER)
+  var x:float=764.0+float(i)*103.0
+  var n:=_label("SkillHotbarNumber"+str(i+1),self,x,675,71,18,14,true,HORIZONTAL_ALIGNMENT_CENTER)
   equipped_numbers.append(n)
-  active_slots.append(_slot(self,"EquippedSkillSlot"+str(i+1),x,706,77,false))
- _label("SkillUpgradeTitle",self,1103,644,266,27,19).text=_tr("อัปเกรดสกิล","Skill upgrade")
- price_label=_label("SkillCostPoints",self,1112,683,258,24,16)
- cost_label=_label("SkillCostGold",self,1112,713,258,24,16)
- upgrade_button=_button("SkillUpgradeButton",self,1106,748,261,32,16)
+  active_slots.append(_slot(self,"EquippedSkillSlot"+str(i+1),x,699,71,false))
+ _label("SkillUpgradeTitle",self,1103,640,266,27,19).text=_tr("อัปเกรดสกิล","Skill upgrade")
+ price_label=_label("SkillCostPoints",self,1112,681,258,24,16)
+ cost_label=_label("SkillCostGold",self,1112,709,258,24,16)
+ upgrade_button=_button("SkillUpgradeButton",self,1106,742,261,32,16)
  upgrade_button.disabled=true
  hint_label=_label("SkillPreviewNote",self,86,306,570,36,16,false,HORIZONTAL_ALIGNMENT_CENTER)
  hint_label.text=""
