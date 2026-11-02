@@ -134,7 +134,7 @@ func _make_character() -> void:
  var female_visual := load("res://scripts/female_character_visual.gd").new() as Node3D
  female_visual.name = "FemalePlayerVisual"
  character.add_child(female_visual)
- if female_visual.has_method("animate_motion"):
+ if female_visual.visual_loaded:
   mesh.visible = false
  else:
   mesh.visible = true
