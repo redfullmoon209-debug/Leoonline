@@ -101,11 +101,42 @@ func _make_world() -> void:
  var sun := DirectionalLight3D.new()
  sun.rotation_degrees = Vector3(-45,-25,0)
  add_child(sun)
- _box(Vector3(0,-0.5,0),Vector3(80,1,80),Color("47735d"))
- for x in range(-3,4):
-  for z in range(-3,4):
-   if (x+z)%3 == 0:
-    _box(Vector3(x*7,0.3,z*7-12),Vector3(2,0.6,2),Color("7b93a0"))
+ # The Bangkok map is reconstructed from the owner's .blend before Godot imports it.
+ # Its geometry is at 1:10 scale; original road Z=26.7 becomes Godot ground Y=0.
+ var map_path := "res://assets/maps/bangkok_map.glb"
+ if ResourceLoader.exists(map_path):
+  var packed_map: PackedScene = load(map_path) as PackedScene
+  if packed_map != null:
+   var city: Node3D = packed_map.instantiate() as Node3D
+   if city != null:
+    city.name = "BangkokCityMap"
+    add_child(city)
+ # Keep one reliable, broad collision floor even before detailed city collisions.
+ # This is an actual StaticBody3D, not a visual-only mesh.
+ var ground := StaticBody3D.new()
+ ground.name = "BangkokGroundCollision"
+ ground.position = Vector3(0.0,-0.5,0.0)
+ add_child(ground)
+ var ground_collision := CollisionShape3D.new()
+ ground_collision.name = "CollisionShape3D"
+ var ground_shape := BoxShape3D.new()
+ ground_shape.size = Vector3(210.0,1.0,245.0)
+ ground_collision.shape = ground_shape
+ ground.add_child(ground_collision)
+ var terrain := MeshInstance3D.new()
+ terrain.name = "BangkokWalkableTerrain"
+ var plane := PlaneMesh.new()
+ plane.size = Vector2(210.0,245.0)
+ terrain.mesh = plane
+ terrain.position.y = -0.04
+ terrain.material_override = _mat(Color("405a47"))
+ add_child(terrain)
+ if not has_node("BangkokCityMap"):
+  # Local fallback for environments where the map has not yet been reconstructed.
+  for x in range(-3,4):
+   for z in range(-3,4):
+    if (x+z)%3 == 0:
+     _box(Vector3(x*7,0.3,z*7-12),Vector3(2,0.6,2),Color("7b93a0"))
  _spawn_loot("sword",Vector3(-3,0.65,0),Color.GOLD)
  _spawn_loot("boots",Vector3(3,0.65,0),Color.DEEP_SKY_BLUE)
  _spawn_loot("potion",Vector3(0,0.65,-5),Color.HOT_PINK)
@@ -132,7 +163,7 @@ func _spawn_loot(id: String,pos: Vector3,color: Color) -> void:
 
 func _make_character() -> void:
  character = CharacterBody3D.new()
- character.position = Vector3(0,1.1,5)
+ character.position = Vector3(0,1.1,0) if has_node("BangkokCityMap") else Vector3(0,1.1,5)
  add_child(character)
  var col := CollisionShape3D.new()
  var shape := CapsuleShape3D.new()
