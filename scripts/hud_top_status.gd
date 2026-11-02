@@ -131,7 +131,7 @@ func _make_map() -> void:
  minimap_button.add_theme_stylebox_override("normal",StyleBoxEmpty.new())
  minimap_button.add_theme_stylebox_override("hover",RedButtonStyle.hover_style())
  minimap_button.add_theme_stylebox_override("pressed",RedButtonStyle.pressed_style())
-  minimap_button.add_theme_stylebox_override("hover_pressed",RedButtonStyle.pressed_style())
+ minimap_button.add_theme_stylebox_override("hover_pressed",RedButtonStyle.pressed_style())
  minimap_button.add_theme_stylebox_override("focus",StyleBoxEmpty.new())
  add_child(minimap_button)
  minimap=MiniMapScript.new()
@@ -156,7 +156,7 @@ func _make_map() -> void:
   button.add_theme_stylebox_override("normal",style)
   button.add_theme_stylebox_override("hover",RedButtonStyle.hover_style())
   button.add_theme_stylebox_override("pressed",RedButtonStyle.pressed_style())
-   button.add_theme_stylebox_override("hover_pressed",RedButtonStyle.pressed_style())
+  button.add_theme_stylebox_override("hover_pressed",RedButtonStyle.pressed_style())
   minimap_button.add_child(button)
   button.pressed.connect(_change_zoom.bind(0.15 if key=="in" else -0.15))
   if key=="in": zoom_in=button
