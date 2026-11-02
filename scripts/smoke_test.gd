@@ -74,18 +74,26 @@ func validate() -> void:
  for node in ui.currency_panel.get_children():
   if node is NinePatchRect: money_border+=1
  check(money_border==0,"Currency section has no decorative box or row frames")
- var luminous: StyleBox = ui.tab_buttons[0].get_theme_stylebox("normal")
- check(luminous is StyleBoxTexture,"Selected tab uses separate luminous PNG state")
- if luminous is StyleBoxTexture:
-  check(luminous.texture.resource_path.ends_with("/tab_lit.png"),"Selected tab is vivid ruby red")
+ var selected_style: StyleBox = ui.tab_buttons[0].get_theme_stylebox("normal")
+ check(selected_style is StyleBoxFlat,"Inventory tabs have clean flat ruby style, no stripe textures")
+ if selected_style is StyleBoxFlat:
+  check(selected_style.corner_radius_top_left==0 and selected_style.border_width_top==2,"Normal tab has flat gold outline and square corners")
+ var hovered: StyleBox = ui.footer_buttons[1].get_theme_stylebox("hover")
  var pressed: StyleBox = ui.footer_buttons[1].get_theme_stylebox("pressed")
- check(pressed is StyleBoxTexture,"Action button has pressed PNG state")
- if pressed is StyleBoxTexture:
-  check(pressed.texture.resource_path.ends_with("/button_pressed.png"),"Bright red and white pressed feedback has a separate PNG")
+ check(hovered is StyleBoxFlat and pressed is StyleBoxFlat,"All action buttons use flat red hover and pressed squares")
+ if hovered is StyleBoxFlat and pressed is StyleBoxFlat:
+  check(hovered.corner_radius_top_left==0 and pressed.corner_radius_top_left==0,"Hover/pressed effects are rectangular without rounded corners")
+  check(hovered.border_width_top==0 and pressed.border_width_top==0,"Hover/pressed have no gold/white decorative lines")
+  check(hovered.bg_color.r>hovered.bg_color.g*2.0 and pressed.bg_color.r>pressed.bg_color.g*2.0,"Hover and press are red only")
+ var popup_close: Button = game.hud_menu.popup.find_child("CloseHUDPanel",true,false) as Button
+ check(popup_close != null and popup_close.get_theme_stylebox("normal") is StyleBoxFlat,"Party and every HUD menu use the same unstriped text button")
+ if popup_close != null:
+  check(popup_close.get_theme_stylebox("hover") is StyleBoxFlat,"Every HUD popup action highlights with a plain red square")
+
  for row in [ui.main_equip_list,ui.extra_equip_list,ui.fashion_weapon_row,ui.fashion_side_row,ui.accessory_row,ui.fashion_row]:
   for button in row.get_children():
    check(button is TextureButton,"Equipment uses PNG button")
-   check(button.get_child_count()==0,"Empty equipment has no fake item icons or text")
+   check(button.get_child_count()==1 and button.get_child(0).name=="RedHoverRectangle","Empty equipment keeps no fake art, only a plain red hover overlay")
  check(ui.main_equip_list.get_child_count()==5,"Five body slots")
  check(ui.extra_equip_list.get_child_count()==4,"Two weapons, pet, mount")
  check(ui.fashion_row.get_child_count()==5,"Exactly five fashion slots")
@@ -260,7 +268,7 @@ func validate() -> void:
  check(ui.visible and ui.storage_mode and ui.current_tab==4,"Click fifth top tab opens Storage mode")
  check(ui.storage_panel.visible and not ui.equipment_panel.visible and ui.bag_panel.visible,"Fifth Storage tab shows left vault and right bag")
  var fifth_style: StyleBox = ui.tab_buttons[4].get_theme_stylebox("normal")
- check(fifth_style is StyleBoxTexture and fifth_style.texture.resource_path.ends_with("/tab_lit.png"),"Storage tab highlights red when selected")
+ check(fifth_style is StyleBoxFlat and fifth_style.bg_color.r>fifth_style.bg_color.g,"Storage tab highlights with a clean flat ruby red")
 
  check(ui.bag_panel.position==Vector2.ZERO and ui.bag_grid.columns==10,"Storage leaves original 10-column bag in place")
  check(ui.storage_grid.columns==10 and ui.storage_grid.get_child_count()==50,"Storage grid is 10 columns by 5 rows")
@@ -316,7 +324,7 @@ func validate() -> void:
  ui._change_storage_page(4)
  check(ui.storage_page==3 and ui.storage_grid.get_child_count()==50,"Storage last page shows 50 slots")
  check(ui.storage_grid.get_child(49).get_meta("storage_index")==199,"Storage last page maps to slot 199")
- check(ui.storage_grid.get_child(49).get_child_count()==1,"Storage shows the original standalone icon for stored item")
+ check(ui.storage_grid.get_child(49).get_child_count()==2 and ui.storage_grid.get_child(49).get_child(0).name=="RedHoverRectangle","Storage keeps original icon and adds only square red hover overlay")
  ui._change_storage_page(0)
  ui.set_language("en")
  check(ui.storage_deposit_button.text=="Deposit" and ui.storage_withdraw_button.text=="Withdraw","Storage action labels translate without editing PNG")
