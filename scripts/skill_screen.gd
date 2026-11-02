@@ -38,6 +38,10 @@ var next_level_label: Label
 var price_label: Label
 var cost_label: Label
 var page_label: Label
+# Page navigation uses the existing 14 slot controls; only appears at >14.
+var previous_page_button:Button
+var next_page_button:Button
+var skill_page:int=0
 var slot_numbers: Array[Label] = []
 var equipped_numbers: Array[Label] = []
 var selected_skill: String = ""
@@ -145,6 +149,20 @@ func _slot(parent: Node,name: String,x:float,y:float,size_px:float,locked:bool) 
  cell.pressed.connect(_skill_cell_selected.bind(name))
  return cell
 
+func _page_count(total:int) -> int:
+ return maxi(1,ceili(float(total)/float(MAX_SLOTS)))
+
+func _absolute_skill_index(cell_index:int) -> int:
+ return skill_page*MAX_SLOTS+cell_index
+
+func _switch_skill_page(direction:int) -> void:
+ var job_id:String=str(game_store.effective_job_info().get("id","Novice"))
+ var count:int=_page_count(SkillCatalog.skills_for_job(job_id).size())
+ var target:int=clampi(skill_page+direction,0,count-1)
+ if target==skill_page:return
+ skill_page=target
+ refresh()
+
 func _skill_cell_selected(cell_name: String) -> void:
  var index: int=-1
  for i in range(skill_slots.size()):
@@ -155,10 +173,11 @@ func _skill_cell_selected(cell_name: String) -> void:
   _empty_skill_selected(cell_name)
   return
  var skills:Array=SkillCatalog.skills_for_job(str(game_store.effective_job_info().get("id","Novice")))
- if index>=skills.size():
+ var absolute_index:int=_absolute_skill_index(index)
+ if absolute_index>=skills.size():
   _empty_skill_selected(cell_name)
   return
- var chosen_id:String=str(skills[index]["id"])
+ var chosen_id:String=str(skills[absolute_index]["id"])
  if selected_skill==chosen_id:
   # Second tap cancels selection; the original equipped button may then
   # cast a timed buff without creating any new input buttons.
@@ -235,7 +254,8 @@ func _update_skill_icons() -> void:
  var job_id:String=str(game_store.effective_job_info().get("id","Novice"))
  var skills:Array=SkillCatalog.skills_for_job(job_id)
  for i in range(skill_slots.size()):
-  _paint_skill(skill_slots[i],str(skills[i]["icon"]) if i<skills.size() else "")
+  var absolute_index:int=_absolute_skill_index(i)
+  _paint_skill(skill_slots[i],str(skills[absolute_index]["icon"]) if absolute_index<skills.size() else "")
  for i in range(active_slots.size()):
   var found:Dictionary=SkillCatalog.info(preview_loadout[i]) if SkillCatalog.is_equippable(job_id,preview_loadout[i]) else {}
   _paint_skill(active_slots[i],str(found.get("icon","")))
@@ -373,6 +393,15 @@ func _build() -> void:
   slot_numbers.append(number)
 
  page_label=_label("SkillGridCaption",self,743,582,638,26,16,true,HORIZONTAL_ALIGNMENT_CENTER)
+ # Invisible for the approved 14-skill layout; displayed ONLY if skills overflow.
+ previous_page_button=_button("SkillPreviousPage",self,746,584,106,25,13)
+ previous_page_button.text=_tr("◀ ก่อนหน้า","◀ Previous")
+ previous_page_button.visible=false
+ previous_page_button.pressed.connect(_switch_skill_page.bind(-1))
+ next_page_button=_button("SkillNextPage",self,1265,584,106,25,13)
+ next_page_button.text=_tr("ถัดไป ▶","Next ▶")
+ next_page_button.visible=false
+ next_page_button.pressed.connect(_switch_skill_page.bind(1))
  _label("SkillHotbarTitle",self,733,640,320,26,18).text=_tr("ช่องติดตั้งสกิล (3 ช่อง)","Equipped skills (3 slots)")
  for i in range(3):
   var x:float=764.0+float(i)*103.0
@@ -403,6 +432,8 @@ func set_language(p_locale: String) -> void:
  next_level_label.text=_tr("ถัดไป Lv.-  ·  พลัง -","Next Lv.-  ·  Power -")
  for i in range(3):
   preview_buttons[i].text=(_tr("ทดลองใช้","Preview") if i==0 else (_tr("เล่นซ้ำ","Replay") if i==1 else _tr("หยุด","Stop")))
+ previous_page_button.text=_tr("◀ ก่อนหน้า","◀ Previous")
+ next_page_button.text=_tr("ถัดไป ▶","Next ▶")
  for label in slot_numbers:
   label.text=str(slot_numbers.find(label)+1)
  for label in equipped_numbers:
@@ -430,6 +461,7 @@ func refresh() -> void:
  var current_job:String=str(profession.get("id","Novice"))
  # GM can inspect a temporary loadout, never affecting saved equipment.
  if current_job!=last_shown_job:
+  skill_page=0
   selected_skill=""
   _paint_skill(get_node("SelectedSkillIcon") as TextureButton,"")
   slot_label.text=_tr("ยังไม่ได้เลือกสกิล","No skill selected")
@@ -484,23 +516,39 @@ func refresh() -> void:
  elif tier==1:
   current_skills_tab.text=_tr("สกิลอาชีพขั้น 1 (14 ช่อง)","Tier 1 skills (14 slots)")
   next_job_tab.text=_tr("อาชีพขั้น 2 (ยังไม่ปลดล็อก)","Tier 2 (not unlocked)")
-  page_label.text=_tr("ไอคอนสกิลเฉพาะสาย 14 ท่า · รออนิเมชั่นต่อสู้","14 unique class skills · combat animation pending")
+  page_label.text=_tr("โจมตี 8 · ติดตัว 4 · บัฟมีเวลา 2","8 Active · 4 Passive · 2 Timed Buffs")
  else:
   current_skills_tab.text=_tr("สกิลอาชีพขั้น 2 (14 ช่อง)","Tier 2 skills (14 slots)")
   next_job_tab.text=_tr("อาชีพขั้น 2 · เปิดแล้ว","Tier 2 · Available")
-  page_label.text=_tr("สกิลต่อยอดจากขั้น 1 · 14 ช่องรอ PNG","Advanced from Tier 1 · 14 slots awaiting PNGs")
+  page_label.text=_tr("โจมตี 8 · ติดตัว 4 · บัฟ 2 (รอ PNG)","8 Active · 4 Passive · 2 Buffs (PNG pending)")
  var class_skills:Array=SkillCatalog.skills_for_job(current_job)
+ var page_count:int=_page_count(class_skills.size())
+ skill_page=clampi(skill_page,0,page_count-1)
+ var has_more:bool=page_count>1
+ previous_page_button.visible=has_more
+ next_page_button.visible=has_more
+ previous_page_button.disabled=skill_page<=0
+ next_page_button.disabled=skill_page>=page_count-1
+ if has_more:
+  # Reuse the existing caption area. No new border, outline or panel.
+  _rect(page_label,856,582,405,26)
+  page_label.text=_tr("หน้าสกิล ","Skill page ")+str(skill_page+1)+" / "+str(page_count)
+ else:
+  _rect(page_label,743,582,638,26)
  for i in range(skill_slots.size()):
-  var locked:bool=(novice and i>=NOVICE_SLOTS) or i>=class_skills.size()
+  var absolute_index:int=_absolute_skill_index(i)
+  var locked:bool=(novice and absolute_index>=NOVICE_SLOTS) or absolute_index>=class_skills.size()
   var slot:TextureButton=skill_slots[i]
   slot.disabled=locked
   slot.texture_normal=_png(ROOT,"slot_locked" if locked else "slot_empty")
   slot.texture_hover=slot.texture_normal
   slot.texture_pressed=slot.texture_normal
+  slot.texture_disabled=slot.texture_normal
   slot.set_meta("reserved",locked)
-  var kind:String=str(class_skills[i].get("kind","active")) if i<class_skills.size() else ""
-  # Reuse existing numeric label: P denotes permanent, B timed buff.
-  slot_numbers[i].text=str(i+1)+(" P" if kind=="passive" else (" B" if kind=="timed_buff" else ""))
+  slot.set_meta("skill_index",absolute_index)
+  var kind:String=str(class_skills[absolute_index].get("kind","active")) if absolute_index<class_skills.size() else ""
+  # Reuse the existing numeric labels: P = passive; B = timed buff.
+  slot_numbers[i].text=str(absolute_index+1)+(" P" if kind=="passive" else (" B" if kind=="timed_buff" else ""))
   slot.tooltip_text=(_tr("สกิลติดตัว · ไม่ต้องกดใช้","Permanent passive · noncastable") if kind=="passive" else (_tr("บัฟชั่วคราว · กดใช้ได้","Timed buff · castable") if kind=="timed_buff" else ""))
  _update_skill_icons()
  if selected_skill!="" and SkillCatalog.belongs_to_job(current_job,selected_skill):
