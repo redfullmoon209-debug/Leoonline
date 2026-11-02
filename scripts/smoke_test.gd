@@ -210,6 +210,15 @@ func validate() -> void:
  var skills:Control=ui.skill_panel
  check(skills.skill_slots.size()==14 and skills.active_slots.size()==3,"Novice screen reserves 14 numbered cells and 3 empty hotbar cells")
  check(skills.preview_anchor.get_child_count()==0,"Skill preview is truly empty until 3D animations exist")
+ var preview_region:Control=skills.get_node("SkillPreviewFrame")
+ var left_region:Control=skills.get_node("SkillLeftPanel")
+ var selected_icon:TextureButton=skills.get_node("SelectedSkillIcon")
+ check(preview_region.size.y>=318.0 and skills.preview_anchor.size.y>=300.0,"Frameless animation viewport is substantially taller than the old 232px preview")
+ check(preview_region.position.y+preview_region.size.y < selected_icon.position.y,"Selected skill cell is moved below the larger animation viewport")
+ check(skills.description_label.position.y>=selected_icon.position.y+selected_icon.size.y,"Skill description follows the compact skill row, never over the preview")
+ check(skills.preview_buttons.size()==3 and skills.preview_buttons[0].position.y>=729.0,"Preview, Replay and Stop are near the bottom edge of the skill panel")
+ check(skills.preview_buttons[2].position.y+skills.preview_buttons[2].size.y<=left_region.position.y+left_region.size.y,"All animation controls fit above left panel's bottom without overflow")
+ check(skills.current_level_label.position.y+skills.current_level_label.size.y<skills.preview_buttons[0].position.y,"Compact level details do not collide with preview controls")
  check(skills.get_children().all(func(node):return not (node is NinePatchRect)),"All Novice skill panels are frameless; no double gold PNG borders remain")
  for flat_name in ["SkillLeftPanel","SkillRightTopPanel","SkillRightSkillsPanel","SkillHotbarPanel","SkillUpgradePanel","SkillPreviewFrame","SkillCurrentStatsFrame","SkillNextStatsFrame"]:
   var flat:Control=skills.get_node_or_null(flat_name) as Control

@@ -150,37 +150,41 @@ func _build() -> void:
  class_subtitle=_label("SkillClassSubtitle",self,151,254,420,22,14,false)
  future_label=_label("SkillFutureTitle",self,500,225,174,25,17)
  
- # This frameless area is reserved for a future 3D animation preview.
- # No picture, sample model, decorative rings or golden lines.
- _panel("SkillPreviewFrame",self,73,292,604,232)
+ # Leave one LARGE, frameless animation viewport above all controls.
+ # It expands from 232px to 318px high (+37%); no character cutout,
+ # extra rings, nested frame PNG or decorative lines.
+ _panel("SkillPreviewFrame",self,73,281,604,318)
  preview_anchor=Control.new()
  preview_anchor.name="SkillPreviewAnimationAnchor"
  preview_anchor.mouse_filter=Control.MOUSE_FILTER_IGNORE
  add_child(preview_anchor)
- _rect(preview_anchor,89,304,572,204)
+ _rect(preview_anchor,89,289,572,300)
 
- _slot(self,"SelectedSkillIcon",81,536,72,false).disabled=true
- slot_label=_label("SkillSelectedName",self,172,531,488,35,23)
- _label("SkillTypeCaption",self,173,570,123,23,15).text=_tr("ประเภท","Type")
- _label("SkillCooldownCaption",self,308,570,123,23,15).text=_tr("คูลดาวน์","Cooldown")
- _label("SkillStaminaCaption",self,451,570,186,23,15).text=_tr("ใช้สตามินา","Stamina")
- description_label=_label("SkillDescription",self,83,605,590,35,16,false)
- current_level_label=_label("SkillCurrentStats",self,99,653,260,64,14)
- next_level_label=_label("SkillNextStats",self,396,653,260,64,14)
+ # Reserve only a short strip at the bottom for the selected skill,
+ # its concise details and the three playback buttons.
+ _slot(self,"SelectedSkillIcon",82,605,55,false).disabled=true
+ slot_label=_label("SkillSelectedName",self,153,603,510,29,21)
+ _label("SkillTypeCaption",self,153,633,132,20,14).text=_tr("ประเภท","Type")
+ _label("SkillCooldownCaption",self,296,633,135,20,14).text=_tr("คูลดาวน์","Cooldown")
+ _label("SkillStaminaCaption",self,441,633,219,20,14).text=_tr("ใช้สตามินา","Stamina")
+ description_label=_label("SkillDescription",self,83,660,588,24,14,false)
+ # Flat, compact detail strips sit ABOVE the bottom action row.
+ # Their text is native Godot (translatable, no image cropping).
+ _panel("SkillCurrentStatsFrame",self,83,687,283,37)
+ _panel("SkillNextStatsFrame",self,380,687,290,37)
+ current_level_label=_label("SkillCurrentStats",self,94,690,266,31,12)
+ next_level_label=_label("SkillNextStats",self,391,690,272,31,12)
  current_level_label.vertical_alignment=VERTICAL_ALIGNMENT_TOP
  next_level_label.vertical_alignment=VERTICAL_ALIGNMENT_TOP
  current_level_label.add_theme_constant_override("line_spacing",0)
  next_level_label.add_theme_constant_override("line_spacing",0)
- _panel("SkillCurrentStatsFrame",self,83,644,283,81)
- _panel("SkillNextStatsFrame",self,380,644,290,81)
- # Keep the text above the flat surfaces; never paint inner borders.
- current_level_label.move_to_front()
- next_level_label.move_to_front()
 
+ # Controls rest almost against the lower edge of the left panel;
+ # keep a small gap before the inventory footer notice at y=775.
  var pv_labels_th:=["ทดลองใช้","เล่นซ้ำ","หยุด"]
  var pv_labels_en:=["Preview","Replay","Stop"]
  for i in range(3):
-  var btn:=_button("SkillPreviewAction"+str(i+1),self,85+float(i)*200,735,182,36,16)
+  var btn:=_button("SkillPreviewAction"+str(i+1),self,85+float(i)*200,729,182,44,17)
   btn.text=pv_labels_en[i] if locale=="en" else pv_labels_th[i]
   btn.disabled=true
   btn.tooltip_text=_tr("จะเปิดหลังเพิ่มอนิเมชันท่าสกิล","Enabled when the skill animation is installed")
@@ -253,8 +257,8 @@ func set_language(p_locale: String) -> void:
  next_job_tab.text=_tr("สกิลขั้นต่อไป (ล็อก)","Next job skills (locked)")
  slot_label.text=_tr("ยังไม่ได้เลือกสกิล","No skill selected")
  description_label.text=_tr("ช่องสกิลยังว่าง รอสร้าง PNG และข้อมูลสกิลจริง","Empty skill cells — waiting for genuine skill art and data")
- current_level_label.text=_tr("เลเวลปัจจุบัน (Lv. -)\nพลังสกิล : -\nเพิ่มเติม : -","Current level (Lv. -)\nSkill power: -\nAdditional: -")
- next_level_label.text=_tr("เลเวลถัดไป (Lv. -)\nพลังสกิล : -\nเพิ่มเติม : -","Next level (Lv. -)\nSkill power: -\nAdditional: -")
+ current_level_label.text=_tr("ปัจจุบัน Lv.-  ·  พลัง -\nเพิ่มเติม : -","Current Lv.-  ·  Power -\nAdditional: -")
+ next_level_label.text=_tr("ถัดไป Lv.-  ·  พลัง -\nเพิ่มเติม : -","Next Lv.-  ·  Power -\nAdditional: -")
  for i in range(3):
   preview_buttons[i].text=(_tr("ทดลองใช้","Preview") if i==0 else (_tr("เล่นซ้ำ","Replay") if i==1 else _tr("หยุด","Stop")))
  for label in slot_numbers:
