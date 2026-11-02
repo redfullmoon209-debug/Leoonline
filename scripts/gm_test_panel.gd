@@ -1,5 +1,6 @@
 extends Control
 const RedButtonStyle = preload("res://scripts/ui_button_style.gd")
+const JobCatalog = preload("res://scripts/job_catalog.gd")
 ## Separate GM TEST control for the local playtest, not an online privilege.
 ## The menu changes ONLY this client-side demo scene. A real GM account
 ## must be authorized server-side before any multiplayer deployment.
@@ -8,6 +9,10 @@ var menu: Control
 var gm_button: Button
 var gm_popup: PanelContainer
 var target_picker: OptionButton
+var job_picker: OptionButton
+var gm_job_open_button: Button
+var gm_job_next_button: Button
+var gm_job_hint: Label
 var target_picker_refs: Array[StaticBody3D]=[]
 var status_label: Label
 var active: bool=false
@@ -155,6 +160,37 @@ func _build() -> void:
  reset.custom_minimum_size.y=40
  status_label=_label(content,"แตะมอนสเตอร์หรือผู้เล่นจำลองในฉากเพื่อเลือกเป้าหมาย",12)
  status_label.name="GMStatusMessage"
+ # Profession selector lives ONLY in the GM TEST window, never Skill tab.
+ # Existing monster test controls retain their order/position.
+ _label(content,"ทดลองอาชีพ — เริ่มต้น / ขั้น 1 (6) / ขั้น 2 (6)",13)
+ job_picker=OptionButton.new()
+ job_picker.name="GMJobPicker"
+ job_picker.custom_minimum_size=Vector2(0,42)
+ job_picker.add_theme_font_size_override("font_size",13)
+ job_picker.add_theme_color_override("font_color",Color("#fff0c5"))
+ if ResourceLoader.exists("res://assets/fonts/NotoSansThai.ttf"):
+  var job_font:Font=load("res://assets/fonts/NotoSansThai.ttf")
+  job_picker.add_theme_font_override("font",job_font)
+  job_picker.get_popup().add_theme_font_override("font",job_font)
+ RedButtonStyle.apply(job_picker)
+ content.add_child(job_picker)
+ for i in range(JobCatalog.JOBS.size()):
+  var item:Dictionary=JobCatalog.JOBS[i]
+  var group:String="เริ่มต้น" if int(item["tier"])==0 else "ขั้น "+str(item["tier"])
+  job_picker.add_item(group+"  |  "+str(item["th"]),i)
+ job_picker.select(0)
+ job_picker.item_selected.connect(func(_idx:int):_apply_job())
+ var job_row:=HBoxContainer.new()
+ job_row.add_theme_constant_override("separation",6)
+ content.add_child(job_row)
+ gm_job_next_button=_make_action(job_row,"อาชีพถัดไป",_next_job)
+ gm_job_next_button.name="GMNextProfession"
+ gm_job_next_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ gm_job_open_button=_make_action(job_row,"เปิดหน้าสกิล",_open_skill_view)
+ gm_job_open_button.name="GMOpenProfessionSkills"
+ gm_job_open_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ gm_job_hint=_label(content,"แสดงเฉพาะในโหมดทดสอบ · ไม่เปลี่ยนไฟล์เซฟ",12)
+ gm_job_hint.name="GMJobTestHint"
  gm_popup.visible=false
 
 func _set_test_mode(enabled: bool) -> void:
@@ -162,7 +198,10 @@ func _set_test_mode(enabled: bool) -> void:
  # never change a multiplayer server, currency, or a remote player.
  active=enabled
  gm_button.visible=enabled
- if not enabled:gm_popup.visible=false
+ if not enabled:
+  gm_popup.visible=false
+  if is_instance_valid(game) and is_instance_valid(game.store):
+   game.store.clear_gm_job_preview()
  _layout()
 
 func _toggle() -> void:
@@ -174,6 +213,7 @@ func _toggle() -> void:
    gm_popup.visible=false
    return
   _refresh_picker()
+  _refresh_job_picker()
   Input.mouse_mode=Input.MOUSE_MODE_VISIBLE
 
 func _close() -> void:
@@ -191,9 +231,44 @@ func _layout() -> void:
  gm_button.position=Vector2(8.0,button_y)
  gm_button.size=Vector2(46.0,42.0)
  var pop_w:float=minf(372.0,w-14.0)
- var pop_h:float=minf(384.0,h-18.0)
+ # The GM selector is scrollable on phones; on PC keep more actions visible.
+ var pop_h:float=minf(555.0,h-18.0)
  gm_popup.position=Vector2(7.0,maxf(9.0,(h-pop_h)*0.5))
  gm_popup.size=Vector2(pop_w,pop_h)
+
+func _refresh_job_picker() -> void:
+ if not is_instance_valid(job_picker):return
+ var current_id:String=str(game.store.gm_preview_job_id)
+ if current_id=="":current_id=str(game.store.profile.get("job","Novice"))
+ for i in range(JobCatalog.JOBS.size()):
+  if str(JobCatalog.JOBS[i]["id"])==current_id:
+   job_picker.select(i)
+   return
+ job_picker.select(0)
+
+func _apply_job() -> void:
+ if not active or not is_instance_valid(job_picker):return
+ var idx:int=job_picker.selected
+ if idx<0 or idx>=JobCatalog.JOBS.size():return
+ var item:Dictionary=JobCatalog.JOBS[idx]
+ var id:String=str(item["id"])
+ if not game.store.set_gm_job_preview(id):return
+ var stage:String="เริ่มต้น" if int(item["tier"])==0 else "ขั้น "+str(item["tier"])
+ gm_job_hint.text="ทดสอบ: "+str(item["th"])+" ("+stage+") · ไม่บันทึกลงตัวละครจริง"
+ status_label.text="GM อาชีพทดสอบ: "+str(item["th"])
+
+func _next_job() -> void:
+ if not active:return
+ job_picker.select((job_picker.selected+1)%JobCatalog.JOBS.size())
+ _apply_job()
+
+func _open_skill_view() -> void:
+ if not active:return
+ _apply_job()
+ _close()
+ # The normal inventory controller maintains modal state and HUD layering.
+ if not game.open:game._toggle()
+ if game.open:game.inventory._switch_tab(2)
 
 func _refresh_picker() -> void:
  if not is_instance_valid(target_picker):return

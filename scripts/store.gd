@@ -1,4 +1,5 @@
 extends Node
+const JobCatalog=preload("res://scripts/job_catalog.gd")
 signal changed
 signal notice(message: String)
 # Character profile is a real saved model. Initial base attributes are the first
@@ -57,6 +58,8 @@ var currency: Dictionary = {"gold":"0","blue":"0","purple":"0","green":"0"}
 # Four independent exact-decimal 21-digit vault balances; never use floats/ints for funds.
 var storage_currency: Dictionary = {"gold":"0","blue":"0","purple":"0","green":"0"}
 var profile: Dictionary = PROFILE_DEFAULTS.duplicate(true)
+# GM local playtest profession only: NEVER serialized or permanently selected.
+var gm_preview_job_id: String = ""
 var unlocked := 40
 var selected := -1
 var seconds_online := 0.0
@@ -175,11 +178,37 @@ func grant_experience(amount: int) -> void:
  changed.emit()
  save_data()
 
+func effective_job_info() -> Dictionary:
+ # The Skill tab always follows the actual saved profession unless local GM
+ # TEST explicitly previews another tier. This override is never saved.
+ var active_id: String=gm_preview_job_id if gm_preview_job_id!="" else str(profile.get("job","Novice"))
+ var found:Dictionary=JobCatalog.info(active_id)
+ if not found.is_empty():return found
+ return {"id":active_id,"th":active_id,"en":active_id,
+  "path":str(profile.get("path","Unchosen")),"path_th":str(profile.get("path","Unchosen")),
+  "tier":clampi(int(profile.get("class_tier",0)),0,2)}
+
+func set_gm_job_preview(job_id: String) -> bool:
+ if JobCatalog.info(job_id).is_empty():return false
+ gm_preview_job_id=job_id
+ changed.emit()
+ return true
+
+func clear_gm_job_preview() -> void:
+ if gm_preview_job_id=="" :return
+ gm_preview_job_id=""
+ changed.emit()
+
 func character_snapshot() -> Dictionary:
- # Snapshot only; wealth shows each exact 21-digit currency independently.
- # Rankings are intentionally NOT fabricated from client-side counters.
+ # A temporary GM job is displayed, but NEVER written into saved profile.
+ var display_profile:Dictionary=profile.duplicate(true)
+ if gm_preview_job_id!="":
+  var preview:Dictionary=effective_job_info()
+  display_profile["job"]=preview["th"]
+  display_profile["path"]=preview["path_th"]
+  display_profile["class_tier"]=preview["tier"]
  return {
-  "profile": profile.duplicate(true),
+  "profile": display_profile,
   "currency": currency.duplicate(true),
   "experience_required": experience_required(int(profile.get("level",1))),
   "pve_rank": -1, "pvp_rank": -1, "wealth_rank": -1

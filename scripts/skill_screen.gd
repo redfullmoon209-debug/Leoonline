@@ -6,6 +6,7 @@ extends Control
 const ROOT = "res://assets/ui/red_matte/"
 const INVENTORY = "res://assets/ui/inventory/"
 const ButtonStyle = preload("res://scripts/ui_button_style.gd")
+const JobCatalog = preload("res://scripts/job_catalog.gd")
 const MAX_SLOTS := 14
 const NOVICE_SLOTS := 3
 
@@ -284,26 +285,45 @@ func set_language(p_locale: String) -> void:
 func refresh() -> void:
  if not is_instance_valid(level_label) or game_store==null:return
  var profile:Dictionary=game_store.profile
- var current_job:String=str(profile.get("job","Novice"))
- var novice:bool=current_job.is_empty() or current_job=="Novice"
+ var profession:Dictionary=game_store.effective_job_info()
+ var tier:int=int(profession.get("tier",0))
+ var novice:bool=tier==0
+ var label_key:String="en" if locale=="en" else "th"
+ var previous:Dictionary=JobCatalog.tier_one(str(profession.get("path","Unchosen")))
  var level:int=clampi(int(profile.get("level",1)),1,999)
  var experience:int=maxi(0,int(profile.get("experience",0)))
  var required:int=maxi(1,int(game_store.experience_required(level)))
  var pct:float=100.0*float(experience)/float(required)
- class_label.text=_tr("อาชีพเริ่มต้น","Novice") if novice else current_job
- class_subtitle.text=_tr("ผู้ฝึกหัด · ยังไม่เลือกอาชีพ","Trainee · Job not selected") if novice else _tr("สกิลตามอาชีพของตัวละคร","Skills follow your character's job")
- future_label.text=_tr("ขั้นถัดไป : ล็อก","Next tier: locked")
+ class_label.text=_tr("อาชีพเริ่มต้น","Novice") if novice else str(profession.get(label_key,""))
+ if novice:
+  class_subtitle.text=_tr("ผู้ฝึกหัด · ยังไม่เลือกอาชีพ","Trainee · Job not selected")
+  future_label.text=_tr("ขั้นถัดไป : ล็อก","Next tier: locked")
+ elif tier==1:
+  class_subtitle.text=_tr("อาชีพขั้น 1 · ","Tier 1 · ")+str(profession.get("path_th",""))
+  future_label.text=_tr("ขั้น 1 / 2","Tier 1 / 2")
+ else:
+  class_subtitle.text=_tr("อาชีพขั้น 2 · ต่อจาก ","Tier 2 · Advanced from ")+str(previous.get(label_key,profession.get(label_key,"")))
+  future_label.text=_tr("ขั้น 2 / 2","Tier 2 / 2")
  level_label.text="Lv. "+str(level)
  exp_label.text="EXP  "+str(experience)+" / "+str(required)+" ("+str(snappedf(pct,0.1))+"%)"
  exp_bar.max_value=required
  exp_bar.value=mini(experience,required)
  sp_label.text=_tr("แต้มสกิล : ","Skill points: ")+str(int(profile.get("skill_points",0)))
  gold_label.text=_tr("เงิน : ","Gold: ")+game_store.pretty(str(game_store.currency.get("gold","0")))
- current_skills_tab.text=_tr("สกิลพื้นฐาน (3 ช่อง)","Novice skills (3 slots)") if novice else _tr("สกิลอาชีพ (กำลังเตรียม)","Job skills (in preparation)")
- next_job_tab.text=_tr("สกิลขั้นต่อไป (ล็อก)","Next job skills (locked)")
- page_label.text=_tr("ช่อง 1–3 สำหรับสกิลเริ่มต้น · ช่องที่เหลือสำรองไว้สำหรับอาชีพ","Slots 1–3 reserved for Novice skills · later-job cells locked") if novice else _tr("รอสร้างสกิลของอาชีพนี้","Job-specific skill definitions pending")
+ if novice:
+  current_skills_tab.text=_tr("สกิลพื้นฐาน (3 ช่อง)","Novice skills (3 slots)")
+  next_job_tab.text=_tr("สกิลขั้นต่อไป (ล็อก)","Next job skills (locked)")
+  page_label.text=_tr("ช่อง 1–3 สำหรับสกิลเริ่มต้น · อีก 11 ช่องรออาชีพ","Slots 1–3 for Novice · 11 reserved for later jobs")
+ elif tier==1:
+  current_skills_tab.text=_tr("สกิลอาชีพขั้น 1 (14 ช่อง)","Tier 1 skills (14 slots)")
+  next_job_tab.text=_tr("อาชีพขั้น 2 (ยังไม่ปลดล็อก)","Tier 2 (not unlocked)")
+  page_label.text=_tr("ช่องว่าง 14 ช่องสำหรับสกิลอาชีพนี้ · ยังไม่มี PNG","14 empty slots for this job · PNGs not yet added")
+ else:
+  current_skills_tab.text=_tr("สกิลอาชีพขั้น 2 (14 ช่อง)","Tier 2 skills (14 slots)")
+  next_job_tab.text=_tr("อาชีพขั้น 2 · เปิดแล้ว","Tier 2 · Available")
+  page_label.text=_tr("สกิลต่อยอดจากขั้น 1 · 14 ช่องรอ PNG","Advanced from Tier 1 · 14 slots awaiting PNGs")
  for i in range(skill_slots.size()):
-  var locked:bool=(i>=NOVICE_SLOTS) or not novice
+  var locked:bool=novice and i>=NOVICE_SLOTS
   var slot:TextureButton=skill_slots[i]
   slot.disabled=locked
   slot.texture_normal=_png(ROOT,"slot_locked" if locked else "slot_empty")

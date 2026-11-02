@@ -279,9 +279,10 @@ func _refresh_player() -> void:
  var data:Dictionary=game_store.get("profile")
  var level:int=int(data.get("level",1))
  var name:String=str(data.get("name","Adventurer"))
- var job:String=str(data.get("job","Novice"))
+ var profession:Dictionary=game_store.call("effective_job_info")
+ var job:String=str(data.get("job","Novice")) if str(profession.get("id","Novice"))=="Novice" else str(profession.get("th",data.get("job","Novice")))
  player_job.text=job
- var tier:int=int(data.get("class_tier",0))
+ var tier:int=int(profession.get("tier",int(data.get("class_tier",0))))
  var exp:int=int(data.get("experience",0))
  var required:int=int(game_store.call("experience_required",level))
  var narrow:bool=size.y>size.x and size.x<620.0
