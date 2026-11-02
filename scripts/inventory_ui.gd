@@ -1,4 +1,5 @@
 extends PanelContainer
+const RedButtonStyle = preload("res://scripts/ui_button_style.gd")
 ## LEOONLINE: standalone original matte crimson-and-gold PNGs, 9-slice layered UI.
 ## No screenshot crops, no glow effects, no writing baked into PNG textures.
 ## The approved originals are unchanged; game data/inputs/translation preserved.
@@ -353,24 +354,10 @@ func _red_style(asset: String, margin_x: float = 24.0, margin_y: float = 14.0) -
  return st
 
 func _red_button(button: Button, asset: String = "action_button", pager: bool = false) -> void:
- # Retain EVERY button's position, label, icon, signal and beveled silhouette.
- # Only native Godot state sprites change: active = ruby red, pressed = vivid
- # scarlet wash with a white halo, hover = softer red/white light.
- var x_margin: float = 10.0 if pager else 24.0
- var y_margin: float = 9.0 if pager else 14.0
- button.flat = false
- var selected: bool = asset == "tab_active"
- var normal_name: String = "tab_lit" if selected else ("button_hover" if asset == "close_button" else asset)
- button.add_theme_stylebox_override("normal",_red_style(normal_name,x_margin,y_margin))
- button.add_theme_stylebox_override("hover",_red_style("button_hover",x_margin,y_margin))
- button.add_theme_stylebox_override("pressed",_red_style("button_pressed",x_margin,y_margin))
- button.add_theme_stylebox_override("disabled",_red_style(asset,x_margin,y_margin))
- button.add_theme_stylebox_override("focus",StyleBoxEmpty.new())
- button.add_theme_color_override("font_color",Color("#fff7df") if selected else Color("#ffde93"))
- button.add_theme_color_override("font_hover_color",Color.WHITE)
- button.add_theme_color_override("font_pressed_color",Color.WHITE)
- button.add_theme_color_override("font_disabled_color",Color("#8b7162"))
-
+ # One flat golden outline with NO internal painted stripes.
+ # Hover and pressed states: ONLY simple red squares on every inventory page.
+ RedButtonStyle.apply(button,asset=="tab_active")
+ button.add_theme_color_override("font_color",Color("#fff7df") if asset=="tab_active" else Color("#ffde93"))
 
 
 func _red_aura(parent: Node, x: float, y: float, w: float, h: float, strength: float = 0.21) -> TextureRect:
@@ -625,6 +612,8 @@ func _build() -> void:
   trash_dialog.theme = dialog_theme
  trash_dialog.confirmed.connect(_confirm_trash)
  add_child(trash_dialog)
+ RedButtonStyle.apply(trash_dialog.get_ok_button())
+ RedButtonStyle.apply(trash_dialog.get_cancel_button())
  shop_sell_dialog = ConfirmationDialog.new()
  shop_sell_dialog.title = _tr("Sell item?")
  if ui_font != null:
@@ -633,6 +622,8 @@ func _build() -> void:
   shop_sell_dialog.theme = sale_theme
  shop_sell_dialog.confirmed.connect(_confirm_shop_sell)
  add_child(shop_sell_dialog)
+ RedButtonStyle.apply(shop_sell_dialog.get_ok_button())
+ RedButtonStyle.apply(shop_sell_dialog.get_cancel_button())
  _create_details()
  visibility_changed.connect(func():
   if not is_visible_in_tree():
@@ -1175,13 +1166,14 @@ func _image_button(parent: Node, x: float, y: float, wh: float, key: String, sta
  # One separate matte-red PNG per slot state, without baked text.
  var background: String = "slot_locked" if state == "locked" else ("slot_selected" if state == "selected" else "slot_empty")
  b.texture_normal = _red_texture(background)
- b.texture_hover = _red_texture("slot_selected") if state != "locked" else null
- b.texture_pressed = _red_texture("slot_selected") if state != "locked" else null
+ b.texture_hover = b.texture_normal
+ b.texture_pressed = b.texture_normal
  b.set_meta("locked",state=="locked")
  parent.add_child(b)
  var hh: float = wh if height < 0.0 else height
  _rect(b,x,y,wh,hh)
  b.custom_minimum_size = Vector2(wh,hh)
+ RedButtonStyle.image_overlay(b)
  if key != "" and state != "locked":
   var art: Texture2D = _texture("icon_"+key)
   if art == null and ResourceLoader.exists(ShopAssets+key+".png"):
