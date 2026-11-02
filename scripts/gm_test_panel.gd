@@ -103,6 +103,18 @@ func _build() -> void:
  close.name="GMCloseButton"
  close.custom_minimum_size=Vector2(58,35)
  _label(content,"เฉพาะตัวทดสอบในเครื่อง · ไม่ใช่ผู้เล่นออนไลน์จริง",11)
+ # The landscape test can switch the current player between the female
+ # 3D mesh and the old debug capsule without altering physics or save data.
+ var appearance_row:=HBoxContainer.new()
+ appearance_row.name="GMCharacterAppearance"
+ appearance_row.add_theme_constant_override("separation",8)
+ content.add_child(appearance_row)
+ var female_button:=_make_action(appearance_row,"ตัวหญิง 3D",_use_female_character)
+ female_button.name="GMUseFemale3D"
+ female_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ var original_button:=_make_action(appearance_row,"ตัวเดิม",_use_original_character)
+ original_button.name="GMUseOriginalPlayer"
+ original_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  target_picker=OptionButton.new()
  target_picker.name="GMTargetPicker"
  target_picker.custom_minimum_size=Vector2(0,40)
@@ -204,6 +216,20 @@ func _choose_target() -> void:
  if not is_instance_valid(node):return
  game._set_test_target(node)
  status_label.text="กำลังแสดงข้อมูล: "+str(node.get_meta("target_name",node.name))
+
+func _use_female_character() -> void:
+ if not active:return
+ if game.has_method("set_female_character_enabled") and bool(game.call("set_female_character_enabled",true)):
+  status_label.text="เปลี่ยนเป็นโมเดลหญิง 3D แล้ว · เดิน WASD / วิ่ง Shift"
+ else:
+  status_label.text="โมเดลหญิงยังโหลดไม่สำเร็จ ตรวจ GitHub Actions"
+
+func _use_original_character() -> void:
+ if not active:return
+ if game.has_method("set_female_character_enabled") and bool(game.call("set_female_character_enabled",false)):
+  status_label.text="กลับมาแสดงตัวทดสอบแบบเดิมแล้ว"
+ else:
+  status_label.text="ไม่สามารถสลับโมเดลได้"
 
 func _spawn_monster() -> void:
  var node:StaticBody3D=game._spawn_gm_test_entity("monster")
