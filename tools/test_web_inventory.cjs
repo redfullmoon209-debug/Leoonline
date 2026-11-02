@@ -70,7 +70,7 @@ async function swipe(dx,dy){
   check(Object.values(hud.hud_notification_badges).every(v=>v===false),'All real notification layers start hidden, especially Mail');
   check(hud.hud_profile_label.includes('Lv.')&&hud.hud_profile_experience.includes('EXP'),'Top-left profile uses saved character level and experience');
   check(hud.hud_minimap_bounds[2]>120&&hud.hud_minimap_items>=0,'Top-right circular minimap is actually connected to the playable world');
-  check(hud.hud_target_name.includes('ยังไม่ได้เลือก')&&!hud.hud_target_health_visible,'Target HUD is in the center and never invents enemy HP when no target exists');
+  check(hud.hud_target_name.includes('ยังไม่ได้เลือก')&&!hud.hud_target_health_visible&&!hud.hud_target_panel_visible,'Entire central target HUD is hidden before any real lock');
   for(let i=0;i<hud.hud_row.length;i++){
    const rect=hud.hud_row[i];
    check(rect[2]>=32&&Math.abs(rect[1]-hud.hud_row[0][1])<=1,'All ten compact desktop buttons share one horizontal row');
