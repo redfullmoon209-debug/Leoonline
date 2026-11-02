@@ -8,6 +8,18 @@ func _initialize() -> void:
 func check(value: bool, message: String) -> void:
  checks += 1
  if not value: failures.append(message)
+# Combat checks must place the actor on the REAL slope, not at the
+# target's Y from the old flat-floor prototype.
+func _place_player_on_real_ground(game:Node3D,point:Vector3) -> void:
+ game.character.global_position=point
+ if game.world_collision_count==0:return
+ var hit:Dictionary=game._ground_surface_at(point.x,point.z,0.0)
+ if hit.is_empty():return
+ var body:CollisionShape3D=game.character.get_node("CollisionShape3D") as CollisionShape3D
+ var shape:CapsuleShape3D=body.shape as CapsuleShape3D
+ var road:Vector3=hit["position"]
+ game.character.global_position.y=road.y+shape.height*0.5+0.02
+
 func click(button: Control) -> void:
  var pos := button.get_global_rect().get_center()
  var motion := InputEventMouseMotion.new()
@@ -1111,7 +1123,7 @@ func validate() -> void:
  combat.cooldowns.clear()
  combat.stop_auto_attack()
  combat.basic_attack_seconds=0.0
- game.character.global_position=real_training_target.global_position+Vector3(0,0,2.8)
+ _place_player_on_real_ground(game,real_training_target.global_position+Vector3(0,0,2.8))
  game._set_test_target(real_training_target)
  check(game._cast_hotbar_slot(0),"Real starter Slash casts with T/click locked target at 2.8m")
  var after_slash:float=float(real_training_target.get_meta("hp"))
@@ -1181,7 +1193,7 @@ func validate() -> void:
  # Both ATK and targeted skills should follow via actual CharacterBody
  # movement at run speed, without spending stamina/cooldown while far.
  game._set_test_target(real_training_target)
- game.character.global_position=real_training_target.global_position+Vector3(0,0,7.5)
+ _place_player_on_real_ground(game,real_training_target.global_position+Vector3(0,0,7.5))
  var far_hp:float=float(real_training_target.get_meta("hp"))
  check(game._normal_attack() and combat.is_auto_attacking()
   and is_equal_approx(float(real_training_target.get_meta("hp")),far_hp)
@@ -1206,7 +1218,7 @@ func validate() -> void:
  combat.cancel_auto_for_manual_input()
  check(not combat.is_auto_attacking() and combat.queued_combat_skill=="",
   "Manual WASD/joystick movement cancels both pursuit and queued skill")
- game.character.global_position=real_training_target.global_position+Vector3(0,0,7.5)
+ _place_player_on_real_ground(game,real_training_target.global_position+Vector3(0,0,7.5))
  combat.cooldowns.clear()
  var before_rush_health:float=float(real_training_target.get_meta("hp"))
  var stamina_before_rush:float=float(combat.stamina)
@@ -1250,7 +1262,7 @@ func validate() -> void:
  # ATK must remain usable even at ZERO stamina; skill Rush cannot.
  combat.stamina=0.0
  combat.basic_attack_seconds=0.0
- game.character.global_position=real_training_target.global_position+Vector3(0,0,2.7)
+ _place_player_on_real_ground(game,real_training_target.global_position+Vector3(0,0,2.7))
  game._set_test_target(real_training_target)
  var zero_stamina_enemy_hp:float=float(real_training_target.get_meta("hp"))
  combat.stop_auto_attack()
@@ -1261,7 +1273,7 @@ func validate() -> void:
  # never execute an old queued skill on a newly selected enemy.
  combat.stop_auto_attack()
  combat.basic_attack_seconds=0.0
- game.character.global_position=real_training_target.global_position+Vector3(0,0,7.5)
+ _place_player_on_real_ground(game,real_training_target.global_position+Vector3(0,0,7.5))
  game._set_test_target(real_training_target)
  combat.cooldowns.clear()
  check(game._cast_hotbar_slot(0) and combat.queued_combat_skill=="novice_slash",
@@ -1285,7 +1297,7 @@ func validate() -> void:
  real_training_target.set_meta("hp",1.0)
  combat.cooldowns.clear()
  combat.basic_attack_seconds=0.0
- game.character.global_position=real_training_target.global_position+Vector3(0,0,2.7)
+ _place_player_on_real_ground(game,real_training_target.global_position+Vector3(0,0,2.7))
  game._set_test_target(real_training_target)
  check(game._cast_hotbar_slot(0) and is_equal_approx(float(real_training_target.get_meta("hp")),0.0),
   "A lethal novice Slash defeats a real monster with exact zero HP")
