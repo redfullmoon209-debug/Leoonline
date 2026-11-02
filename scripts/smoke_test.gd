@@ -78,6 +78,7 @@ func validate() -> void:
  check(selected_style is StyleBoxFlat,"Inventory tabs have clean flat ruby style, no stripe textures")
  if selected_style is StyleBoxFlat:
   check(selected_style.corner_radius_top_left==0 and selected_style.border_width_top==2,"Normal tab has flat gold outline and square corners")
+  check(selected_style.bg_color.r>=0.85 and selected_style.bg_color.g<0.2,"Selected Inventory tab uses vivid bright scarlet, not dark red")
  var hovered: StyleBox = ui.footer_buttons[1].get_theme_stylebox("hover")
  var pressed: StyleBox = ui.footer_buttons[1].get_theme_stylebox("pressed")
  check(hovered is StyleBoxFlat and pressed is StyleBoxFlat,"All action buttons use flat red hover and pressed squares")
@@ -452,6 +453,21 @@ func validate() -> void:
  var hud_menu: Control=game.hud_menu
  check(hud_menu!=null and hud_menu.controls.size()==15,"HUD exposes nine distinct menus, bag, joystick, Jump, Pickup, Run and TARGET")
  check(hud_menu.controls["bag"]==game.hud.get_node("OpenInventory"),"Original Inventory button and save data are preserved")
+ var bag_red:ColorRect=hud_menu.controls["bag"].get_node_or_null("RedHoverRectangle") as ColorRect
+ check(bag_red!=null and bag_red.color.a==0.0,"Bag icon has no hover red by default")
+ if bag_red!=null:
+  hud_menu.controls["bag"].mouse_entered.emit()
+  check(is_zero_approx(bag_red.color.a),"Hovering bag icon never draws a red rectangle")
+  hud_menu.controls["bag"].button_down.emit()
+  check(bag_red.color.a>=0.80 and bag_red.color.r>=0.95,"Pressing bag produces bright scarlet feedback, not muted dark red")
+  hud_menu.controls["bag"].button_up.emit()
+  check(is_zero_approx(bag_red.color.a),"Releasing bag removes the transient bright red wash")
+ var party_icon:Button=hud_menu.controls["party"] as Button
+ check(party_icon.get_theme_stylebox("hover") is StyleBoxEmpty,"Other HUD icon hover uses no red square StyleBox")
+ var party_tint:ColorRect=party_icon.get_node_or_null("RedHoverRectangle") as ColorRect
+ if party_tint!=null:
+  party_icon.mouse_entered.emit()
+  check(is_zero_approx(party_tint.color.a),"Hovering any other menu icon keeps the glyph fully visible")
  # Ten ring-free independent SVG glyphs, NOT crops or medallion PNG bases.
  # All notification badges are separate controls with zero unread at start.
  var menu_order: Array[String]=["bag","world","party","friends","ranking","settings","guild","quest","mail","events"]
@@ -483,12 +499,12 @@ func validate() -> void:
  check(hud_menu.controls["events"].get_global_rect().end.x < hud_menu.top_status.minimap_button.get_global_rect().position.x,
   "Ten compact icons sit immediately left of the minimap without overlapping it")
  var top:Control=hud_menu.top_status
- check(top!=null and top.player_panel.visible and top.minimap_button.visible and top.target_panel.visible,"Character data, minimap and target status are three real HUD regions")
+ check(top!=null and top.player_panel.visible and top.minimap_button.visible and not top.target_panel.visible,"Character and minimap display, while target HUD stays entirely hidden without an actual lock")
  check(top.player_panel.get_theme_stylebox("panel") is StyleBoxFlat,"Character panel has a clean gold outer frame without image-painted inner dividers")
  check(top.player_name.text.contains("Lv.") and top.player_class.text.contains("Class"),"Top-left character profile displays current saved level and class")
  check(top.exp_bar.value>=0.0 and top.exp_bar.value<=100.0,"Character EXP bar shows actual saved progression")
  check(top.minimap.get_script()!=null and top.minimap.items.size()==game.loot.size(),"Circular minimap plots real dropped items and player position")
- check(top.target_label.text.contains("ยังไม่ได้เลือก") and not top.target_bar.visible,"Center target info honestly shows no selected target instead of fake HP")
+ check(top.target_label.text.contains("ยังไม่ได้เลือก") and not top.target_bar.visible and not top.target_panel.visible,"Unselected target hides the entire empty central HUD, not only HP")
  var test_target:=Node3D.new()
  test_target.name="TrainingTargetForQA"
  test_target.set_meta("target_name","หุ่นฝึก")
@@ -497,10 +513,10 @@ func validate() -> void:
  test_target.set_meta("max_hp",500.0)
  game.add_child(test_target)
  hud_menu.set_target(test_target)
- check(top.target_label.text.contains("หุ่นฝึก") and top.target_bar.visible and is_equal_approx(top.target_bar.value,50.0),"Center target shows actual name, level and correct HP proportion when data exists")
+ check(top.target_panel.visible and top.target_label.text.contains("หุ่นฝึก") and top.target_bar.visible and is_equal_approx(top.target_bar.value,50.0),"Selecting a real target displays the central HUD with its actual HP")
  hud_menu.clear_target()
  test_target.queue_free()
- check(not top.target_bar.visible and top.target_label.text.contains("ยังไม่ได้เลือก"),"Clearing target removes stale HP")
+ check(not top.target_panel.visible and not top.target_bar.visible and top.target_label.text.contains("ยังไม่ได้เลือก"),"Clearing target immediately hides the entire central HUD")
  check(not top.target_mana_bar.visible and not top.target_portrait.visible,"No selected target hides HP/MP values and portrait without fake monster information")
  check(top.target_decor.get_script()!=null,"Center golden frame is native Godot vector drawing, not a crop")
  check(ResourceLoader.exists("res://assets/ui/hud/target_training_golem.svg"),"Standalone golem portrait is an original asset, not a cropped reference image")
@@ -508,7 +524,7 @@ func validate() -> void:
  check(game.training_target.get_meta("hp")==3240.0 and game.training_target.get_meta("mp")==670.0,
   "Training golem health and mana are actual entity metadata, not hard-coded HUD labels")
  game._toggle_target_lock()
- check(top.current_target==game.training_target,"T target lock selects the real nearby world entity")
+ check(top.current_target==game.training_target and top.target_panel.visible,"T target lock selects enemy and shows the complete central HUD")
  check(top.target_label.text=="อสูรหินฝึก" and top.target_level_label.text=="Lv.12" and top.target_type_label.text=="Monster",
   "Centered target card shows actual enemy name, level and type")
  check(top.target_portrait.visible and top.target_portrait.texture!=null,
@@ -527,8 +543,8 @@ func validate() -> void:
  game.training_target.set_meta("hp",3240.0)
  game.training_target.set_meta("mp",670.0)
  game._toggle_target_lock()
- check(top.current_target==null and not top.target_bar.visible and not top.target_mana_bar.visible,
-  "Pressing T again clears target selection and hides fake HP/MP")
+ check(top.current_target==null and not top.target_panel.visible and not top.target_bar.visible and not top.target_mana_bar.visible,
+  "Pressing T again immediately hides the entire target panel")
  # Tap/click also uses an actual 3D camera ray and golem hitbox; not
  # screen-position arithmetic or fake touch success.
  var golem_screen:Vector2=game.camera.unproject_position(game.training_target.global_position)
@@ -697,7 +713,7 @@ func validate() -> void:
  check(hud_menu.top_status.player_panel.get_global_rect().end.x<hud_menu.top_status.minimap_button.get_global_rect().position.x,"Phone profile and minimap occupy separate top corners")
  check(hud_menu.top_status.target_panel.get_global_rect().position.y>phone_row_y,"Target status stays below ten-icon row on phone")
  game._set_test_target(game.test_targets[1])
- check(top.target_label.text=="สไลม์มรกต" and top.target_bar.visible and top.target_mana_bar.visible and top.target_portrait.visible,"Compact portrait card shows real monster name portrait HP and MP")
+ check(top.target_panel.visible and top.target_label.text=="สไลม์มรกต" and top.target_bar.visible and top.target_mana_bar.visible and top.target_portrait.visible,"Compact target panel only appears after choosing a real monster")
  check(top.target_health_value.text.contains("430/430") and top.target_mana_value.text.contains("80/80"),"Compact target numbers stay legible rather than clipping full percentages")
  check(top.target_health_value.get_global_rect().end.x<=portrait_target.end.x+1.0,"Portrait HP numbers fit inside the clean target frame")
  hud_menu.clear_target()
@@ -713,9 +729,9 @@ func validate() -> void:
  var jump_button_rect:Rect2=hud_menu.controls["jump"].get_global_rect()
  check(target_button_rect.end.y+4.0<=jump_button_rect.position.y and target_button_rect.position.x>=0.0,"Target control sits above Jump without blocking the other mobile buttons")
  mobile_target_button.pressed.emit()
- check(top.current_target==game.training_target and top.target_bar.visible and top.target_portrait.visible,"Touch TARGET selects a real physical enemy and fills centered target HUD")
+ check(top.current_target==game.training_target and top.target_panel.visible and top.target_bar.visible and top.target_portrait.visible,"Touch TARGET selects a real enemy and reveals centered target HUD")
  mobile_target_button.pressed.emit()
- check(top.current_target==null and not top.target_bar.visible,"Pressing TARGET again clears target, including HP and portrait")
+ check(top.current_target==null and not top.target_panel.visible and not top.target_bar.visible,"Pressing TARGET again hides the entire target UI")
  var stick:Control=hud_menu.controls["joystick"]
  stick._point_to_vector(stick.size*0.8)
  check(hud_menu.get_movement_vector().length()>0.05,"Virtual mobile joystick drives real movement vector")
