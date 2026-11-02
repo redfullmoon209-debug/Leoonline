@@ -1,4 +1,5 @@
 extends Control
+const RedButtonStyle = preload("res://scripts/ui_button_style.gd")
 ## LEOONLINE main-world HUD: nine separate, genuine menu buttons; drag/resize
 ## and restore per-device layout; native vector icons and original red/gold sprites.
 ## Online-only systems are explicitly presented as offline local prototypes.
@@ -194,17 +195,9 @@ func _style(texture_name: String, margin: float = 17.0) -> StyleBoxTexture:
  return s
 
 func _dress(button: Button, active: bool = false) -> void:
- button.flat=false
  button.focus_mode=Control.FOCUS_NONE
- button.add_theme_stylebox_override("normal",_style("tab_lit" if active else "tab_idle"))
- button.add_theme_stylebox_override("hover",_style("button_hover"))
- button.add_theme_stylebox_override("pressed",_style("button_pressed"))
- button.add_theme_stylebox_override("focus",StyleBoxEmpty.new())
- button.add_theme_stylebox_override("disabled",_style("tab_idle"))
- button.add_theme_color_override("font_color",Color("#ffdda2"))
- button.add_theme_color_override("font_hover_color",Color.WHITE)
- button.add_theme_color_override("font_disabled_color",Color("#ab8d72"))
- if _font()!=null: button.add_theme_font_override("font",_font())
+ RedButtonStyle.apply(button,active)
+ if _font()!=null:button.add_theme_font_override("font",_font())
 
 func _build_buttons() -> void:
  controls["bag"]=bag_button
@@ -215,6 +208,7 @@ func _build_buttons() -> void:
  bag_button.texture_hover=bag_button.texture_normal
  bag_button.texture_pressed=bag_button.texture_normal
  bag_button.ignore_texture_size=true
+ RedButtonStyle.image_overlay(bag_button)
  var bag_caption:=Label.new()
  bag_caption.name="Caption"
  bag_caption.text=_label_for("bag")
@@ -236,8 +230,8 @@ func _build_buttons() -> void:
   icon_button.tooltip_text=str(MENU_LABELS[key])
   _dress(icon_button)
   # The premium PNG includes its own gold frame. No double frame/sprite crop.
-  for mode in ["normal","hover","pressed","disabled"]:
-   icon_button.add_theme_stylebox_override(mode,StyleBoxEmpty.new())
+  icon_button.add_theme_stylebox_override("normal",StyleBoxEmpty.new())
+  icon_button.add_theme_stylebox_override("disabled",StyleBoxEmpty.new())
   add_child(icon_button)
   controls[key]=icon_button
   var icon:=TextureRect.new()
@@ -248,6 +242,7 @@ func _build_buttons() -> void:
   icon.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
   icon.mouse_filter=Control.MOUSE_FILTER_IGNORE
   icon_button.add_child(icon)
+  RedButtonStyle.image_overlay(icon_button)
   var caption:=Label.new()
   caption.name="Caption"
   caption.text=_label_for(key)
