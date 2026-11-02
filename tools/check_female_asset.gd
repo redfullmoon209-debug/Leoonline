@@ -107,6 +107,9 @@ func _check() -> void:
     # hand, not simply present somewhere in the scene tree.
     await process_frame
     var hand_world:Vector3=skel.global_transform*skel.get_bone_global_pose(right_hand).origin
+    print("FEMALE SWORD SOCKET QA: hand=",hand_world," socket=",socket.global_position,
+        " sword=",sword.global_position," error=",sword.global_position.distance_to(hand_world),
+        " skeleton=",socket.get_skeleton()!=null)
     if sword.global_position.distance_to(hand_world)>0.12:
         push_error("The sword is not visually attached at the RightHand joint")
         quit(1)
