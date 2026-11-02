@@ -1120,8 +1120,11 @@ func validate() -> void:
  top._refresh_target()
  check(top.target_bar.value<100.0 and top.target_health_value.text.contains(str(roundi(after_slash))),
   "Existing target HP card updates after a real slash, not a test-only GM slider")
- check(not game._cast_hotbar_slot(0) and is_equal_approx(float(real_training_target.get_meta("hp")),after_slash),
-  "Novice Slash cooldown prevents spam, with no phantom second damage")
+ check(game._cast_hotbar_slot(0) and combat.queued_combat_skill=="novice_slash"
+  and is_equal_approx(float(real_training_target.get_meta("hp")),after_slash)
+  and combat.cooldown_left("novice_slash")>0.0,
+  "Slash pressed during cooldown queues ONE skill without phantom second damage")
+ combat.queued_combat_skill=""
  # Pressing Slash now activates persistent ATK pursuit. The initial
  # Slash deals its own skill damage, then ordinary hits resume without
  # consuming stamina or interfering with the skill's cooldown.
@@ -1213,7 +1216,10 @@ func validate() -> void:
   "Rush moves the real CharacterBody3D closer to the target, not just a UI icon")
  check(float(real_training_target.get_meta("hp"))<before_rush_health,
   "Rush deals actual HP damage on physical arrival, one hit per cast")
- check(not game._cast_hotbar_slot(1),"Rush cannot fire again before its 3-second cooldown")
+ check(game._cast_hotbar_slot(1) and combat.queued_combat_skill=="novice_rush"
+  and combat.cooldown_left("novice_rush")>0.0,
+  "Rush pressed during cooldown is queued once instead of bypassing its timer")
+ combat.queued_combat_skill=""
  combat.cooldowns.clear()
  var stamina_before_guard:float=float(combat.stamina)
  check(game._cast_hotbar_slot(2) and combat.guard_active() and combat.guard_visual.visible,
@@ -1229,8 +1235,10 @@ func validate() -> void:
   "Guard reduces incoming enemy damage by at least 65 percent, then restores normal damage")
  combat.cooldowns.clear()
  combat.stamina=0.0
- check(not game._cast_hotbar_slot(1) and float(combat.cooldown_left("novice_rush"))<=0.0,
-  "No-stamina Rush is rejected without triggering cooldown")
+ check(game._cast_hotbar_slot(1) and combat.queued_combat_skill=="novice_rush"
+  and float(combat.cooldown_left("novice_rush"))<=0.0 and is_equal_approx(float(combat.stamina),0.0),
+  "No-stamina Rush waits for regeneration without spending resource or triggering cooldown")
+ combat.queued_combat_skill=""
  combat._process(1.0)
  check(float(combat.stamina)>=13.9 and float(combat.stamina)<=14.1,
   "Stamina regenerates over real game time while no skill is activated")
