@@ -7,7 +7,6 @@ const MENU_IDS: Array[String] = ["world","party","friends","ranking","settings",
 # The actual 10-icon row, left to right, includes the existing Inventory button.
 const MENU_ORDER: Array[String] = ["bag","world","party","friends","ranking","settings","guild","quest","mail","events"]
 const LAYOUT_VERSION: int = 4
-const PREMIUM_ROOT: String = "res://assets/ui/hud/premium/"
 const TopStatusScript = preload("res://scripts/hud_top_status.gd")
 const ALL_IDS: Array[String] = ["bag","world","party","friends","ranking","settings","guild","quest","mail","events","joystick","jump","pickup","run","target"]
 const MENU_LABELS: Dictionary = {
@@ -202,9 +201,9 @@ func _dress(button: Button, active: bool = false) -> void:
 func _build_buttons() -> void:
  controls["bag"]=bag_button
  bag_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
- # The original bag control stays functional; only its art changes to its
- # OWN native PNG, never extracted from a combined screenshot.
- bag_button.texture_normal=load(PREMIUM_ROOT+"bag.png") as Texture2D
+ # Keep the existing clickable bag button; display a ring-free vector glyph
+ # rather than its previous gold medallion texture.
+ bag_button.texture_normal=load(ICON_ROOT+"bag.svg") as Texture2D
  bag_button.texture_hover=bag_button.texture_normal
  bag_button.texture_pressed=bag_button.texture_normal
  bag_button.ignore_texture_size=true
@@ -229,15 +228,25 @@ func _build_buttons() -> void:
   icon_button.mouse_filter=Control.MOUSE_FILTER_STOP
   icon_button.tooltip_text=str(MENU_LABELS[key])
   _dress(icon_button)
-  # The premium PNG includes its own gold frame. No double frame/sprite crop.
+  # Do not paint any gold ring, base or frame behind icon-only menu buttons.
   icon_button.add_theme_stylebox_override("normal",StyleBoxEmpty.new())
   icon_button.add_theme_stylebox_override("disabled",StyleBoxEmpty.new())
   add_child(icon_button)
   controls[key]=icon_button
   var icon:=TextureRect.new()
   icon.name="Glyph"
-  var icon_path: String=PREMIUM_ROOT+key+".png"
-  if ResourceLoader.exists(icon_path): icon.texture=load(icon_path) as Texture2D
+  var icon_path: String=ICON_ROOT+key+".svg"
+  if ResourceLoader.exists(icon_path):
+   var art:Texture2D=load(icon_path) as Texture2D
+   var shadow:=TextureRect.new()
+   shadow.name="GlyphShadow"
+   shadow.texture=art
+   shadow.self_modulate=Color("#230c17")
+   shadow.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
+   shadow.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+   shadow.mouse_filter=Control.MOUSE_FILTER_IGNORE
+   icon_button.add_child(shadow)
+   icon.texture=art
   icon.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
   icon.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
   icon.mouse_filter=Control.MOUSE_FILTER_IGNORE
@@ -381,10 +390,14 @@ func _reflow() -> void:
    caption.text=_short_label_for(id)
    if id!="bag":
     var icon:TextureRect=control.get_node("Glyph") as TextureRect
-    # Original nameplate-free PNG, shown whole without clipping.
+    # Standalone vector artwork, no crop, medallion, ring or icon base.
     icon.position=Vector2.ZERO
     icon.size=Vector2(wh,wh)
-   # Entire standalone PNG without cropping; live text is BELOW the icon
+    var glyph_shadow:TextureRect=control.get_node_or_null("GlyphShadow") as TextureRect
+    if glyph_shadow!=null:
+     glyph_shadow.position=Vector2(1.0,1.5)
+     glyph_shadow.size=Vector2(wh,wh)
+   # Ring-free standalone symbol with live text BELOW the icon
    # with a bold dark outline, not inside a tiny red/gold label base.
    caption.position=Vector2(-3.0,wh*0.93)
    caption.size=Vector2(wh+6.0,19.0)
