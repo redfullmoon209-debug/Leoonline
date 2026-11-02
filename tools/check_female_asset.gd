@@ -103,13 +103,36 @@ func _check() -> void:
             push_error("Missing real sword geometry: "+piece)
             quit(1)
             return
+    # This also checks the 3D prop is full-sized and in the actual right
+    # hand, not simply present somewhere in the scene tree.
+    await process_frame
+    var hand_world:Vector3=skel.global_transform*skel.get_bone_global_pose(right_hand).origin
+    if sword.global_position.distance_to(hand_world)>0.12:
+        push_error("The sword is not visually attached at the RightHand joint")
+        quit(1)
+        return
+    var idle_tip:Vector3=sword.to_global(Vector3(0,1.05,0))
+    var blade_length:float=idle_tip.distance_to(sword.global_position)
+    print("FEMALE SWORD QA: grip ",sword.global_position," tip ",idle_tip," length=",blade_length)
+    if blade_length<0.55 or blade_length>1.55:
+        push_error("Training sword is unreasonably small/large after imported FBX scale fit")
+        quit(1)
+        return
     # The slash must change the ACTUAL arm pose, not just subtract monster HP.
     visual.call("play_basic_attack")
     visual.call("animate_motion",Vector3.ZERO,false,0.12)
     var windup:Vector3=(skel.get_bone_global_pose(right_forearm).origin-skel.get_bone_global_pose(right_arm).origin).normalized()
+    await process_frame
+    var raised_tip:Vector3=sword.to_global(Vector3(0,1.05,0))
     visual.call("animate_motion",Vector3.ZERO,false,0.21)
     var slash:Vector3=(skel.get_bone_global_pose(right_forearm).origin-skel.get_bone_global_pose(right_arm).origin).normalized()
-    print("FEMALE COMBAT QA: raised arm ",windup," swing arm ",slash)
+    await process_frame
+    var slash_tip:Vector3=sword.to_global(Vector3(0,1.05,0))
+    print("FEMALE COMBAT QA: raised arm ",windup," swing arm ",slash," sword tip movement=",raised_tip.distance_to(slash_tip))
+    if raised_tip.distance_to(slash_tip)<0.16:
+        push_error("Bone-attached sword does not follow the moving hand during slash")
+        quit(1)
+        return
     if windup.distance_to(right_idle)<0.20 or slash.distance_to(windup)<0.18:
         push_error("The right-hand sword is not animated through a visible slash arc")
         quit(1)
