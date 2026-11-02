@@ -535,6 +535,12 @@ func _notice(message: String) -> void:
   inventory.call("set_notice",message)
 
 func _refresh() -> void:
+ # A temporary local training sword belongs to Novice only. GM previewing
+ # different classes should not falsely display their unreleased weapons.
+ if is_instance_valid(character):
+  var female_visual:Node3D=character.get_node_or_null("FemalePlayerVisual") as Node3D
+  if female_visual!=null and female_visual.has_method("set_training_sword_visible"):
+   female_visual.call("set_training_sword_visible",str(store.effective_job_info().get("id","Novice"))=="Novice")
  if is_instance_valid(inventory) and inventory.has_method("refresh"):
   inventory.call("refresh")
 
