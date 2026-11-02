@@ -129,7 +129,7 @@ func _make_map() -> void:
  minimap_button.mouse_filter=Control.MOUSE_FILTER_STOP
  minimap_button.focus_mode=Control.FOCUS_NONE
  minimap_button.add_theme_stylebox_override("normal",StyleBoxEmpty.new())
- minimap_button.add_theme_stylebox_override("hover",RedButtonStyle.hover_style())
+ minimap_button.add_theme_stylebox_override("hover",StyleBoxEmpty.new())
  minimap_button.add_theme_stylebox_override("pressed",RedButtonStyle.pressed_style())
  minimap_button.add_theme_stylebox_override("hover_pressed",RedButtonStyle.pressed_style())
  minimap_button.add_theme_stylebox_override("focus",StyleBoxEmpty.new())
@@ -156,7 +156,7 @@ func _make_map() -> void:
   style.set_border_width_all(0)
   style.set_corner_radius_all(0)
   button.add_theme_stylebox_override("normal",style)
-  button.add_theme_stylebox_override("hover",RedButtonStyle.hover_style())
+  button.add_theme_stylebox_override("hover",StyleBoxEmpty.new())
   button.add_theme_stylebox_override("pressed",RedButtonStyle.pressed_style())
   button.add_theme_stylebox_override("hover_pressed",RedButtonStyle.pressed_style())
   minimap_button.add_child(button)
@@ -207,6 +207,8 @@ func _make_target() -> void:
  frame.shadow_size=4
  target_panel.add_theme_stylebox_override("panel",frame)
  add_child(target_panel)
+ # Fully hide the central card while no target has been selected/locked.
+ target_panel.visible=false
  target_body=Control.new()
  target_body.name="TargetContent"
  target_body.mouse_filter=Control.MOUSE_FILTER_IGNORE
@@ -302,7 +304,12 @@ func _target_portrait_texture() -> Texture2D:
 
 func _refresh_target() -> void:
  if not is_instance_valid(target_label): return
- if not is_instance_valid(current_target):
+ # The target HUD is contextual; no target means no empty center panel.
+ # Lock/select a real entity to show it, then hide on unlock or deletion.
+ var has_target:bool=is_instance_valid(current_target)
+ if is_instance_valid(target_panel):
+  target_panel.visible=has_target
+ if not has_target:
   current_target=null
   target_label.text="ยังไม่ได้เลือก" if size.y>size.x and size.x<620.0 else "เป้าหมาย: ยังไม่ได้เลือก"
   target_hint.text="แตะ / TARGET" if size.y>size.x and size.x<620.0 else "แตะเป้าหมาย หรือกด T"
