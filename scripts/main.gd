@@ -214,9 +214,16 @@ func _spawn_loot(id: String,pos: Vector3,color: Color) -> void:
  add_child(item)
  loot.append(item)
 
+func get_spawn_position() -> Vector3:
+ # On the source road at Blender elevation Z~25.6 (Godot terrain Y=-0.11).
+ # This street is physically connected to the training golem by a ramp.
+ if has_node("BangkokCityMap"):
+  return Vector3(3.0,-0.110+1.1*ACTOR_SCALE,-5.5)
+ return Vector3(0,1.1*ACTOR_SCALE,5)
+
 func _make_character() -> void:
  character = CharacterBody3D.new()
- character.position = Vector3(0,1.1*ACTOR_SCALE,0) if has_node("BangkokCityMap") else Vector3(0,1.1*ACTOR_SCALE,5)
+ character.position = get_spawn_position()
  character.set_meta("world_actor_scale",ACTOR_SCALE)
  character.collision_layer=BangkokCollisions.PLAYER_LAYER
  character.collision_mask=BangkokCollisions.WORLD_LAYER | BangkokCollisions.NPC_LAYER
@@ -727,7 +734,7 @@ func _physics_process(delta: float) -> void:
  # Rescue only if the original map has a genuine opening to empty space.
  if world_collision_count>0 and character.global_position.y < -4.5:
   character.velocity=Vector3.ZERO
-  character.global_position=Vector3(0,1.1*ACTOR_SCALE,0)
+  character.global_position=get_spawn_position()
   if is_instance_valid(combat):combat.stop_auto_attack()
   if is_instance_valid(store):store.notice.emit("กลับจุดเกิด: พื้นที่นอกขอบแมพ")
  if in_rush:combat.advance_rush(delta)
