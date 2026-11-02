@@ -50,6 +50,8 @@ func initialize(p_game: Node3D,p_store: Node) -> void:
  _make_map()
  _make_target()
  game_store.changed.connect(_refresh_player)
+ if is_instance_valid(game) and is_instance_valid(game.combat):
+  game.combat.changed.connect(_refresh_player)
  _refresh_player()
  _layout()
  resized.connect(_layout)
@@ -297,6 +299,8 @@ func _refresh_player() -> void:
   player_class.text=job+"  |  Class "+str(tier)
   player_exp.text="EXP "+str(exp)+" / "+str(required)
  player_panel.tooltip_text="Lv.%d %s | %s Class %d | EXP %d/%d" % [level,name,job,tier,exp,required]
+ if is_instance_valid(game) and is_instance_valid(game.combat):
+  player_panel.tooltip_text+=" | HP %d/%d | ST %d/%d" % [roundi(game.combat.health),roundi(game.combat.max_health),roundi(game.combat.stamina),roundi(game.combat.max_stamina)]
  exp_bar.value=100.0*float(exp)/maxf(float(required),1.0)
 
 func set_target(target: Node3D) -> void:

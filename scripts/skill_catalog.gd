@@ -6,16 +6,16 @@ extends RefCounted
 ## must be implemented and validated separately.
 const NOVICE: Array = [
  {"id":"novice_slash","th":"คมศาสตรา","en":"First Strike",
-  "type_th":"โจมตี","type_en":"Attack","desc_th":"โจมตีเป้าหมายด้านหน้าด้วยอาวุธ",
-  "desc_en":"Strike a target in front with your weapon.",
+  "type_th":"โจมตี","type_en":"Attack","desc_th":"ฟันเป้าหมายในระยะ 3.6 เมตร สร้างความเสียหายตาม STR/DEX · คูลดาวน์ 0.8 วินาที",
+  "desc_en":"Slash your locked target within 3.6 m; damage scales with STR/DEX. Cooldown: 0.8 s.",
   "kind":"active","cooldown":"0.8s","stamina":"0","icon":"res://assets/ui/skills/novice_slash.png"},
  {"id":"novice_rush","th":"พุ่งจู่โจม","en":"Azure Rush",
-  "type_th":"เคลื่อนที่","type_en":"Mobility","desc_th":"พุ่งเข้าหาเป้าหมายอย่างรวดเร็ว",
-  "desc_en":"Rush quickly toward your target.",
+  "type_th":"เคลื่อนที่","type_en":"Mobility","desc_th":"พุ่งเข้าหาเป้าหมายระยะไม่เกิน 12 เมตรและโจมตี · สตามินา 20 · คูลดาวน์ 3 วินาที",
+  "desc_en":"Dash into a locked target up to 12 m away and strike. Costs 20 stamina; cooldown 3 s.",
   "kind":"active","cooldown":"3.0s","stamina":"20","icon":"res://assets/ui/skills/novice_rush.png"},
  {"id":"novice_guard","th":"เกราะคุ้มกัน","en":"Radiant Ward",
-  "type_th":"ป้องกัน","type_en":"Defense","desc_th":"เสริมการป้องกันระยะสั้น",
-  "desc_en":"Gain brief defensive protection.",
+  "type_th":"ป้องกัน","type_en":"Defense","desc_th":"กางเกราะลดความเสียหายที่ได้รับ 65% นาน 5 วินาที · สตามินา 15 · คูลดาวน์ 10 วินาที",
+  "desc_en":"Guard reduces incoming damage by 65% for 5 s. Costs 15 stamina; cooldown 10 s.",
   "kind":"active","cooldown":"10.0s","stamina":"15","icon":"res://assets/ui/skills/novice_guard.png"}
 ]
 

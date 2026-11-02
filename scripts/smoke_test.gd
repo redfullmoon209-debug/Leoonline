@@ -1027,8 +1027,117 @@ func validate() -> void:
  stick._point_to_vector(stick.size*0.8)
  check(hud_menu.get_movement_vector().length()>0.05,"Virtual mobile joystick drives real movement vector")
  stick.movement=Vector2.ZERO
+ var novice_touch:Control=game.novice_touch_bar
+ novice_touch._process(0.0)
+ check(novice_touch.skill_buttons.size()==3 and novice_touch.visible,
+  "Phone shows three original skill PNG buttons without changing HUD joystick/action positions")
+ for i in range(3):
+  var novice_button:TextureButton=novice_touch.skill_buttons[i]
+  var novice_art:Texture2D=novice_button.texture_normal
+  check(novice_art!=null and novice_art.resource_path==str(load("res://scripts/skill_catalog.gd").info(store.skill_hotbar[i])["icon"]),
+   "Mobile starter hotbar reuses individual authentic PNG art: "+str(i+1))
+  check(not novice_button.get_global_rect().intersects(mobile_target_button.get_global_rect()),
+   "Starter skill button is separate from unchanged mobile TARGET control")
  hud_menu.display_mobile_controls=false
  hud_menu._refresh_touch_visibility()
+ novice_touch._process(0.0)
+ check(not novice_touch.visible,"Starter touch icons hide on non-touch desktop without changing the original HUD")
+ # Actual local combat regression: the previously decorative Novice skill
+ # hotbar must now perform meaningful and isolated target HP/stamina changes.
+ var combat:Node=game.combat
+ check(combat!=null and is_instance_valid(combat) and is_instance_valid(store.novice_combat),
+  "Novice's real combat controller is connected to Store and live game scene")
+ check(is_equal_approx(float(combat.max_health),150.0) and is_equal_approx(float(combat.max_stamina),100.0),
+  "Real starter health is vitality-based and max stamina is 100")
+ check(game.character.get_node_or_null("NoviceVitals")!=null and game.character.get_node_or_null("NoviceGuardEffect")!=null,
+  "Player has real floating HP/stamina feedback and a temporary physical guard effect")
+ var original_hotbar:Array=store.skill_hotbar.duplicate()
+ var original_player_position:Vector3=game.character.global_position
+ var real_training_target:StaticBody3D=game.training_target
+ var original_training_health:float=float(real_training_target.get_meta("hp"))
+ store.skill_hotbar[0]="novice_slash"
+ store.skill_hotbar[1]="novice_rush"
+ store.skill_hotbar[2]="novice_guard"
+ combat.stamina=combat.max_stamina
+ combat.cooldowns.clear()
+ game.character.global_position=real_training_target.global_position+Vector3(0,0,2.8)
+ game._set_test_target(real_training_target)
+ check(game._cast_hotbar_slot(0),"Real starter Slash casts with T/click locked target at 2.8m")
+ var after_slash:float=float(real_training_target.get_meta("hp"))
+ check(after_slash<original_training_health and after_slash>=0.0,
+  "Novice Slash reduces actual training target HP by STR/DEX-scaled damage")
+ top._refresh_target()
+ check(top.target_bar.value<100.0 and top.target_health_value.text.contains(str(roundi(after_slash))),
+  "Existing target HP card updates after a real slash, not a test-only GM slider")
+ check(not game._cast_hotbar_slot(0) and is_equal_approx(float(real_training_target.get_meta("hp")),after_slash),
+  "Novice Slash cooldown prevents spam, with no phantom second damage")
+ combat._process(0.85)
+ check(float(combat.cooldown_left("novice_slash"))<=0.01,
+  "Starter Slash recovers exactly after its 0.8-second cooldown")
+ # No-target/out-of-range skill attempts must not spend stamina or trigger cooldowns.
+ hud_menu.clear_target()
+ var before_failed_stamina:float=float(combat.stamina)
+ check(not game._cast_hotbar_slot(0) and is_equal_approx(float(combat.stamina),before_failed_stamina),
+  "No-target Slash is rejected without consuming resources")
+ game._set_test_target(real_training_target)
+ game.character.global_position=real_training_target.global_position+Vector3(0,0,7.5)
+ check(not game._cast_hotbar_slot(0) and float(combat.cooldown_left("novice_slash"))<=0.01,
+  "Novice Slash rejects distant target without starting cooldown")
+ var before_rush_health:float=float(real_training_target.get_meta("hp"))
+ var stamina_before_rush:float=float(combat.stamina)
+ var start_rush_pos:Vector3=game.character.global_position
+ check(game._cast_hotbar_slot(1) and combat.rush_active,
+  "Novice Rush starts real collision-checked dash at valid 7.5m target")
+ check(is_equal_approx(float(combat.stamina),stamina_before_rush-20.0),
+  "Novice Rush spends exactly 20 actual stamina")
+ for rush_frame in range(55):
+  await physics_frame
+ check(not combat.rush_active and game.character.global_position.distance_to(start_rush_pos)>2.0,
+  "Rush moves the real CharacterBody3D closer to the target, not just a UI icon")
+ check(float(real_training_target.get_meta("hp"))<before_rush_health,
+  "Rush deals actual HP damage on physical arrival, one hit per cast")
+ check(not game._cast_hotbar_slot(1),"Rush cannot fire again before its 3-second cooldown")
+ combat.cooldowns.clear()
+ var stamina_before_guard:float=float(combat.stamina)
+ check(game._cast_hotbar_slot(2) and combat.guard_active() and combat.guard_visual.visible,
+  "Novice Guard creates a physical shield and activates real defense")
+ check(is_equal_approx(float(combat.stamina),stamina_before_guard-15.0),
+  "Guard spends exactly 15 stamina")
+ var guarded_damage:float=float(combat.receive_damage(30.0))
+ combat._process(5.2)
+ check(not combat.guard_active() and not combat.guard_visual.visible,
+  "Temporary Guard effect expires and disappears after five seconds")
+ var unguarded_damage:float=float(combat.receive_damage(30.0))
+ check(guarded_damage<unguarded_damage and guarded_damage<=11.0 and unguarded_damage>=29.0,
+  "Guard reduces incoming enemy damage by at least 65 percent, then restores normal damage")
+ combat.cooldowns.clear()
+ combat.stamina=0.0
+ check(not game._cast_hotbar_slot(1) and float(combat.cooldown_left("novice_rush"))<=0.0,
+  "No-stamina Rush is rejected without triggering cooldown")
+ combat._process(1.0)
+ check(float(combat.stamina)>=13.9 and float(combat.stamina)<=14.1,
+  "Stamina regenerates over real game time while no skill is activated")
+ real_training_target.set_meta("hp",1.0)
+ combat.cooldowns.clear()
+ game.character.global_position=real_training_target.global_position+Vector3(0,0,2.7)
+ game._set_test_target(real_training_target)
+ check(game._cast_hotbar_slot(0) and is_equal_approx(float(real_training_target.get_meta("hp")),0.0),
+  "A lethal novice Slash defeats a real monster with exact zero HP")
+ combat._process(8.1)
+ check(is_equal_approx(float(real_training_target.get_meta("hp")),float(real_training_target.get_meta("max_hp"))),
+  "Defeated training monsters recover after 8 seconds so combat can be tested repeatedly")
+ combat.reset_training_targets()
+ combat.cooldowns.clear()
+ combat.guard_seconds=0.0
+ combat.stamina=combat.max_stamina
+ combat.health=combat.max_health
+ if is_instance_valid(combat.guard_visual):combat.guard_visual.visible=false
+ real_training_target.set_meta("hp",original_training_health)
+ game.character.global_position=original_player_position
+ for saved_slot in range(3):
+  store.skill_hotbar[saved_slot]=str(original_hotbar[saved_slot])
+ hud_menu.clear_target()
+ combat._update_feedback()
  if had_save:
   var file = FileAccess.open("user://leoonline.json",FileAccess.WRITE)
   file.store_buffer(backup)
