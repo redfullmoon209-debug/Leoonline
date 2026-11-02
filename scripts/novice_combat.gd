@@ -1,4 +1,5 @@
 extends Node
+const TerrainSteps=preload("res://scripts/terrain_step_solver.gd")
 ## Real, deterministic LOCAL PvE combat for the three starter skills.
 ## Only Novice is supported here; all other professions retain their
 ## separately implemented passive and timed-buff systems.
@@ -352,10 +353,24 @@ func advance_rush(delta:float) -> void:
   return
  rush_remaining=maxf(0.0,rush_remaining-delta)
  var travel:float=minf(RUSH_SPEED*delta,maxf(0.0,dist-2.15))
- var collision:KinematicCollision3D=game.character.move_and_collide(delta_target.normalized()*travel)
+ # Raw move_and_collide treated the sidewalk's sloped triangles like walls.
+ # Physically slide down/up the real road just as walking does, and allow
+ # only a short collision-checked stair rise (never teleport through walls).
+ var actor:CharacterBody3D=game.character as CharacterBody3D
+ var start_position:Vector3=actor.global_position
+ var was_grounded:bool=actor.is_on_floor()
+ var dash_direction:Vector3=delta_target.normalized()
+ var saved_velocity:Vector3=actor.velocity
+ actor.velocity.x=dash_direction.x*travel/maxf(delta,0.0001)
+ actor.velocity.z=dash_direction.z*travel/maxf(delta,0.0001)
+ actor.move_and_slide()
+ if was_grounded and actor.is_on_wall():
+  TerrainSteps.try_climb(actor,start_position,dash_direction*travel)
+ actor.velocity.x=saved_velocity.x
+ actor.velocity.z=saved_velocity.z
  if _distance_to(rush_target)<=HIT_RANGE:
   _finish_rush(true)
- elif collision!=null or rush_remaining<=0.0:
+ elif rush_remaining<=0.0:
   _finish_rush(_distance_to(rush_target)<=3.1)
 
 func receive_damage(raw:float) -> float:
