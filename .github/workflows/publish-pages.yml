@@ -160,7 +160,7 @@ jobs:
           print("Public website now serves a real responsive phone viewport.")
           PY
           echo "Open phone portrait: https://redfullmoon209-debug.github.io/Leoonline/${phone_id}.html" >> "$GITHUB_STEP_SUMMARY"
-      - name: Publish separate landscape playtest without changing portrait default
+      - name: Make LANDSCAPE the default homepage, preserve portrait at mobile.html
         run: |
           set -euo pipefail
           game_id="game-${GITHUB_SHA:0:12}"
@@ -179,11 +179,59 @@ jobs:
               assert 'id="game-frame"' in page
               assert f'src="{data["game_entrypoint"]}?mobile_ui=1&amp;gm_test=1"' in page
               assert 'LANDSCAPE TEST' in page
-          assert 'id="phone-shell"' in (web/"index.html").read_text()
+          # Keep the verified landscape test URL unchanged (including its GM
+          # test flag), but publish a clean player-facing horizontal homepage.
+          # This iframe is a REAL adaptive Godot viewport, not a rotated image.
+          primary = (web/"landscape.html").read_text(encoding="utf-8")
+          assert '?mobile_ui=1&amp;gm_test=1' in primary
+          primary = primary.replace('?mobile_ui=1&amp;gm_test=1', '?mobile_ui=1')
+          primary = primary.replace(
+              '<title>LEOONLINE - ทดสอบแนวนอน</title>',
+              '<title>LEOONLINE - เล่นเกมแนวนอน</title>')
+          primary = primary.replace(
+              'content="Leoonline - playable landscape mode test"',
+              'content="Leoonline - fullscreen landscape game"')
+          primary = primary.replace(
+              '<span>LEOONLINE</span><span class="test-badge">LANDSCAPE TEST</span>',
+              '<span>LEOONLINE</span>')
+          primary = primary.replace(
+              'Leoonline แนวนอนรุ่นทดสอบ', 'Leoonline แนวนอน')
+          primary = primary.replace(
+              'Leoonline รุ่นทดสอบแนวนอน จะแสดงเกมเต็มจอเมื่อหมุนเครื่อง',
+              'Leoonline จะแสดงเกมเต็มจอเมื่อหมุนโทรศัพท์เป็นแนวนอน')
+          primary = primary.replace(
+              '<a href="mobile.html">กลับไปเล่นแบบแนวตั้ง</a>',
+              '<span>หากจอไม่หมุน ให้เปิดใน Safari และปิดล็อกแนวตั้งของ iPhone</span>'
+              '<a href="mobile.html">เล่นแบบแนวตั้งแทน</a>')
+          # Only the homepage fills PC and mobile screens without the testing
+          # frame; the verified versioned landscape QA pages remain untouched.
+          primary = primary.replace('  </style>', """    /* Fullscreen, responsive live game on the public homepage. */
+    .test-header { display: none; }
+    #landscape-shell {
+      width: 100vw; height: 100vh; height: 100dvh;
+      max-width: none; aspect-ratio: auto;
+      border: 0; border-radius: 0; box-shadow: none;
+    }
+    #game-frame { border-radius: 0; }
+  </style>""")
+          (web/"index.html").write_text(primary, encoding="utf-8")
+          # Portrait remains a separate playable entrypoint and shares saves.
+          assert 'id="landscape-shell"' in primary
+          assert 'id="rotate-prompt"' in primary
+          assert 'src="' + data["game_entrypoint"] + '?mobile_ui=1"' in primary
+          assert 'gm_test=1' not in primary
           assert 'id="phone-shell"' in (web/"mobile.html").read_text()
-          print("Both live playtests published: portrait main and optional landscape.")
+          data["display"] = "mobile-landscape"
+          data["default_entrypoint"] = "index.html"
+          data["portrait_alias"] = "mobile.html"
+          (web/"build-info.json").write_text(
+              json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+          )
+          assert 'id="phone-shell"' in (web/"mobile.html").read_text()
+          print("Default homepage is playable LANDSCAPE. Portrait stays on mobile.html.")
           PY
-          echo "Open separate LANDSCAPE test: https://redfullmoon209-debug.github.io/Leoonline/${landscape_id}.html" >> "$GITHUB_STEP_SUMMARY"
+          echo "Play LANDSCAPE by default: https://redfullmoon209-debug.github.io/Leoonline/" >> "$GITHUB_STEP_SUMMARY"
+          echo "Portrait alternative: https://redfullmoon209-debug.github.io/Leoonline/mobile.html" >> "$GITHUB_STEP_SUMMARY"
       - name: Upload static site
         uses: actions/upload-pages-artifact@v3
         with:
