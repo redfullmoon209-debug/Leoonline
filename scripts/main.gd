@@ -13,6 +13,7 @@ var character: CharacterBody3D
 var player_placeholder: MeshInstance3D
 var player_female_enabled: bool = true
 var camera_arm: Node3D
+var camera_boom: SpringArm3D
 var camera: Camera3D
 var hud: CanvasLayer
 var inventory: PanelContainer
@@ -263,11 +264,17 @@ func _make_character() -> void:
  camera_arm.name = "OrbitCameraPivot"
  camera_arm.rotation.x = pitch
  add_child(camera_arm)
+ camera_boom = SpringArm3D.new()
+ camera_boom.name = "CameraCollisionBoom"
+ camera_boom.spring_length = camera_distance
+ camera_boom.margin = 0.18
+ camera_boom.collision_mask = 1
+ camera_arm.add_child(camera_boom)
  camera = Camera3D.new()
  camera.name = "OrbitCamera"
- camera.position = Vector3(0,0,camera_distance)
+ camera.position = Vector3.ZERO
  camera.current = true
- camera_arm.add_child(camera)
+ camera_boom.add_child(camera)
 
 func set_female_character_enabled(enabled: bool) -> bool:
  if not is_instance_valid(character):
@@ -778,8 +785,8 @@ func _camera_rotate(delta:Vector2, touch:bool=false) -> void:
 
 func _camera_zoom(new_distance:float) -> void:
  camera_distance=clampf(new_distance,CAMERA_MIN_DISTANCE,CAMERA_MAX_DISTANCE)
- if is_instance_valid(camera):
-  camera.position.z=camera_distance
+ if is_instance_valid(camera_boom):
+  camera_boom.spring_length=camera_distance
 
 func _camera_touch_distance() -> float:
  if camera_touches.size()!=2:return 0.0
