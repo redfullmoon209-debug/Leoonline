@@ -1,5 +1,9 @@
 name: Publish Leoonline Web Playtest
 on:
+  workflow_run:
+    workflows: ["Unity WebGL Browser Preview"]
+    types: [completed]
+    branches: [unity-mmorpg-foundation]
   workflow_dispatch:
   push:
     branches: [main]
@@ -25,6 +29,7 @@ on:
       - 'tools/verify_bangkok_map.gd'
 permissions:
   contents: read
+  actions: read
   pages: write
   id-token: write
 concurrency:
@@ -32,6 +37,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   build:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     # Playwright 1.56.1 does not support the ubuntu-26.04 image.
     runs-on: ubuntu-24.04
     steps:
@@ -245,6 +251,25 @@ jobs:
           PY
           echo "Play LANDSCAPE by default: https://redfullmoon209-debug.github.io/Leoonline/" >> "$GITHUB_STEP_SUMMARY"
           echo "Portrait alternative: https://redfullmoon209-debug.github.io/Leoonline/mobile.html" >> "$GITHUB_STEP_SUMMARY"
+      # Restore the latest verified Unity WebGL export from its separate CI workflow.
+      # This keeps Unity at /unity/ while leaving the Godot homepage untouched.
+      - name: Include latest Unity WebGL browser test (if built)
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workflow: unity-webgl-preview.yml
+          branch: unity-mmorpg-foundation
+          workflow_conclusion: success
+          name: LEOONLINE-Unity-WebGL
+          path: build/web/unity
+          if_no_artifact_found: warn
+      - name: Ensure Unity browser build is real when present
+        run: |
+          if [ -d build/web/unity ]; then
+            test -s build/web/unity/index.html
+            test -d build/web/unity/Build
+            echo "Unity WebGL playable path: https://redfullmoon209-debug.github.io/Leoonline/unity/" >> "$GITHUB_STEP_SUMMARY"
+          fi
       - name: Upload static site
         uses: actions/upload-pages-artifact@v3
         with:

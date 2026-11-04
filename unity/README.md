@@ -41,3 +41,8 @@ The Godot root stores the original 3D assets and GDScript, and is the source of 
 
 ## Security warning
 The local demo calculates drops/EXP/HP for convenience. In multiplayer, **only the dedicated server** may grant EXP, spawn owned loot, change balances or inventory, accept damage, authorize PK, or decide guild/arena match outcomes. Do not connect these local demonstration scripts directly to client-submitted networking RPCs.
+
+## Test directly through the browser
+A separate cloud GitHub Actions workflow is prepared to build Unity WebGL and host it at
+https://redfullmoon209-debug.github.io/Leoonline/unity/
+without changing the existing Godot home page. The URL is **not valid as a Unity build until CI + Pages deployment succeeds**. See [Docs/BROWSER_TEST.md](Docs/BROWSER_TEST.md) for Unity licensing prerequisite and deployment details.

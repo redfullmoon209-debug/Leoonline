@@ -23,6 +23,18 @@ namespace Leoonline.EditorTools
             }
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
                 return;
+            BuildScene();
+            EditorUtility.DisplayDialog("LEOONLINE", "Offline scene created. Press Play to test PvE. No multiplayer.", "OK");
+        }
+
+        // Used by the automated WebGL build: do not show blocking Editor dialogs.
+        public static void BuildHeadless()
+        {
+            BuildScene();
+        }
+
+        private static void BuildScene()
+        {
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             var game = new GameObject("LEOONLINE Offline Game");
             game.AddComponent<PrototypeGame>();
@@ -95,7 +107,6 @@ namespace Leoonline.EditorTools
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
             Selection.activeGameObject = game;
             Debug.Log("[LEOONLINE] Prototype scene generated at " + ScenePath);
-            EditorUtility.DisplayDialog("LEOONLINE", "Offline scene created. Press Play to test the PvE loop. This is not networked multiplayer.", "OK");
         }
 
         private static void Colorize(GameObject obj, Color color)

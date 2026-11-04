@@ -1,0 +1,120 @@
+name: Unity WebGL Browser Preview
+on:
+  push:
+    branches: [unity-mmorpg-foundation]
+    paths:
+      - "unity/**"
+      - ".github/workflows/unity-webgl-preview.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm Unity license is configured
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        shell: bash
+        run: |
+          if [ -z "$UNITY_EMAIL" ] || [ -z "$UNITY_PASSWORD" ] || { [ -z "$UNITY_LICENSE" ] && [ -z "$UNITY_SERIAL" ]; }; then
+            echo "::error::Unity license not configured. Configure repository Actions secrets UNITY_EMAIL + UNITY_PASSWORD plus UNITY_SERIAL (Pro) or a valid UNITY_LICENSE. A Unity Personal license cannot be manually activated through the old Unity website. See unity/Docs/BROWSER_TEST.md"
+            exit 1
+          fi
+      - name: Build real Unity 6.3 WebGL scene in cloud
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        with:
+          projectPath: unity
+          unityVersion: auto
+          targetPlatform: WebGL
+          buildMethod: Leoonline.EditorTools.UnityWebGLBuild.Build
+          buildsPath: unity/build
+          buildName: WebGL
+      - name: Verify genuine Unity export
+        shell: bash
+        run: |
+          test -s unity/build/WebGL/index.html
+          test -d unity/build/WebGL/Build
+          find unity/build/WebGL/Build -maxdepth 1 -type f | grep -E '\.(wasm|wasm\.br|wasm\.gz)$'
+      - name: Upload real Unity WebGL browser artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LEOONLINE-Unity-WebGL
+          path: unity/build/WebGL/
+          if-no-files-found: error
+          retention-days: 30
+
+  # This assembles the exact latest successful Godot Pages artifact together
+  # with the Unity export, preventing replacement of the existing main site.
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    concurrency:
+      group: leoonline-pages-v2
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: https://redfullmoon209-debug.github.io/Leoonline/unity/
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download Unity WebGL build from current run
+        uses: actions/download-artifact@v4
+        with:
+          name: LEOONLINE-Unity-WebGL
+          path: unity-output
+      - name: Retrieve current Godot Pages site artifact
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workflow: publish-pages.yml
+          branch: main
+          workflow_conclusion: success
+          name: github-pages
+          path: godot-pages
+          if_no_artifact_found: fail
+      - name: Combine Godot homepage with Unity WebGL subpath
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p preview-site/unity
+          if [ -s godot-pages/artifact.tar ]; then
+            tar -xf godot-pages/artifact.tar -C preview-site
+          elif [ -s godot-pages/artifact.tar.gz ]; then
+            tar -xzf godot-pages/artifact.tar.gz -C preview-site
+          else
+            echo "::error::Previous Pages archive is missing"
+            exit 1
+          fi
+          test -s preview-site/index.html
+          test -s unity-output/index.html
+          test -d unity-output/Build
+          cp -a unity-output/. preview-site/unity/
+          touch preview-site/.nojekyll
+          test -s preview-site/unity/index.html
+      - name: Upload combined Pages site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: preview-site/
+      - name: Deploy browser preview
+        id: deployment
+        uses: actions/deploy-pages@v4
+      - name: Link to preview
+        shell: bash
+        run: |
+          echo "Real Unity WebGL preview: https://redfullmoon209-debug.github.io/Leoonline/unity/" >> "$GITHUB_STEP_SUMMARY"
+          echo "Original Godot game remains at https://redfullmoon209-debug.github.io/Leoonline/" >> "$GITHUB_STEP_SUMMARY"
