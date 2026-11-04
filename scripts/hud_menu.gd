@@ -767,7 +767,27 @@ func _events_page() -> void:
  claim.disabled=claimed
  _text(page_body,"รับวันนี้แล้ว" if claimed else "ยังไม่ได้รับวันนี้",15)
 
+func _switch_screen_mode(mode: String) -> void:
+ if mode!="portrait" and mode!="landscape": return
+ if not OS.has_feature("web"):
+  _toast("ตัวเลือกโหมดหน้าจอใช้ได้ในเว็บเบราว์เซอร์")
+  return
+ # Save the live character/inventory and HUD synchronously before the page
+ # navigation. Both wrappers use this origin and the same localStorage keys.
+ if is_instance_valid(game_store) and game_store.has_method("save_data"):
+  game_store.call("save_data")
+ _save_local()
+ var destination:String="mobile.html" if mode=="portrait" else "landscape.html"
+ JavaScriptBridge.eval("window.top.location.assign(new URL('"+destination+"',window.top.location.href).href);",true)
+
 func _settings_page() -> void:
+ _section("โหมดหน้าจอ" if inventory.get("locale")!="en" else "Screen orientation")
+ _description("เลือกหน้าเกมแนวตั้งหรือแนวนอน เว็บจะเปิดรูปแบบนั้นโดยตรงและใช้ข้อมูลบันทึกชุดเดิม" if inventory.get("locale")!="en" else "Open the portrait or landscape game page directly. Both modes share the same saved game.")
+ var mode_row:=_line(page_body)
+ var portrait_mode:=_action_button(mode_row,"เล่นแนวตั้ง" if inventory.get("locale")!="en" else "Play portrait",func(): _switch_screen_mode("portrait"))
+ portrait_mode.name="ScreenModePortrait"
+ var landscape_mode:=_action_button(mode_row,"เล่นแนวนอน" if inventory.get("locale")!="en" else "Play landscape",func(): _switch_screen_mode("landscape"))
+ landscape_mode.name="ScreenModeLandscape"
  _section("ปรับแต่ง HUD")
  _description("ลากปุ่มบนหน้าจอเพื่อย้ายตำแหน่งด้วยนิ้วหรือเมาส์ เลือกปุ่มแล้วเลื่อนสไลเดอร์เพื่อเปลี่ยนขนาด บันทึกตำแหน่งแยกตามอุปกรณ์ได้")
  var action:=_action_button(page_body,"เริ่มจัดปุ่มบนหน้าจอ",_begin_edit)
