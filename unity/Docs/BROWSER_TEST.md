@@ -37,3 +37,36 @@ For a valid Unity Pro/Enterprise serial-based CI setup:
 
 ## Production caution
 The published code is an OFFLINE local test. Browser support does **not** make it a real MMORPG. Multiplayer, PK, arena, guild war, authenticated identities and authoritative server will be separate future milestones.
+
+
+## Free Unity Personal alternative: official Unity Build Automation (UBA)
+
+The first GameCI run (2026-11-04) **failed the license-precheck**, with all UNITY_EMAIL, UNITY_PASSWORD, UNITY_LICENSE and UNITY_SERIAL variables absent. This is an account-activation blocker, not evidence the Unity C# code was compiled. Unity currently no longer supports standard manual Unity Personal activation on the legacy activation website.
+
+For the owner who wants **zero local Unity installation**, use the official web UI:
+1. Sign into https://cloud.unity.com/ and create/select a Unity project and organization.
+2. Open **DevOps > Build Automation** and configure **Source Control > GitHub**. Connect owner repository \`redfullmoon209-debug/Leoonline\` using Unity's account-authorized flow; Unity may require a GitHub access token with repository read access (set this directly in Unity's portal, never in chat).
+3. Create a build configuration with:
+   - **Target:** WebGL / Web
+   - **Branch:** \`unity-mmorpg-foundation\`
+   - **Project subfolder:** \`unity\`
+   - **Unity version:** 6000.3.0f1 (or the closest available patch in 6.3 LTS, while updating ProjectVersion.txt accordingly)
+   - **Advanced > Pre-export method:** \`Leoonline.EditorTools.UnityCloudPreExport.PreExport\`
+4. Select Build in Unity's Build Automation history/configuration screen and review compile logs. The pre-export hook auto-creates the prototype scene and marks it for build. The exported WebGL files are the deployable artifact.
+5. **Build Automation does not automatically publish a website.** The successfully built WebGL folder must be hosted as a site (e.g. merged under GitHub Pages \`/Leoonline/unity/\`) with an authenticated publishing integration. A manual artifact upload or further credentials/integration are required to bridge Unity Cloud Build to the current GitHub Pages deploy workflow.
+
+Unity Build Automation includes a limited free tier with usage quotas; check current plan and charges before using beyond free allowance.
+
+References:
+- https://docs.unity.com/en-us/build-automation/basic-build-configuration/overview
+- https://docs.unity.com/en-us/build-automation/get-started-with-build-automation/connect-your-version-control-system
+- https://docs.unity.com/en-us/build-automation/advanced-build-configuration/run-custom-scripts-during-the-build-process
+- https://unity.com/products/pricing-updates
+
+### For Unity Pro instead
+Keep the **GameCI** GitHub Actions route. The repository owner adds (in GitHub Settings > Secrets and variables > Actions):
+- \`UNITY_EMAIL\` — Unity account email.
+- \`UNITY_PASSWORD\` — Unity account password (stored as a GitHub secret; never send to ChatGPT).
+- \`UNITY_SERIAL\` — eligible Pro serial, or \`UNITY_LICENSE\` if a legitimately activated .ulf license file is available.
+
+When these are set, trigger the \`Unity WebGL Browser Preview\` workflow again, and only declare the \`/unity/\` link live once the **build**, **deploy**, and **real browser** tests succeed.
