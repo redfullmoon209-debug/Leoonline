@@ -21,6 +21,8 @@ var bone_bind_pose: Dictionary = {}
 var bone_indices: Dictionary = {}
 var frame_count: int = 0
 var stride_clock: float = 0.0
+# Subtle, frame-independent breathing keeps the ready stance alive at idle.
+var idle_clock: float = 0.0
 # A brief additive swing on the actual Mixamo arm, layered over the
 # user's untouched Walk/Run FBX bone tracks. No fake attack asset.
 var basic_attack_time:float=0.0
@@ -283,8 +285,8 @@ func _attack_phase_value() -> float:
 func _attack_arm_targets(phase:float) -> Dictionary:
  # Three real sword phases: raise sword, strike forward/down, recover to
  # the ready guard. Elbow and wrist follow the same authored skeleton.
- var rest_elbow:=Vector3(0.18,-0.89,-0.35).normalized()
- var rest_hand:=Vector3(0.10,-0.62,-0.79).normalized()
+ var rest_elbow:=Vector3(0.22,-0.90,-0.36).normalized()
+ var rest_hand:=Vector3(0.08,0.10,-0.99).normalized()
  var raised_elbow:=Vector3(0.19,0.45,-0.87).normalized()
  var raised_hand:=Vector3(0.03,0.28,-0.96).normalized()
  var cutting_elbow:=Vector3(0.24,-0.82,-0.52).normalized()
@@ -307,6 +309,7 @@ func _attack_arm_targets(phase:float) -> Dictionary:
 
 func animate_motion(direction: Vector3, is_sprinting: bool, delta: float) -> void:
  if not visual_loaded:return
+ idle_clock+=delta
  basic_attack_time=maxf(0.0,basic_attack_time-delta)
  var moving:bool=direction.length_squared()>0.01
  if moving:
@@ -347,17 +350,27 @@ func animate_motion(direction: Vector3, is_sprinting: bool, delta: float) -> voi
      )*(PI/180.0)
      pose=rest*Quaternion.from_euler(euler)
   poses[idx]=pose
- # The authored FBX is T-posed. In ALL three locomotion states, relax
- # both arms down into a ready stance, instead of preserving the T-pose.
+ # Original FemaleLeo arrives in a T-pose. A straight arm-down correction
+ # only traded that for a lifeless, dangling-arm stance. Build a bent-elbow
+ # combat-ready guard in the ORIGINAL rig's rest space instead, keeping the
+ # authored Walk/Run rotation tracks as small additive movements.
  if rig_ready:
+  var arm_swing:float=0.0
+  if moving and frame_total>1:
+   arm_swing=sin(TAU*stride_clock/float(frame_total))*(0.14 if is_sprinting else 0.09)
+  var breath:float=sin(idle_clock*2.3)*0.035
+  # Both elbows stay near the torso. Both wrists sit FORWARD of the elbows
+  # (rather than pointing straight down like limp hands). The offset solver
+  # uses each real imported bone's rest basis, not arbitrary local axes.
+  var left_elbow_target:Vector3=Vector3(-0.22,-0.90,-0.37+arm_swing+breath).normalized()
+  var left_wrist_target:Vector3=Vector3(-0.10,0.12,-0.99).normalized()
   var left_offsets:Dictionary=_arm_pose_offsets(
    left_arm_index,left_elbow_index,left_hand_index,
-   Vector3(-0.16,-0.97,-0.19).normalized(),
-   Vector3(-0.06,-0.95,-0.26).normalized()
+   left_elbow_target,left_wrist_target
   )
   var phase:float=_attack_phase_value()
-  var right_elbow:=Vector3(0.18,-0.89,-0.35).normalized()
-  var right_hand:=Vector3(0.10,-0.62,-0.79).normalized()
+  var right_elbow:Vector3=Vector3(0.22,-0.90,-0.36-arm_swing+breath).normalized()
+  var right_hand:Vector3=Vector3(0.08,0.10,-0.99).normalized()
   if basic_attack_time>0.0:
    var attack_targets:Dictionary=_attack_arm_targets(phase)
    right_elbow=attack_targets["elbow"]
