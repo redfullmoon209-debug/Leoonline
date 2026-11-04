@@ -260,7 +260,7 @@ jobs:
           workflow: unity-webgl-preview.yml
           branch: unity-mmorpg-foundation
           workflow_conclusion: success
-          name: LEOONLINE-Unity-WebGL
+          name: LEOM-Unity-WebGL
           path: build/web/unity
           if_no_artifact_found: warn
       - name: Ensure Unity browser build is real when present

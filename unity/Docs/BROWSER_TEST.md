@@ -13,7 +13,7 @@ A **build-and-deploy pipeline** is configured as source, not proof of a successf
 
 ## How the cloud pipeline works
 1. GameCI \`unity-builder@v4\` runs Unity 6.3 LTS WebGL inside a GitHub-hosted cloud environment; developer machines do not need Unity installed.
-2. \`Leoonline.EditorTools.UnityWebGLBuild.Build()\` makes the 3D scene using primitive assets, exports WebGL to \`unity/build/WebGL\`, using **uncompressed** files suitable for static Pages hosting.
+2. \`Leom.EditorTools.UnityWebGLBuild.Build()\` makes the 3D scene using primitive assets, exports WebGL to \`unity/build/WebGL\`, using **uncompressed** files suitable for static Pages hosting.
 3. The workflow verifies expected files and uploads the actual WebGL build.
 4. To preserve the existing Godot game, the deploy job downloads the latest successful \`publish-pages.yml\` Pages artifact from main, expands its tarball, adds the Unity output to \`/unity/\`, and redeploys one combined site.
 5. Changes to \`publish-pages.yml\` in the same PR can keep the Unity export in the site during later Godot redeployments, by downloading the most recent successful Unity WebGL build artifact.
@@ -39,6 +39,10 @@ For a valid Unity Pro/Enterprise serial-based CI setup:
 The published code is an OFFLINE local test. Browser support does **not** make it a real MMORPG. Multiplayer, PK, arena, guild war, authenticated identities and authoritative server will be separate future milestones.
 
 
+## Unity Cloud project
+
+Unity Cloud LEOM project: https://cloud.unity.com/organizations/18968508051495/projects/8ff585f7-c6f7-4736-a844-1db884381c30
+
 ## Free Unity Personal alternative: official Unity Build Automation (UBA)
 
 The first GameCI run (2026-11-04) **failed the license-precheck**, with all UNITY_EMAIL, UNITY_PASSWORD, UNITY_LICENSE and UNITY_SERIAL variables absent. This is an account-activation blocker, not evidence the Unity C# code was compiled. Unity currently no longer supports standard manual Unity Personal activation on the legacy activation website.
@@ -51,7 +55,7 @@ For the owner who wants **zero local Unity installation**, use the official web 
    - **Branch:** \`unity-mmorpg-foundation\`
    - **Project subfolder:** \`unity\`
    - **Unity version:** 6000.3.0f1 (or the closest available patch in 6.3 LTS, while updating ProjectVersion.txt accordingly)
-   - **Advanced > Pre-export method:** \`Leoonline.EditorTools.UnityCloudPreExport.PreExport\`
+   - **Advanced > Pre-export method:** \`Leom.EditorTools.UnityCloudPreExport.PreExport\`
 4. Select Build in Unity's Build Automation history/configuration screen and review compile logs. The pre-export hook auto-creates the prototype scene and marks it for build. The exported WebGL files are the deployable artifact.
 5. **Build Automation does not automatically publish a website.** The successfully built WebGL folder must be hosted as a site (e.g. merged under GitHub Pages \`/Leoonline/unity/\`) with an authenticated publishing integration. A manual artifact upload or further credentials/integration are required to bridge Unity Cloud Build to the current GitHub Pages deploy workflow.
 

@@ -42,7 +42,7 @@ jobs:
           projectPath: unity
           unityVersion: auto
           targetPlatform: WebGL
-          buildMethod: Leoonline.EditorTools.UnityWebGLBuild.Build
+          buildMethod: Leom.EditorTools.UnityWebGLBuild.Build
           buildsPath: unity/build
           buildName: WebGL
       - name: Verify genuine Unity export

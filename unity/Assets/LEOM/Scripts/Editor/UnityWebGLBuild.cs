@@ -15,7 +15,7 @@ namespace Leom.EditorTools
         {
             BuildPrototypeScene.BuildHeadless();
 
-            PlayerSettings.companyName = "Leoonline";
+            PlayerSettings.companyName = "LEOM";
             PlayerSettings.productName = "LEOM Offline PvE Playtest";
             // GitHub Pages doesn't provide the configurable Content-Encoding headers
             // required by all compressed WebGL distribution variants.
