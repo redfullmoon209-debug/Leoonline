@@ -1,0 +1,50 @@
+name: Render and commit Leoonline combat HUD PNGs
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/build_combat_hud_png.py'
+      - '.github/workflows/render-combat-hud-png.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Render seven independent RGBA PNG assets
+        run: |
+          python -m pip install --quiet 'cairosvg>=2.7,<3' 'Pillow>=11,<13'
+          python tools/build_combat_hud_png.py
+          python - <<'PY'
+          import struct
+          from pathlib import Path
+          names=('button_attack_swords','button_target_lock','button_dash','button_jump','button_pickup','joystick_base','joystick_knob')
+          root=Path('assets/ui/hud/premium')
+          for name in names:
+              path=root/(name+'.png')
+              data=path.read_bytes()
+              assert data[:8]==b'\x89PNG\r\n\x1a\n'
+              assert struct.unpack('>II',data[16:24])==(256,256)
+              assert data[25]==6, name
+              print(name,len(data))
+          PY
+      - name: Commit 7 original HUD PNGs to main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/ui/hud/premium/button_attack_swords.png assets/ui/hud/premium/button_target_lock.png assets/ui/hud/premium/button_dash.png assets/ui/hud/premium/button_jump.png assets/ui/hud/premium/button_pickup.png assets/ui/hud/premium/joystick_base.png assets/ui/hud/premium/joystick_knob.png
+          if ! git diff --cached --quiet; then
+            git commit -m "Add seven individual premium combat HUD PNG assets"
+            git push
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Leoonline-Combat-HUD-PNG
+          path: assets/ui/hud/premium/button_*.png
