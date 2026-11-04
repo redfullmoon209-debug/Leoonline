@@ -33,6 +33,8 @@ async function scenario(browser, name, viewport, mobile) {
     assert(initial.novice_locked_distance>5,
       'Training target must start outside normal melee range');
     assert(initial.novice_basic_atk_visible,'ATK must be visible in real game HUD');
+    assert(initial.novice_basic_atk_png_path.endsWith('/user_original/08_attack.png'),
+      'ATK must display the exact owner-supplied original PNG');
     assert.equal(initial.novice_auto_active,false,'No attack until user presses');
     if(mobile){
       const [x,y,w,h]=initial.novice_basic_atk_bounds;
@@ -52,7 +54,7 @@ async function scenario(browser, name, viewport, mobile) {
     assert(moving.novice_locked_distance<initial.novice_locked_distance-2.0,
       'Pressing ATK MUST run player closer to selected enemy');
     if(mobile){
-      assert.equal(moving.novice_basic_atk_label,'หยุด','ATK must show Stop when active');
+      assert.equal(moving.novice_basic_atk_label,'','ATK action keeps original PNG without text while active');
       const [x,y,w,h]=moving.novice_basic_atk_bounds;
       await page.touchscreen.tap(x+w/2,y+h/2);
     }else{
@@ -60,7 +62,7 @@ async function scenario(browser, name, viewport, mobile) {
     }
     await wait(page,()=>window.__leoQA?.novice_auto_active===false);
     const stopped=await state(page);
-    assert.equal(stopped.novice_basic_atk_label,'ATK','ATK resets after toggle off');
+    assert.equal(stopped.novice_basic_atk_label,'','ATK keeps its original PNG when toggled off');
     if(!mobile){
       // The skill key must also approach from distance, cast once in
       // range, and return to repeated normal attacks as requested.

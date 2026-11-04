@@ -8,6 +8,7 @@ const MENU_IDS: Array[String] = ["world","party","friends","ranking","settings",
 const MENU_ORDER: Array[String] = ["bag","world","party","friends","ranking","settings","guild","quest","mail","events"]
 const LAYOUT_VERSION: int = 4
 const PREMIUM_ROOT: String = "res://assets/ui/hud/premium/"
+const ORIGINAL_HUD_ROOT: String = "res://assets/ui/hud/user_original/"
 const TopStatusScript = preload("res://scripts/hud_top_status.gd")
 const ALL_IDS: Array[String] = ["bag","world","party","friends","ranking","settings","guild","quest","mail","events","joystick","jump","pickup","run","target"]
 const MENU_LABELS: Dictionary = {
@@ -277,8 +278,8 @@ func _build_buttons() -> void:
   image.name="Glyph"
   var candidate:String=""
   match key:
-   "run": candidate=PREMIUM_ROOT+"button_dash.png"
-   "target": candidate=PREMIUM_ROOT+"button_target_lock.png"
+   "run": candidate=ORIGINAL_HUD_ROOT+"12_run.png"
+   "target": candidate=ORIGINAL_HUD_ROOT+"07_target.png"
    "jump": candidate=PREMIUM_ROOT+"button_jump.png"
    "pickup": candidate=PREMIUM_ROOT+"button_pickup.png"
   var art_path:String=candidate if candidate!="" and ResourceLoader.exists(candidate) else ICON_ROOT+key+".svg"

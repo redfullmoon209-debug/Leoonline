@@ -1,9 +1,10 @@
 extends Control
-## Three existing starter PNGs plus one standalone, text-only ATK control.
+## Owner-supplied original PNG combat HUD (the artwork is never regenerated).
 ## The three skill PNGs and ALL existing HUD controls stay in place.
 ## Ordinary ATK is also clickable on PC; J is its keyboard alternative.
 const SkillCatalog=preload("res://scripts/skill_catalog.gd")
-const APPROVED_ART_ROOT: String = "res://assets/ui/hud/premium/"
+const APPROVED_ART_ROOT: String = "res://assets/ui/hud/user_original/"
+const STARTER_SKILL_PNGS: Array[String] = ["03_skill_purple.png","04_skill_blue_swirl.png","05_skill_blue_burst.png"]
 var game:Node3D
 var store:Node
 var hud_menu:Control
@@ -62,7 +63,7 @@ func initialize(p_game:Node3D,p_store:Node,p_menu:Control) -> void:
  if ResourceLoader.exists("res://assets/fonts/NotoSansThai.ttf"):
   atk_button.add_theme_font_override("font",load("res://assets/fonts/NotoSansThai.ttf"))
  add_child(atk_button)
- var approved_atk:String=APPROVED_ART_ROOT+"button_attack_swords.png"
+ var approved_atk:String=APPROVED_ART_ROOT+"08_attack.png"
  if ResourceLoader.exists(approved_atk):
   atk_art=TextureRect.new()
   atk_art.name="ApprovedATKArt"
@@ -163,7 +164,7 @@ func _process(_delta:float) -> void:
    _selected_ids[i]=skill_id
    var item:Dictionary=SkillCatalog.info(skill_id) if SkillCatalog.is_equippable("Novice",skill_id) else {}
    var path:String=str(item.get("icon",""))
-   var approved_skill:String=APPROVED_ART_ROOT+"skill"+str(i+1)+".png"
+   var approved_skill:String=APPROVED_ART_ROOT+STARTER_SKILL_PNGS[i]
    if ResourceLoader.exists(approved_skill):path=approved_skill
    var art:Texture2D=load(path) as Texture2D if path!="" and ResourceLoader.exists(path) else null
    button.texture_normal=art

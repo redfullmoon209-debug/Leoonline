@@ -1,7 +1,7 @@
 extends Control
 ## Two independently layered PNG textures: stationary base and moving thumb knob.
-const BASE_PNG: String = "res://assets/ui/hud/premium/joystick_base.png"
-const KNOB_PNG: String = "res://assets/ui/hud/premium/joystick_knob.png"
+const BASE_PNG: String = "res://assets/ui/hud/user_original/01_joystick_base.png"
+const KNOB_PNG: String = "res://assets/ui/hud/user_original/02_joystick_knob.png"
 var base_texture: Texture2D
 var knob_texture: Texture2D
 var display_movement: Vector2 = Vector2.ZERO

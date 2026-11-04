@@ -1040,14 +1040,16 @@ func validate() -> void:
  check(hud_menu.get_movement_vector().length()>0.05,"Virtual mobile joystick drives real movement vector")
  stick.movement=Vector2.ZERO
  check(stick.base_texture!=null and stick.knob_texture!=null
-  and stick.base_texture.resource_path=="res://assets/ui/hud/premium/joystick_base.png"
-  and stick.knob_texture.resource_path=="res://assets/ui/hud/premium/joystick_knob.png",
+  and stick.base_texture.resource_path=="res://assets/ui/hud/user_original/01_joystick_base.png"
+  and stick.knob_texture.resource_path=="res://assets/ui/hud/user_original/02_joystick_knob.png",
   "Mobile joystick uses two real independent transparent PNG textures")
  for action_name in ["run","target","jump","pickup"]:
   var action_button:Button=hud_menu.controls[action_name] as Button
   var action_icon:TextureRect=action_button.get_node("Glyph") as TextureRect
-  var expected_png:String="button_dash" if action_name=="run" else ("button_target_lock" if action_name=="target" else "button_"+action_name)
-  check(action_icon.texture!=null and action_icon.texture.resource_path=="res://assets/ui/hud/premium/"+expected_png+".png"
+  var owner_button:bool=["run","target"].has(action_name)
+  var expected_png:String="12_run.png" if action_name=="run" else ("07_target.png" if action_name=="target" else "button_"+action_name+".png")
+  var asset_root:String="res://assets/ui/hud/user_original/" if owner_button else "res://assets/ui/hud/premium/"
+  check(action_icon.texture!=null and action_icon.texture.resource_path==asset_root+expected_png
    and action_icon.size==action_button.size and action_button.get_theme_stylebox("normal") is StyleBoxEmpty,
    "Mobile "+action_name+" draws its complete standalone combat PNG with no square base")
  var novice_touch:Control=game.novice_touch_bar
@@ -1058,7 +1060,7 @@ func validate() -> void:
  var atk_art:TextureRect=atk_button.get_node_or_null("ApprovedATKArt") as TextureRect
  check(atk_button!=null and atk_button.visible and atk_button.text=="" and atk_art!=null,
   "Normal ATK is a dedicated full PNG combat control, never a text rectangle")
- check(atk_art.texture!=null and atk_art.texture.resource_path=="res://assets/ui/hud/premium/button_attack_swords.png",
+ check(atk_art.texture!=null and atk_art.texture.resource_path=="res://assets/ui/hud/user_original/08_attack.png",
   "ATK loads the real standalone crossed-swords PNG asset")
  var atk_style:StyleBox=atk_button.get_theme_stylebox("normal")
  check(atk_style is StyleBoxEmpty and atk_art.size==atk_button.size,
@@ -1072,7 +1074,7 @@ func validate() -> void:
  for i in range(3):
   var novice_button:TextureButton=novice_touch.skill_buttons[i]
   var novice_art:Texture2D=novice_button.texture_normal
-  check(novice_art!=null and novice_art.resource_path==str(load("res://scripts/skill_catalog.gd").info(store.skill_hotbar[i])["icon"]),
+  check(novice_art!=null and novice_art.resource_path=="res://assets/ui/hud/user_original/"+["03_skill_purple.png","04_skill_blue_swirl.png","05_skill_blue_burst.png"][i],
    "Mobile starter hotbar reuses individual authentic PNG art: "+str(i+1))
   check(not novice_button.get_global_rect().intersects(mobile_target_button.get_global_rect()),
    "Starter skill button is separate from unchanged mobile TARGET control")

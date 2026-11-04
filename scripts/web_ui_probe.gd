@@ -34,6 +34,7 @@ func _process(delta: float) -> void:
  var selected_enemy:Node3D=menu.top_status.current_target as Node3D
  var auto_bar:Control=host.get("novice_touch_bar") as Control
  var attack_button:Button=auto_bar.atk_button as Button if auto_bar!=null else null
+ var attack_art:TextureRect=auto_bar.atk_art as TextureRect if auto_bar!=null else null
  var target_screens:Array=[]
  for entity in host.get("test_targets"):
   if is_instance_valid(entity):
@@ -119,6 +120,7 @@ func _process(delta: float) -> void:
   "novice_auto_active":bool(combat.is_auto_attacking()) if combat!=null else false,
   "novice_basic_atk_visible":attack_button!=null and attack_button.is_visible_in_tree(),
   "novice_basic_atk_label":attack_button.text if attack_button!=null else "",
+  "novice_basic_atk_png_path":attack_art.texture.resource_path if attack_art!=null and attack_art.texture!=null else "",
   "novice_basic_atk_bounds":bounds(attack_button) if attack_button!=null else [],
   "camera_orbit_yaw":float(host.camera_arm.rotation.y),
   "camera_orbit_pitch":float(host.pitch),
