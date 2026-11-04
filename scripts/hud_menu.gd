@@ -781,13 +781,6 @@ func _switch_screen_mode(mode: String) -> void:
  JavaScriptBridge.eval("window.top.location.assign(new URL('"+destination+"',window.top.location.href).href);",true)
 
 func _settings_page() -> void:
- _section("โหมดหน้าจอ" if inventory.get("locale")!="en" else "Screen orientation")
- _description("เลือกหน้าเกมแนวตั้งหรือแนวนอน เว็บจะเปิดรูปแบบนั้นโดยตรงและใช้ข้อมูลบันทึกชุดเดิม" if inventory.get("locale")!="en" else "Open the portrait or landscape game page directly. Both modes share the same saved game.")
- var mode_row:=_line(page_body)
- var portrait_mode:=_action_button(mode_row,"เล่นแนวตั้ง" if inventory.get("locale")!="en" else "Play portrait",func(): _switch_screen_mode("portrait"))
- portrait_mode.name="ScreenModePortrait"
- var landscape_mode:=_action_button(mode_row,"เล่นแนวนอน" if inventory.get("locale")!="en" else "Play landscape",func(): _switch_screen_mode("landscape"))
- landscape_mode.name="ScreenModeLandscape"
  _section("ปรับแต่ง HUD")
  _description("ลากปุ่มบนหน้าจอเพื่อย้ายตำแหน่งด้วยนิ้วหรือเมาส์ เลือกปุ่มแล้วเลื่อนสไลเดอร์เพื่อเปลี่ยนขนาด บันทึกตำแหน่งแยกตามอุปกรณ์ได้")
  var action:=_action_button(page_body,"เริ่มจัดปุ่มบนหน้าจอ",_begin_edit)
@@ -835,6 +828,13 @@ func _settings_page() -> void:
   _toast("คืนตำแหน่งเดิมแล้ว")
  )
  restore_button.name="ResetHUDLayout"
+ _section("โหมดหน้าจอ" if inventory.get("locale")!="en" else "Screen orientation")
+ _description("เลือกหน้าเกมแนวตั้งหรือแนวนอน เว็บจะเปิดรูปแบบนั้นโดยตรงและใช้ข้อมูลบันทึกชุดเดิม" if inventory.get("locale")!="en" else "Open the portrait or landscape game page directly. Both modes share the same saved game.")
+ var mode_row:=_line(page_body)
+ var portrait_mode:=_action_button(mode_row,"เล่นแนวตั้ง" if inventory.get("locale")!="en" else "Play portrait",func(): _switch_screen_mode("portrait"))
+ portrait_mode.name="ScreenModePortrait"
+ var landscape_mode:=_action_button(mode_row,"เล่นแนวนอน" if inventory.get("locale")!="en" else "Play landscape",func(): _switch_screen_mode("landscape"))
+ landscape_mode.name="ScreenModeLandscape"
 
 func _process(_delta: float) -> void:
  if popup_key=="world" and is_instance_valid(popup_map) and popup.visible:
