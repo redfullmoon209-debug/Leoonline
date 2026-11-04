@@ -49,8 +49,8 @@ async function runDesktop(browser){
  const state=await getState(page);
  check(state.hud_joystick_visible&&state.novice_basic_atk_visible,
        'Portrait viewport retains the joystick and basic attack control');
- check(state.skill_hotbar_count>=3&&state.skill_hotbar_bounds.every(r=>r[0]>=0&&r[1]>=0&&r[0]+r[2]<=box.width+2&&r[1]+r[3]<=box.height+2),
-       'Portrait viewport keeps all three skill buttons within the live game canvas');
+ check(state.novice_world_skill_visible.length===3&&state.novice_world_skill_visible.every(Boolean)&&state.novice_world_skill_bounds.every(r=>r[0]>=0&&r[1]>=0&&r[0]+r[2]<=box.width+2&&r[1]+r[3]<=box.height+2),
+       'Portrait viewport keeps all three live combat skill buttons within the game canvas');
  await context.close();
 }
 
@@ -72,8 +72,8 @@ async function runPhone(browser){
  const state=await getState(page);
  check(state.hud_joystick_visible&&state.novice_basic_atk_visible&&state.hud_minimap_bounds[2]>0,
        'Landscape viewport retains joystick, basic attack and minimap');
- check(state.skill_hotbar_count>=3&&state.skill_hotbar_bounds.every(r=>r[0]>=0&&r[1]>=0&&r[0]+r[2]<=box.width+2&&r[1]+r[3]<=box.height+2),
-       'Landscape viewport keeps all three skill buttons within the live game canvas');
+ check(state.novice_world_skill_visible.length===3&&state.novice_world_skill_visible.every(Boolean)&&state.novice_world_skill_bounds.every(r=>r[0]>=0&&r[1]>=0&&r[0]+r[2]<=box.width+2&&r[1]+r[3]<=box.height+2),
+       'Landscape viewport keeps all three live combat skill buttons within the game canvas');
  await context.close();
 }
 
