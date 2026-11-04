@@ -3,12 +3,14 @@ extends Control
 ## The three skill PNGs and ALL existing HUD controls stay in place.
 ## Ordinary ATK is also clickable on PC; J is its keyboard alternative.
 const SkillCatalog=preload("res://scripts/skill_catalog.gd")
+const APPROVED_ART_ROOT: String = "res://assets/ui/hud/premium/"
 var game:Node3D
 var store:Node
 var hud_menu:Control
 var skill_buttons:Array[TextureButton]=[]
 var skill_labels:Array[Label]=[]
 var atk_button:Button
+var atk_art:TextureRect
 var _selected_ids:Array[String]=["","",""]
 
 func initialize(p_game:Node3D,p_store:Node,p_menu:Control) -> void:
@@ -60,6 +62,19 @@ func initialize(p_game:Node3D,p_store:Node,p_menu:Control) -> void:
  if ResourceLoader.exists("res://assets/fonts/NotoSansThai.ttf"):
   atk_button.add_theme_font_override("font",load("res://assets/fonts/NotoSansThai.ttf"))
  add_child(atk_button)
+ var approved_atk:String=APPROVED_ART_ROOT+"button_attack_swords.png"
+ if ResourceLoader.exists(approved_atk):
+  atk_art=TextureRect.new()
+  atk_art.name="ApprovedATKArt"
+  atk_art.texture=load(approved_atk) as Texture2D
+  atk_art.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
+  atk_art.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+  atk_art.mouse_filter=Control.MOUSE_FILTER_IGNORE
+  atk_button.add_theme_stylebox_override("normal",StyleBoxEmpty.new())
+  atk_button.add_theme_stylebox_override("hover",StyleBoxEmpty.new())
+  atk_button.add_theme_stylebox_override("pressed",StyleBoxEmpty.new())
+  atk_button.add_theme_stylebox_override("disabled",StyleBoxEmpty.new())
+  atk_button.add_child(atk_art)
  atk_button.pressed.connect(_press_atk)
  resized.connect(_layout)
  _layout()
@@ -103,6 +118,9 @@ func _layout() -> void:
    atk_y=y
   atk_button.position=Vector2(maxf(5.0,atk_x),maxf(7.0,atk_y))
   atk_button.size=Vector2(atk_size,atk_size)
+  if is_instance_valid(atk_art):
+   atk_art.position=Vector2.ZERO
+   atk_art.size=atk_button.size
   atk_button.add_theme_font_size_override("font_size",17 if w<600.0 else 19)
 
 func _press_atk() -> void:
@@ -129,7 +147,9 @@ func _process(_delta:float) -> void:
   # even while the 0.52-second attack animation is still recovering.
   atk_button.disabled=not is_instance_valid(combat)
   var auto_mode:bool=is_instance_valid(combat) and bool(combat.is_auto_attacking())
-  atk_button.text="หยุด" if auto_mode else "ATK"
+  atk_button.text="" if is_instance_valid(atk_art) else ("หยุด" if auto_mode else "ATK")
+  if is_instance_valid(atk_art):
+   atk_art.modulate=Color(1.0,0.62,0.62,1.0) if auto_mode else Color.WHITE
   atk_button.tooltip_text="หยุดวิ่งและโจมตีอัตโนมัติ" if auto_mode else "วิ่งเข้าหาเป้าหมายและตีต่อเนื่อง · กดซ้ำเพื่อหยุด · J"
  for i in range(3):
   skill_buttons[i].visible=touch
@@ -142,6 +162,8 @@ func _process(_delta:float) -> void:
    _selected_ids[i]=skill_id
    var item:Dictionary=SkillCatalog.info(skill_id) if SkillCatalog.is_equippable("Novice",skill_id) else {}
    var path:String=str(item.get("icon",""))
+   var approved_skill:String=APPROVED_ART_ROOT+"skill"+str(i+1)+".png"
+   if ResourceLoader.exists(approved_skill):path=approved_skill
    var art:Texture2D=load(path) as Texture2D if path!="" and ResourceLoader.exists(path) else null
    button.texture_normal=art
    button.texture_hover=art
