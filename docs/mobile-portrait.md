@@ -19,6 +19,22 @@ correct mobile geometry.
 
 - Default homepage: https://redfullmoon209-debug.github.io/Leoonline/
 - Stable portrait alias: /Leoonline/mobile.html
+- Stable landscape alias: /Leoonline/landscape.html
+
+## Switching modes from the game
+
+Open **Settings → Screen orientation** and choose **Play portrait** or
+**Play landscape**. The game saves the character/inventory transaction and
+HUD layout before navigating to the matching page. Both pages load the same
+Godot export on the same origin and therefore use the existing
+`leoonline_save_v1`, HUD localStorage and browser save; there is no new
+character or separate bag.
+
+The selector changes the web page and its real Godot viewport. It does not
+rotate, crop, or stretch a screenshot. On iPhone Safari the landscape page
+shows its rotate prompt while the device is upright; rotate the phone
+manually. The game does not request a screen-orientation lock that Safari
+might reject.
 - Commit-specific portrait page: /Leoonline/phone-COMMIT12.html
 - Commit-specific untouched landscape/full-browser Godot release:
   /Leoonline/game-COMMIT12.html
