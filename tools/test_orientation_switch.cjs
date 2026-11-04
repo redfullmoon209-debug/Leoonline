@@ -26,7 +26,23 @@ async function choose(page,mode,touch){
   return s?.hud_popup_visible&&s.hud_screen_mode_portrait?.length===4&&s.hud_screen_mode_landscape?.length===4;
  },null,{timeout:10000});
  state=await getState(page);
- await tap(page,mode==='portrait'?state.hud_screen_mode_portrait:state.hud_screen_mode_landscape,frameBox,touch);
+ let modeRect=mode==='portrait'?state.hud_screen_mode_portrait:state.hud_screen_mode_landscape;
+ for(let tries=0;tries<5;tries++){
+  const scroll=state.hud_page_scroll_bounds;
+  const inView=modeRect[1]>=scroll[1]&&modeRect[1]+modeRect[3]<=scroll[1]+scroll[3];
+  if(inView) break;
+  const x=frameBox.x+scroll[0]+scroll[2]/2;
+  const y=frameBox.y+scroll[1]+scroll[3]*0.75;
+  await page.mouse.move(x,y);
+  await page.mouse.wheel(0,500);
+  await page.waitForTimeout(250);
+  state=await getState(page);
+  modeRect=mode==='portrait'?state.hud_screen_mode_portrait:state.hud_screen_mode_landscape;
+ }
+ const scroll=state.hud_page_scroll_bounds;
+ check(modeRect[1]>=scroll[1]&&modeRect[1]+modeRect[3]<=scroll[1]+scroll[3],
+       'Screen mode action is visible inside the settings scroll area');
+ await tap(page,modeRect,frameBox,touch);
  const target=mode==='portrait'?'mobile.html':'landscape.html';
  await page.waitForURL(url=>url.pathname.endsWith('/'+target),{timeout:15000});
  check(await page.evaluate(()=>localStorage.getItem('orientation-switch-probe'))==='retained',
