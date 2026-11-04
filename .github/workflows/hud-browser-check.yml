@@ -64,6 +64,12 @@ jobs:
           node tools/test_phone_shell.cjs
           python3 tools/create_landscape_shell.py --web build/web --game _qa.html --output _landscape_qa.html
           node tools/test_landscape_shell.cjs
+          # Build stable same-origin aliases for a real in-game mode switch.
+          python3 tools/create_mobile_shell.py --web build/web --game _qa.html --output _phone_mode_qa.html
+          cp build/web/_phone_mode_qa.html build/web/mobile.html
+          python3 tools/create_landscape_shell.py --web build/web --game _qa.html --output _landscape_mode_qa.html
+          cp build/web/_landscape_mode_qa.html build/web/landscape.html
+          node tools/test_orientation_switch.cjs
       - name: Upload HUD screenshots and test results
         uses: actions/upload-artifact@v4
         if: always()
