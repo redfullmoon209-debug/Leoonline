@@ -20,6 +20,7 @@ namespace Leom.Prototype
         private float respawnAt = -1f;
         private Vector3 spawnPoint = new Vector3(0,0,0);
         private bool showThai;
+        public bool WindowOpen => tab != Tab.None || confirmation != null;
 
         private void Update()
         {
@@ -67,10 +68,12 @@ namespace Leom.Prototype
             float navY = 136f;
             float navWidth = Mathf.Min(840f,w-18f);
             string[] labels = {"Bag [B]","Bank","Shop","Gear","Stats [C]","Skills [K]","Map","PvP","Prefs"};
+            int navCols = w < 710f ? 3 : 9;
+            int navRows = (labels.Length + navCols - 1)/navCols;
             for(int i=0;i<labels.Length;i++)
             {
-                float btnW = navWidth/labels.Length;
-                if(GUI.Button(new Rect(9+i*btnW,navY,btnW-2f,33f),labels[i]))
+                float btnW = navWidth/navCols;
+                if(GUI.Button(new Rect(9+(i%navCols)*btnW,navY+(i/navCols)*37f,btnW-2f,33f),labels[i]))
                 {
                     Tab choice = (Tab)(i+1);
                     tab = tab == choice ? Tab.None : choice;
@@ -82,8 +85,9 @@ namespace Leom.Prototype
             if (tab != Tab.None)
             {
                 float panelWidth = Mathf.Min(w-20f, 900f);
-                float panelHeight = Mathf.Max(230f,Mathf.Min(h-206f,625f));
-                Rect window = new Rect((w-panelWidth)*.5f,178f,panelWidth,panelHeight);
+                float panelTop = navY + navRows*37f + 8f;
+                float panelHeight = Mathf.Max(280f,Mathf.Min(h-panelTop-10f,625f));
+                Rect window = new Rect((w-panelWidth)*.5f,panelTop,panelWidth,panelHeight);
                 GUI.Box(window,tab + " — original Leoonline IDs, temporary Unity UI");
                 if (GUI.Button(new Rect(window.xMax-46f,window.y+6f,36f,27f),"X"))
                     { tab = Tab.None; confirmation = null; }

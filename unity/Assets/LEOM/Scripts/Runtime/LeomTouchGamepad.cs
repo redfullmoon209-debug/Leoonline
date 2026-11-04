@@ -9,11 +9,13 @@ namespace Leom.Prototype
         private bool attack, pickup, jump;
         private readonly bool[] skills = new bool[3];
         private bool forced;
+        private LeomGameHUD hud;
         public bool Visible => forced || Application.isMobilePlatform || Screen.width < 950;
+        private void Start() { hud = GetComponent<LeomGameHUD>(); }
         private void Update()
         {
             if (Input.GetKeyDown(KeyCode.F8)) forced = !forced;
-            if (!Visible) Movement = Vector2.zero;
+            if (!Visible || (hud != null && hud.WindowOpen)) Movement = Vector2.zero;
         }
         public bool ConsumeAttack() { bool pressed = attack; attack = false; return pressed; }
         public bool ConsumeLoot() { bool pressed = pickup; pickup = false; return pressed; }
@@ -25,7 +27,7 @@ namespace Leom.Prototype
         }
         private void OnGUI()
         {
-            if (!Visible) return;
+            if (!Visible || (hud != null && hud.WindowOpen)) return;
             float scale = Mathf.Clamp(Screen.height / 750f, .65f, 1.15f);
             Matrix4x4 original = GUI.matrix;
             GUI.matrix = Matrix4x4.Scale(new Vector3(scale,scale,1f));
