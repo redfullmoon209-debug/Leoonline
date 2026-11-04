@@ -59,17 +59,19 @@ jobs:
           python3 -m http.server 8000 --directory build/web > /tmp/leo-hud-http.log 2>&1 &
           pid=$!
           trap 'kill "$pid"' EXIT
-          node tools/test_web_inventory.cjs
-          python3 tools/create_mobile_shell.py --web build/web --game _qa.html --output _phone_qa.html
-          node tools/test_phone_shell.cjs
-          python3 tools/create_landscape_shell.py --web build/web --game _qa.html --output _landscape_qa.html
-          node tools/test_landscape_shell.cjs
+          # Run the new screen-mode checks first so an older, unrelated HUD
+          # regression cannot prevent us from validating the selector itself.
           # Build stable same-origin aliases for a real in-game mode switch.
           python3 tools/create_mobile_shell.py --web build/web --game _qa.html --output _phone_mode_qa.html
           cp build/web/_phone_mode_qa.html build/web/mobile.html
           python3 tools/create_landscape_shell.py --web build/web --game _qa.html --output _landscape_mode_qa.html
           cp build/web/_landscape_mode_qa.html build/web/landscape.html
           node tools/test_orientation_switch.cjs
+          node tools/test_web_inventory.cjs
+          python3 tools/create_mobile_shell.py --web build/web --game _qa.html --output _phone_qa.html
+          node tools/test_phone_shell.cjs
+          python3 tools/create_landscape_shell.py --web build/web --game _qa.html --output _landscape_qa.html
+          node tools/test_landscape_shell.cjs
       - name: Upload HUD screenshots and test results
         uses: actions/upload-artifact@v4
         if: always()
