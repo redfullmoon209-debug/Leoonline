@@ -1,0 +1,33 @@
+name: LEOM migrated data and exact-economy checks
+on:
+  push:
+    branches: [unity-mmorpg-foundation]
+    paths:
+      - 'unity/**'
+      - 'scripts/store.gd'
+      - 'scripts/shop_catalog.gd'
+      - 'scripts/job_catalog.gd'
+      - 'scripts/skill_catalog.gd'
+      - 'tools/verify_leom_migration.py'
+      - 'tools/leom-tests/**'
+      - '.github/workflows/leom-data-check.yml'
+  pull_request:
+    paths:
+      - 'unity/**'
+      - 'tools/verify_leom_migration.py'
+      - 'tools/leom-tests/**'
+      - '.github/workflows/leom-data-check.yml'
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify Godot catalog IDs, offers, skills and placeholder-only 3D assets
+        run: python3 tools/verify_leom_migration.py
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Test 21-digit economy arithmetic and RPG save schema
+        run: dotnet run --project tools/leom-tests/LeomCoreTests.csproj --configuration Release
