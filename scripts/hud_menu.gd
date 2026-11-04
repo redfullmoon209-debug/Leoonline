@@ -274,7 +274,11 @@ func _build_buttons() -> void:
   controls[key]=button
   var image:=TextureRect.new()
   image.name="Glyph"
-  image.texture=load(ICON_ROOT+key+".svg") as Texture2D
+  var candidate:String=""
+  if key=="run":candidate=PREMIUM_ROOT+"button_dash.png"
+  elif key=="target":candidate=PREMIUM_ROOT+"button_target_lock.png"
+  var art_path:String=candidate if candidate!="" and ResourceLoader.exists(candidate) else ICON_ROOT+key+".svg"
+  image.texture=load(art_path) as Texture2D
   image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
   image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
   image.mouse_filter=Control.MOUSE_FILTER_IGNORE
