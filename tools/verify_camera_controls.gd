@@ -32,7 +32,8 @@ func _validate() -> void:
  for target in game.test_targets:
   _check(is_equal_approx(target.scale.x,0.25),"All test NPCs and monsters are scaled: "+target.name)
  _check(Input.mouse_mode==Input.MOUSE_MODE_VISIBLE,"Desktop pointer is not captured permanently")
- _check(is_equal_approx(game.camera.position.z,5.4),"Follow camera starts with street-friendly zoom")
+ _check(is_equal_approx(game.camera_distance,5.4) and is_equal_approx(game.camera_boom.spring_length,5.4) and game.camera.position==Vector3.ZERO,
+  "Follow camera uses SpringArm collision and starts at 5.4 m street-friendly zoom")
  var original_yaw:float=game.camera_arm.rotation.y
  var original_pitch:float=game.pitch
  var motion:=InputEventMouseMotion.new()
