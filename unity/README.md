@@ -3,12 +3,23 @@
 This is a **separate Unity LEOM project** living in the existing Godot repository. The original root-level Godot 4.4.1 Leoonline project, GitHub Pages playtests, scripts, and assets are intentionally untouched.
 
 ## Current implementation (local vertical slice, NOT online)
+
+**LEOM now ports the Godot data/systems into Unity, rather than being just the initial capsule test.** See [Docs/PORT_STATUS.md](Docs/PORT_STATUS.md) for the implemented/missing matrix.
+
+- Godot source catalogs migrated without renaming IDs: 31 items, 21 NPC shop listings, 13 professions, 171 named skills.
+- Unity-local bag 200/40 unlocked, 200-slot warehouse, deposit/withdraw items and exact four-currency vault, sorting, equipment and consumables.
+- Shop buy/sell and item confirmation, level/EXP/stat/skill points, passives and timed buffs; many class attacks remain catalog-only.
+- Unity procedural humanoid character and island map with town/hunting/arena/guild landmarks. **No original FemaleLeo, Bangkok map GLB, or their source parts imported.**
+- Mobile touch buttons and temporary RPG debug UI (bag/shop/bank/gear/stats/skills/map/PvP info). PvP and social screens are NOT networked implementations.
+- Automatic farming test movement (Q), basic attack, Novice Slash/Rush/Guard, monster loot and local profile persistence.
+- Check migrated source with `python3 tools/verify_leom_migration.py` and `dotnet run --project tools/leom-tests/LeomCoreTests.csproj`.
+
 - Unity 6.3 LTS project skeleton (starting Editor version 6000.3.0f1).
 - Editor command that builds a playable 3D prototype scene from Unity primitives.
 - Third-person WASD movement, sprint, jump, rotating follow camera, left-click melee.
-- Prototype monsters with chase, damage, death, respawn, EXP, local gold rewards, and item drops.
-- E to collect nearby drops, B for a debug inventory, F5 for local save.
-- 200 inventory slots / 40 initially unlocked; local four-currency exact decimal-string storage, 21 digits max per currency.
+- Prototype monsters with chase, damage, death, respawn, EXP, local gold rewards, and drops using source item IDs.
+- E to collect nearby drops, B for real temporary bag UI, F5 for local save.
+- 200 inventory slots / 40 initially unlocked; 200 warehouse slots, four currencies exact up to 21 digits, equipment and shops.
 - Design documents for authoritative multiplayer, open PK, arena, guild wars, and migration.
 
 **Not yet implemented:** network connection, online accounts, shared multiplayer, real PvP, arena, guild server, item upgrade economy, authoritative persistence, final HUD, original FBX/PNG imports, actual world map. Demo combat and local saves are non-authoritative and MUST NOT be deployed as an MMORPG server.
@@ -24,14 +35,14 @@ This is a **separate Unity LEOM project** living in the existing Godot repositor
 If input is disabled, open **Edit > Project Settings > Player > Other Settings > Active Input Handling** and choose **Input Manager (Old)** or **Both**; restart Editor if prompted.
 
 ## Prototype controls
-- WASD move / Shift sprint / Space jump
+- WASD move / Shift sprint / Space jump / Q auto-attack / T lock target / 1–3 Novice skills
 - Mouse move orbit camera / Left-click melee attack (nearby monsters, facing them)
-- E loot nearest drop in range / B toggle inventory / F5 save
+- E loot nearest drop / B bag / C stats / K skills / F8 touch controls / F5 save
 - Press Play to reset scene. Profile and inventory persist locally in Application.persistentDataPath/leoonline-unity-prototype.json.
 
 ## Layout
-- Assets/LEOM/Scripts/Runtime/Prototype — offline gameplay proof of concept
-- Assets/LEOM/Scripts/Runtime/Shared — exact-decimal currency and PvP zone rule contracts
+- Assets/LEOM/Scripts/Runtime — offline RPG services, combat, HUD and input
+- Assets/LEOM/Resources/LeomLegacyCatalog.json — imported Godot catalogs
 - Assets/LEOM/Scripts/Editor — scene creation tool (Editor only)
 - Assets/LEOM/Scenes — generated once with Tools > LEOM
 - Docs — design, roadmap, migration, server authority contracts

@@ -356,9 +356,17 @@ namespace Leom.Prototype
             if(Click(a,8,89,200,"Save locally [F5]"))rpg.SaveLocal();
             if(Click(a,8,130,200,"Quality: cycle"))
                 QualitySettings.SetQualityLevel((QualitySettings.GetQualityLevel()+1)%Mathf.Max(1,QualitySettings.names.Length));
-            Text(a,8,188,"F8 toggles touch/gamepad UI. Right-drag or touch upper-right to orbit.");
-            Text(a,8,225,"This is not an online account, server, arena or guild war.");
-            Text(a,8,264,"Do not use this client save as multiplayer data.");
+            if(Click(a,8,169,250,"Get LOCAL TEST starter items"))
+            {
+                // Browser testing only, not a real grant or server-side entitlement.
+                foreach (string id in new[]{"sword","shirt","boots","hp_potion_small","scroll"})
+                    rpg.AddItem(id);
+                rpg.TryCredit("gold","2000");
+                rpg.Tell("Granted temporary LOCAL TEST items + 2,000 Gold");
+            }
+            Text(a,8,218,"F8 toggles touch/gamepad UI. Right-drag or touch upper-right to orbit.");
+            Text(a,8,255,"Not a real account, server, PvP arena or guild war.");
+            Text(a,8,292,"This demo menu must never be used as online server authority.");
         }
     }
 }
