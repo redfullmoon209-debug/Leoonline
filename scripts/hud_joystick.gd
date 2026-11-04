@@ -80,13 +80,13 @@ func _draw() -> void:
   draw_texture_rect(base_texture, Rect2(center-Vector2.ONE*r,Vector2.ONE*r*2.0),false)
  else:
   draw_circle(center,r,Color(0.08,0.02,0.075,0.67))
- if base_texture == null: draw_arc(center,r,0.0,TAU,64,Color(0.85,0.61,0.29,0.84),3.0,true)
- if base_texture == null: draw_arc(center,r*0.72,0.0,TAU,64,Color(0.98,0.80,0.47,0.22),1.7,true)
+ if base_texture == null: draw_arc(center,r,0.0,TAU,64,Color("#963347"),3.0,true)
+ if base_texture == null: draw_arc(center,r*0.72,0.0,TAU,64,Color("#ffffff18"),1.7,true)
  var hand: Vector2 = center+display_movement*r*0.54
  if knob_texture != null:
   var knob_r: float = r*0.43
   draw_texture_rect(knob_texture,Rect2(hand-Vector2.ONE*knob_r,Vector2.ONE*knob_r*2.0),false)
  else:
-  draw_circle(hand,r*0.37,Color("#692235"))
- if knob_texture == null: draw_arc(hand,r*0.37,0.0,TAU,48,Color("#f9d58b"),2.5,true)
- if knob_texture == null: draw_circle(hand,r*0.14,Color("#f2c777"))
+  draw_circle(hand,r*0.37,Color("#791c30"))
+ if knob_texture == null: draw_arc(hand,r*0.37,0.0,TAU,48,Color("#d66a7b"),2.5,true)
+ if knob_texture == null: draw_circle(hand,r*0.14,Color("#fff0f3"))

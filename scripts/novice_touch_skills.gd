@@ -49,10 +49,10 @@ func initialize(p_game:Node3D,p_store:Node,p_menu:Control) -> void:
  atk_button.tooltip_text="ตีปกติ ไม่ใช้สตามินา · ปุ่ม J"
  atk_button.focus_mode=Control.FOCUS_NONE
  atk_button.mouse_filter=Control.MOUSE_FILTER_STOP
- atk_button.add_theme_stylebox_override("normal",_atk_style(Color("#501018")))
- atk_button.add_theme_stylebox_override("hover",_atk_style(Color("#a52431")))
- atk_button.add_theme_stylebox_override("pressed",_atk_style(Color("#e52b3e")))
- atk_button.add_theme_stylebox_override("hover_pressed",_atk_style(Color("#e52b3e")))
+ atk_button.add_theme_stylebox_override("normal",_atk_style(Color("#791c30")))
+ atk_button.add_theme_stylebox_override("hover",_atk_style(Color("#a52b42")))
+ atk_button.add_theme_stylebox_override("pressed",_atk_style(Color("#d33d55")))
+ atk_button.add_theme_stylebox_override("hover_pressed",_atk_style(Color("#d33d55")))
  atk_button.add_theme_stylebox_override("disabled",_atk_style(Color("#32151b")))
  atk_button.add_theme_stylebox_override("focus",StyleBoxEmpty.new())
  atk_button.add_theme_color_override("font_color",Color.WHITE)
@@ -84,7 +84,7 @@ func _atk_style(fill:Color) -> StyleBoxFlat:
  var style:=StyleBoxFlat.new()
  style.bg_color=fill
  style.set_border_width_all(0)
- style.set_corner_radius_all(5)
+ style.set_corner_radius_all(12)
  return style
 
 func _layout() -> void:
@@ -147,7 +147,7 @@ func _process(_delta:float) -> void:
   # even while the 0.52-second attack animation is still recovering.
   atk_button.disabled=not is_instance_valid(combat)
   var auto_mode:bool=is_instance_valid(combat) and bool(combat.is_auto_attacking())
-  atk_button.text="" if is_instance_valid(atk_art) else ("หยุด" if auto_mode else "ATK")
+  atk_button.text="" if is_instance_valid(atk_art) else ("หยุด" if auto_mode else "โจมตี")
   if is_instance_valid(atk_art):
    atk_art.modulate=Color(1.0,0.62,0.62,1.0) if auto_mode else Color.WHITE
   atk_button.tooltip_text="หยุดวิ่งและโจมตีอัตโนมัติ" if auto_mode else "วิ่งเข้าหาเป้าหมายและตีต่อเนื่อง · กดซ้ำเพื่อหยุด · J"
