@@ -1039,16 +1039,30 @@ func validate() -> void:
  stick._point_to_vector(stick.size*0.8)
  check(hud_menu.get_movement_vector().length()>0.05,"Virtual mobile joystick drives real movement vector")
  stick.movement=Vector2.ZERO
+ check(stick.base_texture!=null and stick.knob_texture!=null
+  and stick.base_texture.resource_path=="res://assets/ui/hud/premium/joystick_base.png"
+  and stick.knob_texture.resource_path=="res://assets/ui/hud/premium/joystick_knob.png",
+  "Mobile joystick uses two real independent transparent PNG textures")
+ for action_name in ["run","target","jump","pickup"]:
+  var action_button:Button=hud_menu.controls[action_name] as Button
+  var action_icon:TextureRect=action_button.get_node("Glyph") as TextureRect
+  var expected_png:String="button_dash" if action_name=="run" else ("button_target_lock" if action_name=="target" else "button_"+action_name)
+  check(action_icon.texture!=null and action_icon.texture.resource_path=="res://assets/ui/hud/premium/"+expected_png+".png"
+   and action_icon.size==action_button.size and action_button.get_theme_stylebox("normal") is StyleBoxEmpty,
+   "Mobile "+action_name+" draws its complete standalone combat PNG with no square base")
  var novice_touch:Control=game.novice_touch_bar
  novice_touch._process(0.0)
  check(novice_touch.skill_buttons.size()==3 and novice_touch.visible,
   "Phone shows three original skill PNG buttons without changing HUD joystick/action positions")
  var atk_button:Button=novice_touch.atk_button as Button
- check(atk_button!=null and atk_button.visible and atk_button.text=="ATK",
-  "A separate ordinary ATK action is visible and text-rendered, with no extra PNG asset")
+ var atk_art:TextureRect=atk_button.get_node_or_null("ApprovedATKArt") as TextureRect
+ check(atk_button!=null and atk_button.visible and atk_button.text=="" and atk_art!=null,
+  "Normal ATK is a dedicated full PNG combat control, never a text rectangle")
+ check(atk_art.texture!=null and atk_art.texture.resource_path=="res://assets/ui/hud/premium/button_attack_swords.png",
+  "ATK loads the real standalone crossed-swords PNG asset")
  var atk_style:StyleBox=atk_button.get_theme_stylebox("normal")
- check(atk_style is StyleBoxFlat and (atk_style as StyleBoxFlat).border_width_left==0,
-  "Basic ATK has flat ruby UI without a base-icon ring or decorative frame")
+ check(atk_style is StyleBoxEmpty and atk_art.size==atk_button.size,
+  "ATK renders full artwork without an extra square base")
  check(atk_button.get_global_rect().end.y<=mobile_target_button.get_global_rect().position.y-4.0
   and not atk_button.get_global_rect().intersects(mobile_target_button.get_global_rect()),
   "ATK is above unchanged TARGET, not in front of target-touch controls")
@@ -1159,12 +1173,13 @@ func validate() -> void:
  check(not combat.basic_attack() and is_equal_approx(float(real_training_target.get_meta("hp")),after_basic_atk),
   "Repeated auto tick during one sword swing cannot double-hit")
  novice_touch._process(0.0)
- check(atk_button.text=="หยุด" and not atk_button.disabled,
-  "Auto-ATK button changes to Stop and can cancel DURING a swing cooldown")
+ check(atk_button.text=="" and not atk_button.disabled and atk_art.modulate.r>atk_art.modulate.g,
+  "The auto-ATK PNG changes tint and remains clickable during cooldown")
  check(game._normal_attack() and not combat.is_auto_attacking(),
   "Second ATK/J press toggles off chasing and continuous slashes")
  novice_touch._process(0.0)
- check(atk_button.text=="ATK","ATK label returns after stopping continuous attack")
+ check(atk_button.text=="" and atk_art.modulate==Color.WHITE,
+  "The PNG ATK icon returns to its normal color when combat stops")
  combat._process(0.53)
  novice_touch._process(0.0)
  var before_button_hit:float=float(real_training_target.get_meta("hp"))
