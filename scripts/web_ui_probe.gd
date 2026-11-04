@@ -274,6 +274,21 @@ func _process(delta: float) -> void:
   "shop_pages":buttons(ui.shop_page_buttons),"shop_sell_visible":ui.shop_sell_dialog.visible,
   "shop_buy_disabled":ui.shop_buy_button.disabled,"shop_sell_disabled":ui.shop_sell_button.disabled
  }
+ var portrait_mode:Control=menu.page_body.find_child("ScreenModePortrait",true,false) as Control
+ var landscape_mode:Control=menu.page_body.find_child("ScreenModeLandscape",true,false) as Control
+ state["hud_popup_visible"]=menu.popup.visible
+ state["hud_page_scroll_bounds"]=bounds(menu.page_scroll)
+ state["hud_screen_mode_portrait"]=bounds(portrait_mode) if portrait_mode!=null else []
+ state["hud_screen_mode_landscape"]=bounds(landscape_mode) if landscape_mode!=null else []
+ var world_skill_bar:Control=host.get("novice_touch_bar") as Control
+ var world_skill_bounds:Array=[]
+ var world_skill_visible:Array=[]
+ if world_skill_bar!=null:
+  for button in world_skill_bar.skill_buttons:
+   world_skill_bounds.append(bounds(button))
+   world_skill_visible.append(button.is_visible_in_tree())
+ state["novice_world_skill_bounds"]=world_skill_bounds
+ state["novice_world_skill_visible"]=world_skill_visible
  var character_data: Dictionary = {}
  for key in ui.character_values:
   character_data[str(key)] = str(ui.character_values[key].text)
