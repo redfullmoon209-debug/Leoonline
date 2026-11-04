@@ -277,6 +277,7 @@ func _process(delta: float) -> void:
  var portrait_mode:Control=menu.page_body.find_child("ScreenModePortrait",true,false) as Control
  var landscape_mode:Control=menu.page_body.find_child("ScreenModeLandscape",true,false) as Control
  state["hud_popup_visible"]=menu.popup.visible
+ state["hud_page_scroll_bounds"]=bounds(menu.page_scroll)
  state["hud_screen_mode_portrait"]=bounds(portrait_mode) if portrait_mode!=null else []
  state["hud_screen_mode_landscape"]=bounds(landscape_mode) if landscape_mode!=null else []
  var world_skill_bar:Control=host.get("novice_touch_bar") as Control
