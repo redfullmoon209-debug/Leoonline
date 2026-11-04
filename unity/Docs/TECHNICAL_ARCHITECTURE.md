@@ -1,4 +1,4 @@
-# LEOONLINE Technical Architecture / server authority
+# LEOM Technical Architecture / server authority
 
 This document specifies the intended online design, **not existing deployed infrastructure**.
 

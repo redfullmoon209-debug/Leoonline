@@ -5,7 +5,7 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace Leoonline.EditorTools
+namespace Leom.EditorTools
 {
     public static class UnityCloudPreExport
     {
@@ -13,9 +13,9 @@ namespace Leoonline.EditorTools
         {
             BuildPrototypeScene.BuildHeadless();
             PlayerSettings.companyName = "Leoonline";
-            PlayerSettings.productName = "LEOONLINE Offline PvE Playtest";
+            PlayerSettings.productName = "LEOM Offline PvE Playtest";
             PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Disabled;
-            Debug.Log("[LEOONLINE] Cloud build pre-export prepared the prototype scene.");
+            Debug.Log("[LEOM] Cloud build pre-export prepared the prototype scene.");
         }
     }
 }

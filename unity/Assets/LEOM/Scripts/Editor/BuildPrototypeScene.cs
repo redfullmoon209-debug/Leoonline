@@ -1,30 +1,30 @@
 // Unity Editor menu: generate a runnable offline demo without external assets.
 #if UNITY_EDITOR
-using Leoonline.Prototype;
+using Leom.Prototype;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-namespace Leoonline.EditorTools
+namespace Leom.EditorTools
 {
     public static class BuildPrototypeScene
     {
-        private const string SceneFolder = "Assets/LEOONLINE/Scenes";
+        private const string SceneFolder = "Assets/LEOM/Scenes";
         private const string ScenePath = SceneFolder + "/Prototype.unity";
 
-        [MenuItem("Tools/LEOONLINE/Build Prototype Scene")]
+        [MenuItem("Tools/LEOM/Build Prototype Scene")]
         public static void Build()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)
             {
-                EditorUtility.DisplayDialog("LEOONLINE", "Exit Play Mode before building the scene.", "OK");
+                EditorUtility.DisplayDialog("LEOM", "Exit Play Mode before building the scene.", "OK");
                 return;
             }
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
                 return;
             BuildScene();
-            EditorUtility.DisplayDialog("LEOONLINE", "Offline scene created. Press Play to test PvE. No multiplayer.", "OK");
+            EditorUtility.DisplayDialog("LEOM", "Offline scene created. Press Play to test PvE. No multiplayer.", "OK");
         }
 
         // Used by the automated WebGL build: do not show blocking Editor dialogs.
@@ -36,7 +36,7 @@ namespace Leoonline.EditorTools
         private static void BuildScene()
         {
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-            var game = new GameObject("LEOONLINE Offline Game");
+            var game = new GameObject("LEOM Offline Game");
             game.AddComponent<PrototypeGame>();
             game.AddComponent<PrototypeHUD>();
 
@@ -52,7 +52,7 @@ namespace Leoonline.EditorTools
             controller.height = 2f;
             controller.radius = 0.38f;
             controller.center = new Vector3(0f, 1f, 0f);
-            player.AddComponent<LeoonlinePlayer>();
+            player.AddComponent<LeomPlayer>();
             GameObject visiblePlayer = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             visiblePlayer.name = "TEMP PLAYER VISUAL - replace with original FemaleLeo FBX";
             visiblePlayer.transform.SetParent(player.transform, false);
@@ -102,11 +102,11 @@ namespace Leoonline.EditorTools
             }
 
             if (!AssetDatabase.IsValidFolder(SceneFolder))
-                AssetDatabase.CreateFolder("Assets/LEOONLINE", "Scenes");
+                AssetDatabase.CreateFolder("Assets/LEOM", "Scenes");
             EditorSceneManager.SaveScene(scene, ScenePath);
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
             Selection.activeGameObject = game;
-            Debug.Log("[LEOONLINE] Prototype scene generated at " + ScenePath);
+            Debug.Log("[LEOM] Prototype scene generated at " + ScenePath);
         }
 
         private static void Colorize(GameObject obj, Color color)

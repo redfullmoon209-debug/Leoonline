@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
-namespace Leoonline.Prototype
+namespace Leom.Prototype
 {
 public sealed class PrototypeHUD : MonoBehaviour
     {
@@ -27,7 +27,7 @@ public sealed class PrototypeHUD : MonoBehaviour
         {
             var game = PrototypeGame.Instance;
             if (!game) return;
-            GUI.Box(new Rect(10, 10, 355, 142), "LEOONLINE — OFFLINE UNITY TEST");
+            GUI.Box(new Rect(10, 10, 355, 142), "LEOM — OFFLINE UNITY TEST");
             GUI.Label(new Rect(23, 39, 320, 24), "Level " + game.Profile.level + "   EXP " + game.Profile.exp + "/" + game.ExpToNextLevel());
             GUI.Label(new Rect(23, 63, 320, 24), "HP " + (game.Player ? Mathf.CeilToInt(game.Player.health).ToString() : "-") +
                 "   Gold " + game.Profile.currency[0]);

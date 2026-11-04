@@ -1,6 +1,6 @@
-# LEOONLINE — Unity 3D MMORPG migration foundation
+# LEOM — Unity 3D MMORPG migration foundation
 
-This is a **separate Unity project** living in the existing Godot repository. The original root-level Godot 4.4.1 project, GitHub Pages playtests, scripts, and assets are intentionally untouched.
+This is a **separate Unity LEOM project** living in the existing Godot repository. The original root-level Godot 4.4.1 Leoonline project, GitHub Pages playtests, scripts, and assets are intentionally untouched.
 
 ## Current implementation (local vertical slice, NOT online)
 - Unity 6.3 LTS project skeleton (starting Editor version 6000.3.0f1).
@@ -18,7 +18,7 @@ This is a **separate Unity project** living in the existing Godot repository. Th
 2. Clone the GitHub repository and check out branch **unity-mmorpg-foundation**.
 3. In Unity Hub select **Add project from disk**, and choose the **unity/** folder (not the repository root).
 4. Wait for Unity to import scripts. The prototype uses the built-in render pipeline and legacy Input Manager, so no external marketplace assets are needed.
-5. In Unity choose **Tools > LEOONLINE > Build Prototype Scene**. This creates Assets/LEOONLINE/Scenes/Prototype.unity and makes it the first build scene.
+5. In Unity choose **Tools > LEOM > Build Prototype Scene**. This creates Assets/LEOM/Scenes/Prototype.unity and makes it the first build scene.
 6. Open the generated scene if needed and press Play.
 
 If input is disabled, open **Edit > Project Settings > Player > Other Settings > Active Input Handling** and choose **Input Manager (Old)** or **Both**; restart Editor if prompted.
@@ -30,10 +30,10 @@ If input is disabled, open **Edit > Project Settings > Player > Other Settings >
 - Press Play to reset scene. Profile and inventory persist locally in Application.persistentDataPath/leoonline-unity-prototype.json.
 
 ## Layout
-- Assets/LEOONLINE/Scripts/Runtime/Prototype — offline gameplay proof of concept
-- Assets/LEOONLINE/Scripts/Runtime/Shared — exact-decimal currency and PvP zone rule contracts
-- Assets/LEOONLINE/Scripts/Editor — scene creation tool (Editor only)
-- Assets/LEOONLINE/Scenes — generated once with Tools > LEOONLINE
+- Assets/LEOM/Scripts/Runtime/Prototype — offline gameplay proof of concept
+- Assets/LEOM/Scripts/Runtime/Shared — exact-decimal currency and PvP zone rule contracts
+- Assets/LEOM/Scripts/Editor — scene creation tool (Editor only)
+- Assets/LEOM/Scenes — generated once with Tools > LEOM
 - Docs — design, roadmap, migration, server authority contracts
 
 ## Migration boundaries

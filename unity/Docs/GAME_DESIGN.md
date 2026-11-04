@@ -1,4 +1,4 @@
-# LEOONLINE Game Design — 3D farming MMORPG
+# LEOM Game Design — 3D farming MMORPG
 
 Status: PRODUCT TARGET (not all features are implemented). Inspired by the genre's progression loop, not copied game content.
 

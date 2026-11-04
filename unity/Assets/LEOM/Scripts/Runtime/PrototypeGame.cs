@@ -3,19 +3,19 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
-namespace Leoonline.Prototype
+namespace Leom.Prototype
 {
 public sealed class PrototypeGame : MonoBehaviour
     {
         public static PrototypeGame Instance { get; private set; }
         public LocalCharacter Profile { get; private set; } = new LocalCharacter();
-        public LeoonlinePlayer Player { get; private set; }
-        public string Message { get; private set; } = "Welcome to LEOONLINE offline PvE test";
+        public LeomPlayer Player { get; private set; }
+        public string Message { get; private set; } = "Welcome to LEOM offline PvE test";
         public float MessageUntil { get; private set; }
 
         private const int MaxBagSlots = 200;
         private const int UnlockedBagSlots = 40;
-        private string SaveFile => Path.Combine(Application.persistentDataPath, "leoonline-unity-prototype.json");
+        private string SaveFile => Path.Combine(Application.persistentDataPath, "leom-unity-prototype.json");
 
         private void Awake()
         {
@@ -29,13 +29,13 @@ public sealed class PrototypeGame : MonoBehaviour
             if (Input.GetKeyDown(KeyCode.F5)) SaveProfile();
         }
 
-        public void AttachPlayer(LeoonlinePlayer player) { Player = player; }
+        public void AttachPlayer(LeomPlayer player) { Player = player; }
 
         public void Notify(string message)
         {
             Message = message;
             MessageUntil = Time.time + 4f;
-            Debug.Log("[LEOONLINE] " + message);
+            Debug.Log("[LEOM] " + message);
         }
 
         public int ExpToNextLevel() => 80 + (Profile.level - 1) * 45;

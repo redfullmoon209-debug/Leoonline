@@ -6,7 +6,7 @@ using UnityEditor;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
 
-namespace Leoonline.EditorTools
+namespace Leom.EditorTools
 {
     public static class UnityWebGLBuild
     {
@@ -16,7 +16,7 @@ namespace Leoonline.EditorTools
             BuildPrototypeScene.BuildHeadless();
 
             PlayerSettings.companyName = "Leoonline";
-            PlayerSettings.productName = "LEOONLINE Offline PvE Playtest";
+            PlayerSettings.productName = "LEOM Offline PvE Playtest";
             // GitHub Pages doesn't provide the configurable Content-Encoding headers
             // required by all compressed WebGL distribution variants.
             PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Disabled;
@@ -25,7 +25,7 @@ namespace Leoonline.EditorTools
             Directory.CreateDirectory(output);
             var options = new BuildPlayerOptions
             {
-                scenes = new[] { "Assets/LEOONLINE/Scenes/Prototype.unity" },
+                scenes = new[] { "Assets/LEOM/Scenes/Prototype.unity" },
                 locationPathName = output,
                 target = BuildTarget.WebGL,
                 options = BuildOptions.None
@@ -35,7 +35,7 @@ namespace Leoonline.EditorTools
                 throw new InvalidOperationException("Unity WebGL build failed: " + report.summary.result);
             if (!File.Exists(Path.Combine(output, "index.html")))
                 throw new IOException("Unity WebGL build index.html is missing");
-            Debug.Log("[LEOONLINE] WebGL export ready: " + output);
+            Debug.Log("[LEOM] WebGL export ready: " + output);
         }
     }
 }

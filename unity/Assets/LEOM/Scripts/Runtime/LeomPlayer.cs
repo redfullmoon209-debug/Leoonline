@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
-namespace Leoonline.Prototype
+namespace Leom.Prototype
 {
-public sealed class LeoonlinePlayer : MonoBehaviour
+public sealed class LeomPlayer : MonoBehaviour
     {
         public float walkSpeed = 4.2f;
         public float sprintSpeed = 6.8f;

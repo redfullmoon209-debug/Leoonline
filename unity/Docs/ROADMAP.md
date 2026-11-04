@@ -1,4 +1,4 @@
-# LEOONLINE implementation roadmap and acceptance criteria
+# LEOM implementation roadmap and acceptance criteria
 
 This is the staged backlog for a full Unity 3D MMORPG. Each milestone is gated; no calendar or delivery date is promised.
 

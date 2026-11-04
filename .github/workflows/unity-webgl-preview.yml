@@ -54,7 +54,7 @@ jobs:
       - name: Upload real Unity WebGL browser artifact
         uses: actions/upload-artifact@v4
         with:
-          name: LEOONLINE-Unity-WebGL
+          name: LEOM-Unity-WebGL
           path: unity/build/WebGL/
           if-no-files-found: error
           retention-days: 30
@@ -75,7 +75,7 @@ jobs:
       - name: Download Unity WebGL build from current run
         uses: actions/download-artifact@v4
         with:
-          name: LEOONLINE-Unity-WebGL
+          name: LEOM-Unity-WebGL
           path: unity-output
       - name: Retrieve current Godot Pages site artifact
         uses: dawidd6/action-download-artifact@v6

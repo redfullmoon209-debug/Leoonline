@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
-namespace Leoonline.Prototype
+namespace Leom.Prototype
 {
 public sealed class GroundLoot : MonoBehaviour
     {

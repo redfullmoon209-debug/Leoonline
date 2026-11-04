@@ -1,10 +1,10 @@
-# Mapping the existing Godot repository into Unity
+# Mapping the legacy Godot Leoonline repository into Unity LEOM
 
 Inspected source: redfullmoon209-debug/Leoonline, main branch (2026-11-04).
 
 | Existing source | Unity destination / intended port |
 | --- | --- |
-| project.godot / scenes/main.tscn / scripts/main.gd | Unity/Assets/LEOONLINE/Scenes + Editor scene builder, then world/character modules |
+| project.godot / scenes/main.tscn / scripts/main.gd | Unity/Assets/LEOM/Scenes + Editor scene builder, then world/character modules |
 | scripts/novice_combat.gd / scripts/novice_touch_skills.gd | Runtime/Gameplay/Combat + server-authoritative ability commands |
 | scripts/skill_catalog.gd / scripts/job_catalog.gd | ScriptableObject databases / server-backed profession and skill IDs |
 | scripts/store.gd | Character inventory/equipment/currency domain + server transaction service |
