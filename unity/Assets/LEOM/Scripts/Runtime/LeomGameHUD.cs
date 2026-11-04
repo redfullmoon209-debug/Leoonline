@@ -64,7 +64,7 @@ namespace Leom.Prototype
                 Count(c.storage) + "/200 | Kills " + c.pveKills + " | Target " +
                 (p ? p.CurrentTarget : "none"));
             GUI.Label(new Rect(20,102,headerWidth-25,23),
-                "WASD move · RMB camera · LMB attack · T target · 1/2/3 skills · E loot");
+                "WASD move | RMB orbit | LMB hit | T target | Q auto | 1/2/3 skills | E loot");
             float navY = 136f;
             float navWidth = Mathf.Min(840f,w-18f);
             string[] labels = {"Bag [B]","Bank","Shop","Gear","Stats [C]","Skills [K]","Map","PvP","Prefs"};

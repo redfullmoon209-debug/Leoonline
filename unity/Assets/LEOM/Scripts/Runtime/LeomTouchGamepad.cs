@@ -6,7 +6,7 @@ namespace Leom.Prototype
     public sealed class LeomTouchGamepad : MonoBehaviour
     {
         public Vector2 Movement { get; private set; }
-        private bool attack, pickup, jump;
+        private bool attack, pickup, jump, auto;
         private readonly bool[] skills = new bool[3];
         private bool forced;
         private LeomGameHUD hud;
@@ -18,6 +18,7 @@ namespace Leom.Prototype
             if (!Visible || (hud != null && hud.WindowOpen)) Movement = Vector2.zero;
         }
         public bool ConsumeAttack() { bool pressed = attack; attack = false; return pressed; }
+        public bool ConsumeAuto() { bool pressed = auto; auto = false; return pressed; }
         public bool ConsumeLoot() { bool pressed = pickup; pickup = false; return pressed; }
         public bool ConsumeJump() { bool pressed = jump; jump = false; return pressed; }
         public bool ConsumeSkill(int index)
@@ -45,6 +46,7 @@ namespace Leom.Prototype
             if (GUI.Button(new Rect(bx,h-174,74,60),"ATK")) attack = true;
             if (GUI.Button(new Rect(bx-84,h-174,74,60),"PICK")) pickup = true;
             if (GUI.Button(new Rect(bx,h-105,74,60),"JUMP")) jump = true;
+            if (GUI.Button(new Rect(bx-168,h-174,74,60),"AUTO")) auto = true;
             for (int i = 0; i < 3; i++)
                 if (GUI.Button(new Rect(bx-(i+1)*84,h-105,74,60),"SK"+(i+1))) skills[i] = true;
             GUI.matrix = original;

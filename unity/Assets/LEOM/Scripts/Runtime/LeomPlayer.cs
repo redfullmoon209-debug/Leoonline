@@ -18,6 +18,8 @@ namespace Leom.Prototype
         private Vector3 verticalVelocity;
         private float nextBasic, guardUntil, nextSlash, nextRush, nextGuard;
         private MonsterBrain target;
+        private bool autoAttack;
+        public bool AutoAttackEnabled => autoAttack;
         public bool IsAlive => health > 0f;
         public bool GuardActive => Time.time < guardUntil;
         public string CurrentTarget => target && target.IsAlive ? target.name : "none";
@@ -32,6 +34,8 @@ namespace Leom.Prototype
         private void Update()
         {
             if (Input.GetKeyDown(KeyCode.T)) LockNearest();
+            if (Input.GetKeyDown(KeyCode.Q) || (touch && touch.ConsumeAuto()))
+                ToggleAutoAttack();
             if (Input.GetKeyDown(KeyCode.Alpha1)) UseSkillSlot(0);
             if (Input.GetKeyDown(KeyCode.Alpha2)) UseSkillSlot(1);
             if (Input.GetKeyDown(KeyCode.Alpha3)) UseSkillSlot(2);
@@ -46,6 +50,11 @@ namespace Leom.Prototype
             Vector3 forward = view ? Vector3.ProjectOnPlane(view.transform.forward, Vector3.up).normalized : Vector3.forward;
             Vector3 right = view ? Vector3.ProjectOnPlane(view.transform.right, Vector3.up).normalized : Vector3.right;
             Vector3 movement = Vector3.ClampMagnitude(forward * v + right * h, 1f);
+            if (movement.sqrMagnitude > 0.001f && autoAttack)
+            {
+                autoAttack = false;
+                LeomRpgService.Instance?.Tell("Auto attack stopped by manual movement");
+            }
             if (movement.sqrMagnitude > 0.001f)
                 transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(movement), 12f * Time.deltaTime);
             float speed = Input.GetKey(KeyCode.LeftShift) ? sprintSpeed : walkSpeed;
@@ -56,6 +65,7 @@ namespace Leom.Prototype
                 verticalVelocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
             verticalVelocity.y += gravity * Time.deltaTime;
             controller.Move(verticalVelocity * Time.deltaTime);
+            if (autoAttack) RunAutoAttack();
 
             bool clickAttack = !Application.isMobilePlatform && Input.GetMouseButtonDown(0);
             if (clickAttack || (touch && touch.ConsumeAttack())) BasicAttack();
@@ -63,6 +73,28 @@ namespace Leom.Prototype
             if (touch && touch.ConsumeSkill(0)) UseSkillSlot(0);
             if (touch && touch.ConsumeSkill(1)) UseSkillSlot(1);
             if (touch && touch.ConsumeSkill(2)) UseSkillSlot(2);
+        }
+        public void ToggleAutoAttack()
+        {
+            autoAttack = !autoAttack;
+            if (autoAttack && (!target || !target.IsAlive)) target = NearestMonster(22f,false);
+            LeomRpgService.Instance?.Tell(autoAttack ? "Auto attack enabled (Q to stop)" : "Auto attack disabled");
+        }
+        private void RunAutoAttack()
+        {
+            if (!target || !target.IsAlive) target = NearestMonster(22f,false);
+            if (!target) return;
+            Vector3 delta = target.transform.position - transform.position;
+            delta.y = 0;
+            float distance = delta.magnitude;
+            if (distance > 22f) { autoAttack = false; return; }
+            if (distance > attackRange - .35f)
+            {
+                Face(target.transform.position);
+                // Local convenience AI only. Server movement validation is mandatory online.
+                controller.Move(delta.normalized * sprintSpeed * Time.deltaTime);
+            }
+            else BasicAttack();
         }
         public void LockNearest()
         {
@@ -181,6 +213,7 @@ namespace Leom.Prototype
             transform.position = position;
             controller.enabled = true;
             health = maxHealth; stamina = maxStamina;
+            autoAttack = false;
             verticalVelocity = Vector3.zero;
         }
     }
