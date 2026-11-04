@@ -205,15 +205,16 @@ jobs:
               '<a href="mobile.html">เล่นแบบแนวตั้งแทน</a>')
           # Only the homepage fills PC and mobile screens without the testing
           # frame; the verified versioned landscape QA pages remain untouched.
-          primary = primary.replace('  </style>', """    /* Fullscreen, responsive live game on the public homepage. */
-    .test-header { display: none; }
-    #landscape-shell {
-      width: 100vw; height: 100vh; height: 100dvh;
-      max-width: none; aspect-ratio: auto;
-      border: 0; border-radius: 0; box-shadow: none;
-    }
-    #game-frame { border-radius: 0; }
-  </style>""")
+          primary = primary.replace('  </style>', """
+              /* Fullscreen, responsive live game on the public homepage. */
+              .test-header { display: none; }
+              #landscape-shell {
+                width: 100vw; height: 100vh; height: 100dvh;
+                max-width: none; aspect-ratio: auto;
+                border: 0; border-radius: 0; box-shadow: none;
+              }
+              #game-frame { border-radius: 0; }
+            </style>""")
           (web/"index.html").write_text(primary, encoding="utf-8")
           # Portrait remains a separate playable entrypoint and shares saves.
           assert 'id="landscape-shell"' in primary
