@@ -5,13 +5,15 @@ using UnityEngine;
 
 namespace Leoonline.Prototype
 {
-public sealed class BagItem
+[Serializable]
+    public sealed class BagItem
     {
         public string id;
         public int count;
     }
 
-public sealed class LocalCharacter
+[Serializable]
+    public sealed class LocalCharacter
     {
         public int level = 1;
         public int exp = 0;
