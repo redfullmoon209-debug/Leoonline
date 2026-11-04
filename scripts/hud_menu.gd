@@ -268,21 +268,26 @@ func _build_buttons() -> void:
   button.name="Touch_"+key
   button.mouse_filter=Control.MOUSE_FILTER_STOP
   _dress(button)
-  # Mobile action pictograms also remain untouched on pointer hover.
-  button.add_theme_stylebox_override("hover",StyleBoxEmpty.new())
+  # No extra square base: each full touch-button PNG is transparent.
+  for state in ["normal","hover","pressed","hover_pressed","disabled"]:
+   button.add_theme_stylebox_override(state,StyleBoxEmpty.new())
   add_child(button)
   controls[key]=button
   var image:=TextureRect.new()
   image.name="Glyph"
   var candidate:String=""
-  if key=="run":candidate=PREMIUM_ROOT+"button_dash.png"
-  elif key=="target":candidate=PREMIUM_ROOT+"button_target_lock.png"
+  match key:
+   "run": candidate=PREMIUM_ROOT+"button_dash.png"
+   "target": candidate=PREMIUM_ROOT+"button_target_lock.png"
+   "jump": candidate=PREMIUM_ROOT+"button_jump.png"
+   "pickup": candidate=PREMIUM_ROOT+"button_pickup.png"
   var art_path:String=candidate if candidate!="" and ResourceLoader.exists(candidate) else ICON_ROOT+key+".svg"
   image.texture=load(art_path) as Texture2D
   image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
   image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
   image.mouse_filter=Control.MOUSE_FILTER_IGNORE
   button.add_child(image)
+  RedButtonStyle.image_overlay(button)
   var label:=Label.new()
   label.name="Caption"
   label.text=_label_for(key)
@@ -405,10 +410,13 @@ func _reflow() -> void:
   elif id!="joystick":
    var glyph:TextureRect=control.get_node("Glyph") as TextureRect
    var caption_touch:Label=control.get_node("Caption") as Label
-   glyph.position=Vector2(wh*0.19,wh*0.08)
-   glyph.size=Vector2(wh*0.62,wh*0.60)
-   caption_touch.position=Vector2(1.0,wh*0.66)
-   caption_touch.size=Vector2(wh-2.0,wh*0.28)
+   # Preserve the full independent illustration without cropping.
+   glyph.position=Vector2.ZERO
+   glyph.size=Vector2(wh,wh)
+   caption_touch.position=Vector2(-6.0,wh*0.93)
+   caption_touch.size=Vector2(wh+12.0,18.0)
+   caption_touch.add_theme_color_override("font_outline_color",Color("#150b18"))
+   caption_touch.add_theme_constant_override("outline_size",3)
    caption_touch.add_theme_font_size_override("font_size",clampi(int(wh*0.16),9,14))
    caption_touch.visible=display_names
   if id=="joystick": control.queue_redraw()
