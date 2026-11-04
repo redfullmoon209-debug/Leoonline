@@ -268,8 +268,17 @@ func _build_buttons() -> void:
   button.name="Touch_"+key
   button.mouse_filter=Control.MOUSE_FILTER_STOP
   _dress(button)
-  # Mobile action pictograms also remain untouched on pointer hover.
-  button.add_theme_stylebox_override("hover",StyleBoxEmpty.new())
+  # Match the attack control without changing hit areas or approved artwork.
+  for state in ["normal","hover","pressed","hover_pressed","disabled"]:
+   var surface:=StyleBoxFlat.new()
+   surface.bg_color=Color("#24151de8")
+   if state=="hover":surface.bg_color=Color("#53202deF")
+   elif state in ["pressed","hover_pressed"]:surface.bg_color=Color("#b52c43")
+   elif state=="disabled":surface.bg_color=Color("#24151d80")
+   surface.set_border_width_all(0)
+   surface.set_corner_radius_all(12)
+   button.add_theme_stylebox_override(state,surface)
+  button.add_theme_stylebox_override("focus",StyleBoxEmpty.new())
   add_child(button)
   controls[key]=button
   var image:=TextureRect.new()
@@ -289,7 +298,7 @@ func _build_buttons() -> void:
   label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
   label.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
   label.mouse_filter=Control.MOUSE_FILTER_IGNORE
-  label.add_theme_color_override("font_color",Color("#fff4d9"))
+  label.add_theme_color_override("font_color",Color.WHITE)
   if _font()!=null: label.add_theme_font_override("font",_font())
   button.add_child(label)
   match key:
@@ -409,7 +418,7 @@ func _reflow() -> void:
    glyph.size=Vector2(wh*0.62,wh*0.60)
    caption_touch.position=Vector2(1.0,wh*0.66)
    caption_touch.size=Vector2(wh-2.0,wh*0.28)
-   caption_touch.add_theme_font_size_override("font_size",clampi(int(wh*0.16),9,14))
+   caption_touch.add_theme_font_size_override("font_size",clampi(int(wh*0.18),10,14))
    caption_touch.visible=display_names
   if id=="joystick": control.queue_redraw()
   control.tooltip_text=_label_for(id)
