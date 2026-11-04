@@ -74,6 +74,7 @@ func initialize(p_game:Node3D,p_store:Node,p_menu:Control) -> void:
   atk_button.add_theme_stylebox_override("hover",StyleBoxEmpty.new())
   atk_button.add_theme_stylebox_override("pressed",StyleBoxEmpty.new())
   atk_button.add_theme_stylebox_override("disabled",StyleBoxEmpty.new())
+  atk_button.add_theme_stylebox_override("hover_pressed",StyleBoxEmpty.new())
   atk_button.add_child(atk_art)
  atk_button.pressed.connect(_press_atk)
  resized.connect(_layout)
