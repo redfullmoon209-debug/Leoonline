@@ -87,6 +87,16 @@ func _check() -> void:
         push_error("FemaleLeo is still T-posing; upper arms must hang down in idle")
         quit(1)
         return
+    # A downward upper arm alone can still look lifeless. A real ready
+    # stance must bend BOTH elbows so the forearm aims out in front.
+    var right_ready_forearm:Vector3=(skel.get_bone_global_pose(right_hand).origin-skel.get_bone_global_pose(right_forearm).origin).normalized()
+    var left_ready_forearm:Vector3=(skel.get_bone_global_pose(left_hand).origin-skel.get_bone_global_pose(left_forearm).origin).normalized()
+    print("FEMALE READY GUARD QA: right forearm ",right_ready_forearm,
+          " left forearm ",left_ready_forearm)
+    if absf(right_idle.dot(right_ready_forearm))>0.90 or absf(left_idle.dot(left_ready_forearm))>0.90:
+        push_error("Idle arms still hang almost straight: bend both elbows for the combat-ready stance")
+        quit(1)
+        return
     var socket:BoneAttachment3D=visual.get("sword_attachment") as BoneAttachment3D
     var sword:Node3D=visual.get("sword_visual") as Node3D
     if socket==null or sword==null or not bool(sword.get("mesh_ready")):
