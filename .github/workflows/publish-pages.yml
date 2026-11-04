@@ -45,6 +45,17 @@ jobs:
           curl -fL --retry 3 https://github.com/godotengine/godot-builds/releases/download/4.4.1-stable/Godot_v4.4.1-stable_export_templates.tpz -o templates.tpz
           mkdir -p "$HOME/.local/share/godot/export_templates/4.4.1.stable"
           unzip -j -q templates.tpz 'templates/*' -d "$HOME/.local/share/godot/export_templates/4.4.1.stable"
+      - name: Generate seven independently authored combat HUD PNG sprites
+        run: |
+          python3 -m pip install --quiet 'cairosvg>=2.7,<3' 'Pillow>=11,<13'
+          python3 tools/build_combat_hud_png.py
+          test -s assets/ui/hud/premium/button_attack_swords.png
+          test -s assets/ui/hud/premium/button_target_lock.png
+          test -s assets/ui/hud/premium/button_dash.png
+          test -s assets/ui/hud/premium/button_jump.png
+          test -s assets/ui/hud/premium/button_pickup.png
+          test -s assets/ui/hud/premium/joystick_base.png
+          test -s assets/ui/hud/premium/joystick_knob.png
       - name: Generate standalone Novice PNG assets
         run: python3 tools/create_skill_pngs.py
       - name: Generate 84 independent first-tier profession PNGs
